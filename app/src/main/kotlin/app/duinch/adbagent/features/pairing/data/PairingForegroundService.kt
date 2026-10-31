@@ -15,6 +15,7 @@ import app.duinch.adbagent.AdbAgentApp
 import app.duinch.adbagent.MainActivity
 import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 import app.duinch.adbagent.features.pairing.domain.DiscoveredAdbPorts
+import app.duinch.adbagent.features.pairing.presentation.PairingPromptActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -65,14 +66,26 @@ class PairingForegroundService : Service() {
                 val pairPort = ports.pairingPort
                 if (pairPort != null) {
                     notifyUpdated(buildReplyNotification(pairPort, ports.connectPort))
+                    showPromptDialogIfPossible(pairPort, ports.connectPort)
                 }
             }
         }
     }
 
+    private fun showPromptDialogIfPossible(pairPort: Int, connectPort: Int?) {
+        try {
+            val promptIntent = PairingPromptActivity.createIntent(this, pairPort, connectPort).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            startActivity(promptIntent)
+        } catch (_: Throwable) {
+            // Ignored if background launch is restricted by OS; notification handles tap
+        }
+    }
+
     private fun handleSubmittedCode(pairPort: Int, code: String, connectPort: Int?) {
         val container = (application as AdbAgentApp).container
-        notifyUpdated(buildStatusNotification("Đang ghép đôi cổng $pairPort...", ongoing = true))
+        notifyUpdated(buildStatusNotification("Đang ghép nối cổng $pairPort...", ongoing = true))
         container.pairingNotificationGateway.reportPairingState(AdbPairingState.PairingInProgress)
 
         scope.launch {
@@ -82,7 +95,7 @@ class PairingForegroundService : Service() {
                     container.pairingNotificationGateway.reportPairingState(state)
                     notifyUpdated(
                         buildStatusNotification(
-                            "Ghép đôi thành công! Cổng ADB ${state.connectPort} đã sẵn sàng cho 4G/5G.",
+                            "Ghép nối thành công! ADB đã sẵn sàng.",
                             ongoing = false
                         )
                     )
@@ -92,7 +105,7 @@ class PairingForegroundService : Service() {
                 onFailure = { err ->
                     val msg = err.message ?: "Sai mã hoặc cổng đã đổi"
                     container.pairingNotificationGateway.reportPairingState(AdbPairingState.Failed(msg))
-                    notifyUpdated(buildStatusNotification("Lỗi: $msg. Mở lại mã ghép nối để thử lại.", ongoing = false))
+                    notifyUpdated(buildStatusNotification("Lỗi: $msg. Vui lòng mở lại mã để thử lại.", ongoing = false))
                 }
             )
         }
@@ -105,9 +118,14 @@ class PairingForegroundService : Service() {
             Intent(this, PairingForegroundService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+        val bigText = Notification.BigTextStyle()
+            .setBigContentTitle("Đang tìm cổng ghép nối...")
+            .bigText("Vào Cài đặt → Gỡ lỗi không dây → Chọn 'Ghép nối bằng mã ghép nối'.")
+
         return baseBuilder()
-            .setContentTitle("Đang tìm hộp thoại Ghép đôi ADB...")
-            .setContentText("Vào Cài đặt → Gỡ lỗi không dây → Ghép nối bằng mã ghép nối")
+            .setContentTitle("Đang tìm cổng ghép nối...")
+            .setContentText("Mở Cài đặt → Gỡ lỗi không dây → Ghép nối bằng mã")
+            .setStyle(bigText)
             .addAction(Notification.Action.Builder(null, "Huỷ", stopPending).build())
             .setOngoing(true)
             .build()
@@ -115,7 +133,7 @@ class PairingForegroundService : Service() {
 
     private fun buildReplyNotification(pairPort: Int, connectPort: Int?): Notification {
         val remoteInput = RemoteInput.Builder(KEY_PAIRING_CODE)
-            .setLabel("Nhập mã 6 chữ số trên màn hình")
+            .setLabel("Nhập mã 6 chữ số")
             .build()
         val replyIntent = Intent(this, PairingForegroundService::class.java).apply {
             action = ACTION_SUBMIT_CODE
@@ -133,9 +151,25 @@ class PairingForegroundService : Service() {
             .addRemoteInput(remoteInput)
             .build()
 
+        val promptIntent = PairingPromptActivity.createIntent(this, pairPort, connectPort).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val promptPending = PendingIntent.getActivity(
+            this,
+            100,
+            promptIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val bigText = Notification.BigTextStyle()
+            .setBigContentTitle("Đã tìm thấy cổng: $pairPort")
+            .bigText("Chạm vào đây để mở ô nhập mã, hoặc bấm nút 'Nhập mã 6 số' bên dưới.")
+
         return baseBuilder()
-            .setContentTitle("Đã tìm thấy cổng Ghép đôi: $pairPort")
-            .setContentText("Bấm 'Nhập mã 6 số' ngay tại đây (không thoát Cài đặt)")
+            .setContentTitle("Đã tìm thấy cổng: $pairPort")
+            .setContentText("Chạm để nhập mã 6 số ngay trên màn hình")
+            .setStyle(bigText)
+            .setContentIntent(promptPending)
             .addAction(action)
             .setOngoing(true)
             .build()
@@ -149,7 +183,7 @@ class PairingForegroundService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         return baseBuilder()
-            .setContentTitle("ADB Agent • Ghép đôi nội bộ")
+            .setContentTitle("ADB Agent • Ghép nối không dây")
             .setContentText(text)
             .setContentIntent(openApp)
             .setOngoing(ongoing)

@@ -109,20 +109,20 @@ fun PairingSection(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Ghép đôi Wireless ADB",
+                            text = "Ghép nối không dây",
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         val statusText = when (val ps = state.pairingState) {
                             is AdbPairingState.PairedAndConnected ->
-                                "Đã mở cổng 5555 cố định cho cả Wi-Fi & 4G/5G"
+                                "Đã sẵn sàng kết nối Wi-Fi & 4G/5G"
                             is AdbPairingState.Failed -> ps.reason
-                            AdbPairingState.PairingInProgress -> "Đang ghép đôi và mở cổng 5555..."
+                            AdbPairingState.PairingInProgress -> "Đang ghép nối..."
                             else -> when {
-                                state.discoveredPairingPort != null -> "Phát hiện cổng Ghép đôi: ${state.discoveredPairingPort}"
-                                state.discoveredConnectPort != null -> "Phát hiện cổng Gỡ lỗi: ${state.discoveredConnectPort}"
-                                else -> "Kích hoạt 1 lần duy nhất để kết nối không dây"
+                                state.discoveredPairingPort != null -> "Tìm thấy cổng ghép nối: ${state.discoveredPairingPort}"
+                                state.discoveredConnectPort != null -> "Tìm thấy cổng gỡ lỗi: ${state.discoveredConnectPort}"
+                                else -> "Cài đặt 1 lần duy nhất để kết nối không dây"
                             }
                         }
                         Text(
@@ -135,7 +135,7 @@ fun PairingSection(
                     }
                 }
 
-                // Hướng dẫn hiển thị trực tiếp phẳng trên Card, không bọc Surface lồng nhau
+                // Hướng dẫn hiển thị trực tiếp phẳng trên Card
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = "1. Bấm nút bên dưới để mở Gỡ lỗi không dây.",
@@ -148,7 +148,7 @@ fun PairingSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "3. Kéo thông báo xuống và điền mã 6 chữ số.",
+                        text = "3. Hộp thoại nhập mã sẽ tự động hiện lên.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -162,7 +162,7 @@ fun PairingSection(
                 ) {
                     Icon(AppIcons.LinkWireless, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Ghép đôi qua Thông báo", maxLines = 1)
+                    Text("Ghép nối nhanh", maxLines = 1)
                 }
 
                 if (state.effectiveConnectPort != null) {
@@ -172,7 +172,7 @@ fun PairingSection(
                             .fillMaxWidth()
                             .heightIn(min = 46.dp)
                     ) {
-                        Text("Kích hoạt lại cổng 5555", maxLines = 1)
+                        Text("Bật lại ADB", maxLines = 1)
                     }
                 }
 
@@ -187,7 +187,7 @@ fun PairingSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Nhập mã thủ công (Chia đôi màn hình)",
+                        text = "Nhập thủ công (nâng cao)",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 1
@@ -233,7 +233,7 @@ fun PairingSection(
                             value = state.connectPortInput,
                             onValueChange = { onIntent(PairingUiIntent.UpdateConnectPort(it)) },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Cổng Connect (mDNS tự điền)", maxLines = 1) },
+                            label = { Text("Cổng Connect", maxLines = 1) },
                             placeholder = { Text(state.discoveredConnectPort?.toString() ?: "38517") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                             singleLine = true
@@ -247,8 +247,8 @@ fun PairingSection(
                                 .heightIn(min = 46.dp)
                         ) {
                             Text(
-                                if (state.pairingState is AdbPairingState.PairingInProgress) "Đang ghép đôi..."
-                                else "Xác nhận ghép đôi",
+                                if (state.pairingState is AdbPairingState.PairingInProgress) "Đang ghép nối..."
+                                else "Xác nhận ghép nối",
                                 maxLines = 1
                             )
                         }

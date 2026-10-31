@@ -15,7 +15,8 @@ DEFAULT_DEST = pathlib.Path.home() / ".local/share/adb-device-manager/downloads"
 
 def read_version_props() -> tuple[int, str]:
     props: dict[str, str] = {}
-    for line in (ROOT / "version.properties").read_text(encoding="utf-8").splitlines():
+    prop_path = ROOT / "app/version.properties" if (ROOT / "app/version.properties").is_file() else ROOT / "version.properties"
+    for line in prop_path.read_text(encoding="utf-8").splitlines():
         if "=" in line and not line.strip().startswith("#"):
             k, v = line.split("=", 1)
             props[k.strip()] = v.strip()
@@ -36,11 +37,24 @@ def sha256_file(path: pathlib.Path) -> str:
     return digest.hexdigest()
 
 
+def find_apk_src() -> pathlib.Path | None:
+    candidates = [
+        ROOT / "app/build/outputs/apk/debug/adb-agent-debug.apk",
+        ROOT / "app/build/outputs/apk/debug/app-debug.apk",
+        ROOT / "build/outputs/apk/debug/adb-agent-debug.apk",
+        ROOT / "build/outputs/apk/debug/app-debug.apk",
+    ]
+    for c in candidates:
+        if c.is_file():
+            return c
+    return None
+
+
 def main() -> int:
     changelog = sys.argv[1] if len(sys.argv) > 1 else "Cập nhật tính năng & tối ưu kết nối."
-    apk_src = ROOT / "app/build/outputs/apk/debug/app-debug.apk"
-    if not apk_src.is_file():
-        print(f"APK not found at {apk_src}. Run ./gradlew assembleDebug first.", file=sys.stderr)
+    apk_src = find_apk_src()
+    if not apk_src:
+        print("APK not found. Run ./gradlew assembleDebug first.", file=sys.stderr)
         return 1
 
     version_code, version_name = read_version_props()

@@ -141,7 +141,7 @@ class DashboardViewModel(
                 }
                 if (pState is AdbPairingState.PairedAndConnected) {
                     saveCurrentConfig(silent = true)
-                    _effects.emit(DashboardUiEffect.ShowMessage("Đã ghép đôi & bật cổng ${pState.connectPort}!"))
+                    _effects.emit(DashboardUiEffect.ShowMessage("Đã ghép nối ADB thành công!"))
                 }
             }
         }
@@ -190,13 +190,13 @@ class DashboardViewModel(
                         )
                     }
                     saveCurrentConfig(silent = true)
-                    _effects.emit(DashboardUiEffect.ShowMessage("Đã bật cổng cố định ${paired.connectPort} cho 4G/5G"))
+                    _effects.emit(DashboardUiEffect.ShowMessage("Đã bật lại ADB thành công!"))
                 },
                 onFailure = { err ->
                     _uiState.update { cur ->
                         cur.copy(pairing = cur.pairing.copy(pairingState = AdbPairingState.Failed(err.message ?: "Lỗi")))
                     }
-                    _effects.emit(DashboardUiEffect.ShowMessage(err.message ?: "Không thể bật cổng 5555"))
+                    _effects.emit(DashboardUiEffect.ShowMessage(err.message ?: "Không thể bật lại ADB"))
                 }
             )
         }
@@ -218,13 +218,13 @@ class DashboardViewModel(
                         )
                     }
                     saveCurrentConfig(silent = true)
-                    _effects.emit(DashboardUiEffect.ShowMessage("Đã ghép đôi & nối cổng ${paired.connectPort}"))
+                    _effects.emit(DashboardUiEffect.ShowMessage("Ghép nối ADB thành công!"))
                 },
                 onFailure = { err ->
                     _uiState.update { cur ->
                         cur.copy(pairing = cur.pairing.copy(pairingState = AdbPairingState.Failed(err.message ?: "Lỗi")))
                     }
-                    _effects.emit(DashboardUiEffect.ShowMessage(err.message ?: "Ghép đôi thất bại"))
+                    _effects.emit(DashboardUiEffect.ShowMessage(err.message ?: "Ghép nối thất bại"))
                 }
             )
         }
