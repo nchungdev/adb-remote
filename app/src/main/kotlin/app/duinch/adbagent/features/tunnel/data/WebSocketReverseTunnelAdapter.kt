@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,7 +57,8 @@ class WebSocketReverseTunnelAdapter(
     private val userWantsConnected = AtomicBoolean(false)
     private val bytesBridged = AtomicLong(0L)
     private val activeStreams = ConcurrentHashMap<Int, Socket>()
-    private val streamReaderJobs = ConcurrentHashMap<Int, Job>()
+    private val streamWriteChannels = ConcurrentHashMap<Int, Channel<ByteArray>>()
+    private val streamJobs = ConcurrentHashMap<Int, Job>()
 
     @Volatile private var currentConfig: TunnelConfig? = null
     @Volatile private var activeWebSocket: WebSocket? = null
@@ -156,12 +158,29 @@ class WebSocketReverseTunnelAdapter(
 
     private fun openLocalAdbStream(webSocket: WebSocket, streamId: Int, config: TunnelConfig) {
         closeLocalStream(streamId)
+        val writeQueue = Channel<ByteArray>(Channel.UNLIMITED)
+        streamWriteChannels[streamId] = writeQueue
+
         val job = scope.launch {
             runCatching {
                 val socket = Socket()
                 socket.tcpNoDelay = true
                 socket.connect(InetSocketAddress("127.0.0.1", config.localAdbPort), 5_000)
                 activeStreams[streamId] = socket
+
+                val writerJob = launch {
+                    runCatching {
+                        val out = socket.getOutputStream()
+                        for (payload in writeQueue) {
+                            out.write(payload)
+                            out.flush()
+                            updateBytesCount(payload.size.toLong(), config)
+                        }
+                    }.onFailure {
+                        runCatching { socket.close() }
+                    }
+                }
+
                 val buffer = ByteArray(16 * 1024)
                 val input = socket.getInputStream()
                 while (isActive && !socket.isClosed) {
@@ -170,34 +189,28 @@ class WebSocketReverseTunnelAdapter(
                     webSocket.send(TunnelStreamProtocol.encodeData(streamId, buffer, readCount))
                     updateBytesCount(readCount.toLong(), config)
                 }
+                writeQueue.close()
+                writerJob.cancel()
             }
+            writeQueue.close()
+            streamWriteChannels.remove(streamId)
             activeStreams.remove(streamId)?.let { runCatching { it.close() } }
-            streamReaderJobs.remove(streamId)
+            streamJobs.remove(streamId)
             runCatching { webSocket.send(TunnelStreamProtocol.encodeClose(streamId)) }
         }
-        streamReaderJobs[streamId] = job
+        streamJobs[streamId] = job
     }
 
     private fun writeToLocalAdbStream(streamId: Int, payload: ByteArray, config: TunnelConfig) {
-        scope.launch {
-            for (waitStep in 0..20) {
-                if (activeStreams.containsKey(streamId)) break
-                delay(25L)
-            }
-            val socket = activeStreams[streamId] ?: return@launch
-            runCatching {
-                val out = socket.getOutputStream()
-                out.write(payload)
-                out.flush()
-                updateBytesCount(payload.size.toLong(), config)
-            }.onFailure {
-                closeLocalStream(streamId)
-            }
+        val channel = streamWriteChannels[streamId] ?: return
+        if (channel.trySend(payload).isFailure) {
+            closeLocalStream(streamId)
         }
     }
 
     private fun closeLocalStream(streamId: Int) {
-        streamReaderJobs.remove(streamId)?.cancel()
+        streamWriteChannels.remove(streamId)?.close()
+        streamJobs.remove(streamId)?.cancel()
         activeStreams.remove(streamId)?.let { runCatching { it.close() } }
     }
 
@@ -250,8 +263,10 @@ class WebSocketReverseTunnelAdapter(
     }
 
     private fun closeActiveSession() {
-        streamReaderJobs.values.forEach { it.cancel() }
-        streamReaderJobs.clear()
+        streamWriteChannels.values.forEach { it.close() }
+        streamWriteChannels.clear()
+        streamJobs.values.forEach { it.cancel() }
+        streamJobs.clear()
         activeStreams.values.forEach { runCatching { it.close() } }
         activeStreams.clear()
         runCatching { activeWebSocket?.close(1000, "Client closing") }
