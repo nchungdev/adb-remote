@@ -131,14 +131,7 @@ class DashboardViewModel(
         viewModelScope.launch {
             container.adbDiscoveryGateway.observeDiscoveredPorts().collect { ports ->
                 _uiState.update { cur ->
-                    val keep5555 = cur.pairing.pairingState is AdbPairingState.PairedAndConnected
-                    val updatedLocalPort = if (keep5555) {
-                        cur.localAdbPortInput
-                    } else {
-                        ports.connectPort?.toString() ?: cur.localAdbPortInput
-                    }
                     cur.copy(
-                        localAdbPortInput = updatedLocalPort,
                         pairing = cur.pairing.copy(
                             discoveredPairingPort = ports.pairingPort,
                             discoveredConnectPort = ports.connectPort
