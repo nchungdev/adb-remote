@@ -11,7 +11,6 @@ import app.duinch.adbagent.features.tunnel.domain.TunnelHistoryEntry
 enum class AppTab(val title: String) {
     CONNECT("Kết nối"),
     HISTORY("Lịch sử"),
-    PAIRING("Ghép đôi"),
     SETTINGS("Thiết lập")
 }
 

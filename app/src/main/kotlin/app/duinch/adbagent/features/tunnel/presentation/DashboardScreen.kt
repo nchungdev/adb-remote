@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.duinch.adbagent.core.designsystem.AppIcons
-import app.duinch.adbagent.features.pairing.presentation.PairingSection
 import app.duinch.adbagent.features.termux.presentation.TermuxConsoleSheet
 import app.duinch.adbagent.features.termux.presentation.TermuxUiIntent
 import app.duinch.adbagent.features.updater.domain.UpdateStatus
@@ -112,26 +111,6 @@ fun DashboardScreen(
                     label = { Text(AppTab.HISTORY.title) }
                 )
                 NavigationBarItem(
-                    selected = state.selectedTab == AppTab.PAIRING,
-                    onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.PAIRING)) },
-                    icon = {
-                        BadgedBox(
-                            badge = {
-                                if (state.pairing.discoveredPairingPort != null && !state.isTunnelActive) {
-                                    Badge()
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = AppIcons.LinkWireless,
-                                contentDescription = null,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    },
-                    label = { Text(AppTab.PAIRING.title) }
-                )
-                NavigationBarItem(
                     selected = state.selectedTab == AppTab.SETTINGS,
                     onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.SETTINGS)) },
                     icon = {
@@ -172,15 +151,12 @@ fun DashboardScreen(
                         state = state,
                         updaterState = updaterState,
                         onIntent = onIntent,
-                        onUpdaterIntent = onUpdaterIntent
+                        onUpdaterIntent = onUpdaterIntent,
+                        onPairingIntent = { onIntent(DashboardUiIntent.OnPairingIntent(it)) }
                     )
                     AppTab.HISTORY -> TunnelHistoryTab(
                         state = state,
                         onIntent = onIntent
-                    )
-                    AppTab.PAIRING -> PairingSection(
-                        state = state.pairing,
-                        onIntent = { onIntent(DashboardUiIntent.OnPairingIntent(it)) }
                     )
                     AppTab.SETTINGS -> TunnelSettingsTab(
                         state = state,

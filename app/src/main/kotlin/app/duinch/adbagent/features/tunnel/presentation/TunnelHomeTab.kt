@@ -24,9 +24,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -38,6 +42,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.duinch.adbagent.core.designsystem.AdbTheme
 import app.duinch.adbagent.core.designsystem.AppIcons
+import app.duinch.adbagent.features.pairing.domain.AdbPairingState
+import app.duinch.adbagent.features.pairing.presentation.PairingSection
+import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
 import app.duinch.adbagent.features.updater.presentation.CompactUpdateAlertBanner
 import app.duinch.adbagent.features.updater.presentation.UpdaterUiIntent
@@ -49,11 +56,19 @@ fun TunnelHomeTab(
     state: DashboardUiState,
     updaterState: UpdaterUiState,
     onIntent: (DashboardUiIntent) -> Unit,
-    onUpdaterIntent: (UpdaterUiIntent) -> Unit
+    onUpdaterIntent: (UpdaterUiIntent) -> Unit,
+    onPairingIntent: (PairingUiIntent) -> Unit
 ) {
     val ext = AdbTheme.colors
     val clipboard = LocalClipboardManager.current
     val connected = state.connectionState as? TunnelConnectionState.Connected
+    val isPaired = state.pairing.pairingState is AdbPairingState.PairedAndConnected
+    val isTunnelOnline = state.connectionState is TunnelConnectionState.Connected
+
+    var forceShowPairing by rememberSaveable { mutableStateOf(false) }
+    var dismissPairingGuide by rememberSaveable { mutableStateOf(false) }
+
+    val shouldShowPairing = (!isPaired && !isTunnelOnline && !state.isUsbConnected && !dismissPairingGuide) || forceShowPairing
 
     val nowEpochMs by produceState(
         initialValue = System.currentTimeMillis(),
@@ -106,165 +121,190 @@ fun TunnelHomeTab(
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         CompactUpdateAlertBanner(state = updaterState, onIntent = onUpdaterIntent)
 
-        // Hero Connection Switchboard Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            border = BorderStroke(
-                1.dp,
-                if (connected != null) ext.statusConnected else ext.cardBorder
-            ),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 22.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+        if (shouldShowPairing) {
+            // Bước 1: Kích hoạt ghép đôi (Hiển thị phẳng trực tiếp, không chia tab)
+            PairingSection(
+                state = state.pairing,
+                onIntent = onPairingIntent,
+                onSwitchToConnect = {
+                    dismissPairingGuide = true
+                    forceShowPairing = false
+                }
+            )
+        } else {
+            // Bước 2: Bảng điều khiển kết nối 1-chạm (Single-Layer Switchboard Card)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(
+                    1.dp,
+                    if (connected != null) ext.statusConnected else ext.cardBorder
+                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(68.dp)
-                        .background(animatedContainer, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = AppIcons.ShieldBolt,
-                        contentDescription = null,
-                        tint = animatedTint,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Surface(color = animatedContainer, shape = CircleShape) {
-                    Text(
-                        text = badgeLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = animatedTint,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    val mappedAddr = connected?.mappedServerPort?.let { "127.0.0.1:$it" }
-                    if (mappedAddr != null) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Surface(
-                            color = ext.surfaceElevated,
-                            shape = CircleShape,
-                            modifier = Modifier.clickable(role = Role.Button) {
-                                clipboard.setText(AnnotatedString(mappedAddr))
-                            }
-                        ) {
-                            Icon(
-                                imageVector = AppIcons.Copy,
-                                contentDescription = "Sao chép $mappedAddr",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .padding(5.dp)
-                                    .size(13.dp)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // Telemetry 2x2 Grid with Synchronized Tile Heights
-                val uptimeText = if (connected != null) {
-                    formatDurationVi((nowEpochMs - connected.connectedAtEpochMs).coerceAtLeast(0L))
-                } else {
-                    "--:--"
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        TelemetryTile(
-                            label = "Thời gian",
-                            value = uptimeText,
-                            monospace = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                        TelemetryTile(
-                            label = "Mạng",
-                            value = state.activeNetwork.label,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        TelemetryTile(
-                            label = "Cổng ADB",
-                            value = state.localAdbPortInput.ifBlank { "5555" },
-                            monospace = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                        TelemetryTile(
-                            label = "Lưu lượng",
-                            value = formatBytesVi(connected?.bytesBridged ?: 0L),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                Button(
-                    onClick = { onIntent(DashboardUiIntent.ToggleTunnel) },
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 52.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = if (state.isTunnelActive) {
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError
-                        )
-                    } else {
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        .padding(horizontal = 20.dp, vertical = 22.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(68.dp)
+                            .background(animatedContainer, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = AppIcons.ShieldBolt,
+                            contentDescription = null,
+                            tint = animatedTint,
+                            modifier = Modifier.size(32.dp)
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Surface(color = animatedContainer, shape = CircleShape) {
+                        Text(
+                            text = badgeLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = animatedTint,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        val mappedAddr = connected?.mappedServerPort?.let { "127.0.0.1:$it" }
+                        if (mappedAddr != null) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                color = ext.surfaceElevated,
+                                shape = CircleShape,
+                                modifier = Modifier.clickable(role = Role.Button) {
+                                    clipboard.setText(AnnotatedString(mappedAddr))
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = AppIcons.Copy,
+                                    contentDescription = "Sao chép $mappedAddr",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .padding(5.dp)
+                                        .size(13.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Nút kết nối 1-chạm Master
+                    Button(
+                        onClick = { onIntent(DashboardUiIntent.ToggleTunnel) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = if (state.isTunnelActive) {
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            )
+                        } else {
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    ) {
+                        Text(
+                            text = if (state.isTunnelActive) "Ngắt kết nối" else "Bật kết nối Mac mini",
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            // Hàng Telemetry phẳng trực tiếp ở root (Không lồng thêm Card cha)
+            val uptimeText = if (connected != null) {
+                formatDurationVi((nowEpochMs - connected.connectedAtEpochMs).coerceAtLeast(0L))
+            } else {
+                "--:--"
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = if (state.isTunnelActive) "Ngắt kết nối" else "Kết nối Mac mini",
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1
+                    TelemetryTile(
+                        label = "Thời gian",
+                        value = uptimeText,
+                        monospace = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TelemetryTile(
+                        label = "Mạng",
+                        value = state.activeNetwork.label,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TelemetryTile(
+                        label = "Cổng ADB",
+                        value = state.localAdbPortInput.ifBlank { "5555" },
+                        monospace = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TelemetryTile(
+                        label = "Lưu lượng",
+                        value = formatBytesVi(connected?.bytesBridged ?: 0L),
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
-        }
 
-        // Active Connection Mode Card (Direct, Wi-Fi Local or Tunnel)
-        ActiveConnectionModeCard(
-            wifiIp = state.localWifiIp,
-            adbPort = state.localAdbPortInput.ifBlank { "5555" },
-            isUsbConnected = state.isUsbConnected,
-            isAtHomeWifi = state.isAtHomeWifi,
-            homeSsid = state.trustedHomeSsidInput.ifBlank { state.currentWifiSsid },
-            onCopyCommand = { cmd -> clipboard.setText(AnnotatedString(cmd)) }
-        )
+            // Thẻ đường truyền kích hoạt phẳng đơn lớp
+            ActiveConnectionModeCard(
+                wifiIp = state.localWifiIp,
+                adbPort = state.localAdbPortInput.ifBlank { "5555" },
+                isUsbConnected = state.isUsbConnected,
+                isAtHomeWifi = state.isAtHomeWifi,
+                homeSsid = state.trustedHomeSsidInput.ifBlank { state.currentWifiSsid },
+                onCopyCommand = { cmd -> clipboard.setText(AnnotatedString(cmd)) }
+            )
+
+            // Nút phụ tái ghép đôi
+            TextButton(
+                onClick = {
+                    forceShowPairing = true
+                    dismissPairingGuide = false
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Cần ghép đôi lại ADB? Chạm vào đây",
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+        }
     }
 }
 

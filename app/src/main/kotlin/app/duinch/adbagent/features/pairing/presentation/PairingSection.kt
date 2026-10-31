@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -24,6 +25,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +37,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.duinch.adbagent.core.designsystem.AdbTheme
 import app.duinch.adbagent.core.designsystem.AppIcons
@@ -43,15 +46,20 @@ import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 @Composable
 fun PairingSection(
     state: PairingUiState,
-    onIntent: (PairingUiIntent) -> Unit
+    onIntent: (PairingUiIntent) -> Unit,
+    onSwitchToConnect: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
 ) {
     val ext = AdbTheme.colors
     var showManualSplitScreen by rememberSaveable { mutableStateOf(false) }
+    val isPaired = state.pairingState is AdbPairingState.PairedAndConnected
+    val isFailed = state.pairingState is AdbPairingState.Failed
 
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // Status Banner Card
-        val isPaired = state.pairingState is AdbPairingState.PairedAndConnected
-        val isFailed = state.pairingState is AdbPairingState.Failed
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Flat Single-Layer Card: Không lồng thêm Surface/Card bên trong
         Card(
             modifier = Modifier.fillMaxWidth(),
             border = BorderStroke(
@@ -64,68 +72,87 @@ fun PairingSection(
             ),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = when {
-                            isPaired -> AppIcons.CheckCircle
-                            isFailed -> AppIcons.AlertCircle
-                            else -> AppIcons.LinkWireless
+                    Surface(
+                        shape = CircleShape,
+                        color = when {
+                            isPaired -> ext.statusConnectedContainer
+                            isFailed -> MaterialTheme.colorScheme.errorContainer
+                            else -> MaterialTheme.colorScheme.primaryContainer
                         },
-                        contentDescription = null,
-                        tint = when {
-                            isPaired -> ext.statusConnected
-                            isFailed -> MaterialTheme.colorScheme.error
-                            else -> MaterialTheme.colorScheme.primary
-                        },
-                        modifier = Modifier.size(24.dp)
-                    )
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = when {
+                                    isPaired -> AppIcons.CheckCircle
+                                    isFailed -> AppIcons.AlertCircle
+                                    else -> AppIcons.LinkWireless
+                                },
+                                contentDescription = null,
+                                tint = when {
+                                    isPaired -> ext.statusConnected
+                                    isFailed -> MaterialTheme.colorScheme.error
+                                    else -> MaterialTheme.colorScheme.primary
+                                },
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Ghép đôi Wireless ADB",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         val statusText = when (val ps = state.pairingState) {
                             is AdbPairingState.PairedAndConnected ->
-                                "Đã bật cổng cố định ${ps.connectPort} — hoạt động bền bỉ cả trên 4G/5G"
+                                "Đã mở cổng 5555 cố định cho cả Wi-Fi & 4G/5G"
                             is AdbPairingState.Failed -> ps.reason
-                            AdbPairingState.PairingInProgress -> "Đang trao đổi khóa RSA và mở cổng 5555..."
+                            AdbPairingState.PairingInProgress -> "Đang ghép đôi và mở cổng 5555..."
                             else -> when {
-                                state.discoveredPairingPort != null ->
-                                    "Phát hiện cổng Ghép đôi: ${state.discoveredPairingPort}"
-                                state.discoveredConnectPort != null ->
-                                    "Phát hiện cổng Gỡ lỗi không dây: ${state.discoveredConnectPort}"
-                                else ->
-                                    "Đang quét mDNS tự động trên mạng Wi-Fi hiện tại"
+                                state.discoveredPairingPort != null -> "Phát hiện cổng Ghép đôi: ${state.discoveredPairingPort}"
+                                state.discoveredConnectPort != null -> "Phát hiện cổng Gỡ lỗi: ${state.discoveredConnectPort}"
+                                else -> "Kích hoạt 1 lần duy nhất để kết nối không dây"
                             }
                         }
                         Text(
                             text = statusText,
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isPaired) ext.statusConnected else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (isPaired) ext.statusConnected else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Surface(
-                    color = ext.surfaceElevated,
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text("1. Bấm nút bên dưới để mở Cài đặt nhà phát triển.", style = MaterialTheme.typography.bodySmall)
-                        Text("2. Vào Gỡ lỗi không dây → Ghép nối bằng mã ghép nối.", style = MaterialTheme.typography.bodySmall)
-                        Text("3. Kéo thanh thông báo xuống và điền 6 chữ số ngay trên thông báo.", style = MaterialTheme.typography.bodySmall)
-                    }
+                // Hướng dẫn hiển thị trực tiếp phẳng trên Card, không bọc Surface lồng nhau
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "1. Bấm nút bên dưới để mở Gỡ lỗi không dây.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "2. Chọn \"Ghép nối bằng mã ghép nối\".",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "3. Kéo thông báo xuống và điền mã 6 chữ số.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
                     onClick = { onIntent(PairingUiIntent.StartNotificationPairing) },
@@ -133,13 +160,12 @@ fun PairingSection(
                         .fillMaxWidth()
                         .heightIn(min = 50.dp)
                 ) {
-                    Icon(AppIcons.LinkWireless, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Icon(AppIcons.LinkWireless, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Ghép đôi qua Thông báo", maxLines = 1)
                 }
 
                 if (state.effectiveConnectPort != null) {
-                    Spacer(modifier = Modifier.height(10.dp))
                     OutlinedButton(
                         onClick = { onIntent(PairingUiIntent.ActivateTcpip5555) },
                         modifier = Modifier
@@ -149,52 +175,38 @@ fun PairingSection(
                         Text("Kích hoạt lại cổng 5555", maxLines = 1)
                     }
                 }
-            }
-        }
 
-        // Progressive Disclosure: Manual Split-Screen Mode
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            border = BorderStroke(1.dp, ext.cardBorder),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column {
+                // Progressive disclosure cho trường hợp muốn gõ mã thủ công
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 52.dp)
+                        .heightIn(min = 40.dp)
                         .clickable(role = Role.Button) { showManualSplitScreen = !showManualSplitScreen }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Nhập mã thủ công (Chia đôi màn hình)", style = MaterialTheme.typography.titleSmall, maxLines = 1)
-                        Text(
-                            text = "Dùng khi mở Cài đặt và ADB Agent song song",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
-                    }
+                    Text(
+                        text = "Nhập mã thủ công (Chia đôi màn hình)",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
+                    )
                     Icon(
                         imageVector = AppIcons.ChevronDown,
-                        contentDescription = if (showManualSplitScreen) "Thu gọn" else "Mở rộng",
+                        contentDescription = null,
                         modifier = Modifier
-                            .size(20.dp)
+                            .size(18.dp)
                             .rotate(if (showManualSplitScreen) 180f else 0f),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
 
                 AnimatedVisibility(visible = showManualSplitScreen) {
-                    Column(
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             OutlinedTextField(
                                 value = state.pairingPortInput,
@@ -202,10 +214,7 @@ fun PairingSection(
                                 modifier = Modifier.weight(1f),
                                 label = { Text("Cổng Pair", maxLines = 1) },
                                 placeholder = { Text(state.discoveredPairingPort?.toString() ?: "46653") },
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Number,
-                                    imeAction = ImeAction.Next
-                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                                 singleLine = true
                             )
                             OutlinedTextField(
@@ -214,13 +223,8 @@ fun PairingSection(
                                 modifier = Modifier.weight(1f),
                                 label = { Text("Mã 6 số", maxLines = 1) },
                                 placeholder = { Text("611208") },
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Number,
-                                    imeAction = ImeAction.Done
-                                ),
-                                keyboardActions = KeyboardActions(
-                                    onDone = { if (state.canSubmitPair) onIntent(PairingUiIntent.SubmitPair) }
-                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(onDone = { if (state.canSubmitPair) onIntent(PairingUiIntent.SubmitPair) }),
                                 singleLine = true
                             )
                         }
@@ -231,10 +235,7 @@ fun PairingSection(
                             modifier = Modifier.fillMaxWidth(),
                             label = { Text("Cổng Connect (mDNS tự điền)", maxLines = 1) },
                             placeholder = { Text(state.discoveredConnectPort?.toString() ?: "38517") },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number,
-                                imeAction = ImeAction.Done
-                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                             singleLine = true
                         )
 
@@ -243,7 +244,7 @@ fun PairingSection(
                             enabled = state.canSubmitPair,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 48.dp)
+                                .heightIn(min = 46.dp)
                         ) {
                             Text(
                                 if (state.pairingState is AdbPairingState.PairingInProgress) "Đang ghép đôi..."
@@ -251,6 +252,18 @@ fun PairingSection(
                                 maxLines = 1
                             )
                         }
+                    }
+                }
+
+                if (onSwitchToConnect != null) {
+                    TextButton(
+                        onClick = onSwitchToConnect,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Đã có ADB trên máy? Vào màn hình Kết nối",
+                            style = MaterialTheme.typography.labelMedium
+                        )
                     }
                 }
             }

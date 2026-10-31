@@ -9,12 +9,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -40,12 +38,12 @@ internal fun TelemetryTile(
     monospace: Boolean = false
 ) {
     Surface(
-        modifier = modifier.heightIn(min = 64.dp),
+        modifier = modifier.height(62.dp),
         color = AdbTheme.colors.surfaceElevated,
         shape = MaterialTheme.shapes.small
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -89,7 +87,7 @@ internal fun ActiveConnectionModeCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
@@ -102,7 +100,7 @@ internal fun ActiveConnectionModeCard(
                         isUsbConnected || isAtHomeWifi -> ext.statusConnectedContainer
                         else -> MaterialTheme.colorScheme.primaryContainer
                     },
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(34.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
@@ -116,7 +114,7 @@ internal fun ActiveConnectionModeCard(
                                 isUsbConnected || isAtHomeWifi -> ext.statusConnected
                                 else -> MaterialTheme.colorScheme.primary
                             },
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -135,9 +133,9 @@ internal fun ActiveConnectionModeCard(
                     )
                     Text(
                         text = when {
-                            isUsbConnected -> "Máy tính kết nối trực tiếp qua USB, không cần mở port"
-                            isAtHomeWifi -> "Đang kết nối cùng Wi-Fi nhà • Ping < 2ms, không tốn data"
-                            hasWifi -> "Có thể kết nối trực tiếp qua IP nội bộ cùng mạng"
+                            isUsbConnected -> "Máy tính nhận diện trực tiếp qua USB"
+                            isAtHomeWifi -> "Đang ở Wi-Fi nhà • Ping < 2ms, 0 tốn data"
+                            hasWifi -> "Có thể kết nối qua IP cùng mạng nội bộ"
                             else -> "Đường hầm từ xa bảo mật qua Cloudflare Edge"
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -149,35 +147,30 @@ internal fun ActiveConnectionModeCard(
             }
 
             if (hasWifi) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = ext.terminalSurface,
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(role = Role.Button) { onCopyCommand(localConnectCmd) }
+                        .padding(horizontal = 2.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = localConnectCmd,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = ext.terminalText,
-                            fontFamily = FontFamily.Monospace,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(
-                            imageVector = AppIcons.Copy,
-                            contentDescription = "Sao chép lệnh",
-                            tint = ext.terminalText,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    Text(
+                        text = localConnectCmd,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = FontFamily.Monospace,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = AppIcons.Copy,
+                        contentDescription = "Sao chép lệnh",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
