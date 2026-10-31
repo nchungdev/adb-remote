@@ -49,6 +49,11 @@ class DashboardViewModel(
                 _uiState.update { it.copy(autoReconnect = intent.enabled) }
             DashboardUiIntent.ToggleAdvancedAuth ->
                 _uiState.update { it.copy(showAdvancedAuth = !it.showAdvancedAuth) }
+            DashboardUiIntent.OpenCloudflareLogin ->
+                _uiState.update { it.copy(showCloudflareLoginDialog = true) }
+            DashboardUiIntent.CloseCloudflareLogin ->
+                _uiState.update { it.copy(showCloudflareLoginDialog = false) }
+            is DashboardUiIntent.OnCloudflareCookieCaptured -> handleCookieCaptured(intent.cookieHeader)
             DashboardUiIntent.SaveConfig -> saveCurrentConfig()
             DashboardUiIntent.ToggleTunnel -> toggleTunnel()
             is DashboardUiIntent.OnPairingIntent -> handlePairingIntent(intent.intent)
@@ -70,7 +75,12 @@ class DashboardViewModel(
         viewModelScope.launch {
             container.adbDiscoveryGateway.observeDiscoveredPorts().collect { ports ->
                 _uiState.update { cur ->
-                    val updatedLocalPort = ports.connectPort?.toString() ?: cur.localAdbPortInput
+                    val keep5555 = cur.pairing.pairingState is AdbPairingState.PairedAndConnected
+                    val updatedLocalPort = if (keep5555) {
+                        cur.localAdbPortInput
+                    } else {
+                        ports.connectPort?.toString() ?: cur.localAdbPortInput
+                    }
                     cur.copy(
                         localAdbPortInput = updatedLocalPort,
                         pairing = cur.pairing.copy(
@@ -78,6 +88,22 @@ class DashboardViewModel(
                             discoveredConnectPort = ports.connectPort
                         )
                     )
+                }
+            }
+        }
+        viewModelScope.launch {
+            container.pairingNotificationGateway.observeNotificationPairing().collect { pState ->
+                _uiState.update { cur ->
+                    val portStr = (pState as? AdbPairingState.PairedAndConnected)?.connectPort?.toString()
+                        ?: cur.localAdbPortInput
+                    cur.copy(
+                        localAdbPortInput = portStr,
+                        pairing = cur.pairing.copy(pairingState = pState)
+                    )
+                }
+                if (pState is AdbPairingState.PairedAndConnected) {
+                    saveCurrentConfig(silent = true)
+                    _effects.emit(DashboardUiEffect.ShowMessage("Đã ghép đôi & bật cổng ${pState.connectPort}!"))
                 }
             }
         }
@@ -93,6 +119,13 @@ class DashboardViewModel(
         }
     }
 
+    private fun handleCookieCaptured(cookieHeader: String) {
+        if (!_uiState.value.showCloudflareLoginDialog) return
+        _uiState.update { it.copy(cfAuthCookie = cookieHeader, showCloudflareLoginDialog = false) }
+        saveCurrentConfig(silent = true)
+        _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã xác thực Cloudflare Access thành công!"))
+    }
+
     private fun handlePairingIntent(intent: PairingUiIntent) {
         when (intent) {
             is PairingUiIntent.UpdatePairingPort -> _uiState.update { cur ->
@@ -104,43 +137,61 @@ class DashboardViewModel(
             is PairingUiIntent.UpdatePairingCode -> _uiState.update { cur ->
                 cur.copy(pairing = cur.pairing.copy(pairingCodeInput = intent.value.filter(Char::isDigit).take(6)))
             }
-            PairingUiIntent.OpenDeveloperOptions -> {
+            PairingUiIntent.StartNotificationPairing -> {
+                container.pairingNotificationGateway.startInteractivePairing()
                 _effects.tryEmit(DashboardUiEffect.LaunchDeveloperSettings)
             }
+            PairingUiIntent.ActivateTcpip5555 -> activateTcpipMode()
             PairingUiIntent.SubmitPair -> submitPairing()
+        }
+    }
+
+    private fun activateTcpipMode() {
+        val port = _uiState.value.pairing.effectiveConnectPort ?: return
+        _uiState.update { it.copy(pairing = it.pairing.copy(pairingState = AdbPairingState.PairingInProgress)) }
+        viewModelScope.launch {
+            container.activateTcpipMode(port).fold(
+                onSuccess = { paired ->
+                    _uiState.update { cur ->
+                        cur.copy(
+                            localAdbPortInput = paired.connectPort.toString(),
+                            pairing = cur.pairing.copy(pairingState = paired)
+                        )
+                    }
+                    saveCurrentConfig(silent = true)
+                    _effects.emit(DashboardUiEffect.ShowMessage("Đã bật cổng cố định ${paired.connectPort} cho 4G/5G"))
+                },
+                onFailure = { err ->
+                    _uiState.update { cur ->
+                        cur.copy(pairing = cur.pairing.copy(pairingState = AdbPairingState.Failed(err.message ?: "Lỗi")))
+                    }
+                    _effects.emit(DashboardUiEffect.ShowMessage(err.message ?: "Không thể bật cổng 5555"))
+                }
+            )
         }
     }
 
     private fun submitPairing() {
         val snap = _uiState.value.pairing
         val pairPort = snap.pairingPortInput.toIntOrNull() ?: snap.discoveredPairingPort ?: return
-        val connectPort = snap.connectPortInput.toIntOrNull() ?: snap.discoveredConnectPort
+        val connectPort = snap.effectiveConnectPort
 
-        _uiState.update { cur ->
-            cur.copy(pairing = cur.pairing.copy(pairingState = AdbPairingState.PairingInProgress))
-        }
+        _uiState.update { it.copy(pairing = it.pairing.copy(pairingState = AdbPairingState.PairingInProgress)) }
         viewModelScope.launch {
-            val result = container.pairLocalAdb(pairPort, snap.pairingCodeInput, connectPort)
-            result.fold(
+            container.pairLocalAdb(pairPort, snap.pairingCodeInput, connectPort).fold(
                 onSuccess = { paired ->
                     _uiState.update { cur ->
                         cur.copy(
                             localAdbPortInput = paired.connectPort.toString(),
-                            pairing = cur.pairing.copy(
-                                pairingCodeInput = "",
-                                pairingState = paired
-                            )
+                            pairing = cur.pairing.copy(pairingCodeInput = "", pairingState = paired)
                         )
                     }
+                    saveCurrentConfig(silent = true)
                     _effects.emit(DashboardUiEffect.ShowMessage("Đã ghép đôi & nối cổng ${paired.connectPort}"))
                 },
                 onFailure = { err ->
                     _uiState.update { cur ->
-                        cur.copy(
-                            pairing = cur.pairing.copy(
-                                pairingState = AdbPairingState.Failed(err.message ?: "Lỗi ghép đôi")
-                            )
-                        )
+                        cur.copy(pairing = cur.pairing.copy(pairingState = AdbPairingState.Failed(err.message ?: "Lỗi")))
                     }
                     _effects.emit(DashboardUiEffect.ShowMessage(err.message ?: "Ghép đôi thất bại"))
                 }
@@ -157,26 +208,22 @@ class DashboardViewModel(
             is TermuxUiIntent.UpdateCommandInput ->
                 _uiState.update { cur -> cur.copy(termux = cur.termux.copy(commandInput = intent.value)) }
             TermuxUiIntent.ClearLogs -> container.termuxRuntimeGateway.clearConsoleLogs()
-            TermuxUiIntent.SubmitCommand -> executeConsoleCommand()
+            TermuxUiIntent.SubmitCommand -> {
+                val cmd = _uiState.value.termux.commandInput
+                _uiState.update { cur -> cur.copy(termux = cur.termux.copy(commandInput = "", isRunningCommand = true)) }
+                viewModelScope.launch {
+                    container.runTermuxCommand(cmd)
+                    _uiState.update { cur -> cur.copy(termux = cur.termux.copy(isRunningCommand = false)) }
+                }
+            }
         }
     }
 
-    private fun executeConsoleCommand() {
-        val cmd = _uiState.value.termux.commandInput
-        _uiState.update { cur ->
-            cur.copy(termux = cur.termux.copy(commandInput = "", isRunningCommand = true))
-        }
-        viewModelScope.launch {
-            container.runTermuxCommand(cmd)
-            _uiState.update { cur -> cur.copy(termux = cur.termux.copy(isRunningCommand = false)) }
-        }
-    }
-
-    private fun saveCurrentConfig() {
+    private fun saveCurrentConfig(silent: Boolean = false) {
         val draft = buildDraftConfig(_uiState.value)
         container.saveTunnelConfig(draft).fold(
-            onSuccess = { _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã lưu cấu hình đường hầm")) },
-            onFailure = { err -> _effects.tryEmit(DashboardUiEffect.ShowMessage(err.message ?: "Cấu hình không hợp lệ")) }
+            onSuccess = { if (!silent) _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã lưu cấu hình đường hầm")) },
+            onFailure = { err -> if (!silent) _effects.tryEmit(DashboardUiEffect.ShowMessage(err.message ?: "Lỗi")) }
         )
     }
 
@@ -197,6 +244,7 @@ class DashboardViewModel(
             localAdbPortInput = saved.localAdbPort.toString(),
             cfClientIdInput = saved.cfAccessClientId,
             cfClientSecretInput = saved.cfAccessClientSecret,
+            cfAuthCookie = saved.cfAuthCookie,
             autoReconnect = saved.autoReconnectOnNetworkChange
         )
     }
@@ -207,6 +255,7 @@ class DashboardViewModel(
         localAdbPort = state.localAdbPortInput.toIntOrNull() ?: 5555,
         cfAccessClientId = state.cfClientIdInput,
         cfAccessClientSecret = state.cfClientSecretInput,
+        cfAuthCookie = state.cfAuthCookie,
         autoReconnectOnNetworkChange = state.autoReconnect
     )
 

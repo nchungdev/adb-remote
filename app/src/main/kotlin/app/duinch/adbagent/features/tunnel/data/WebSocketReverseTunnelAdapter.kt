@@ -25,9 +25,9 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
-import okio.ByteString.Companion.toByteString
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
@@ -43,6 +43,8 @@ class WebSocketReverseTunnelAdapter(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val httpClient = OkHttpClient.Builder()
+        .followRedirects(false)
+        .followSslRedirects(false)
         .pingInterval(20, TimeUnit.SECONDS)
         .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.MILLISECONDS)
@@ -53,10 +55,12 @@ class WebSocketReverseTunnelAdapter(
 
     private val userWantsConnected = AtomicBoolean(false)
     private val bytesBridged = AtomicLong(0L)
-    private var currentConfig: TunnelConfig? = null
-    private var activeWebSocket: WebSocket? = null
-    private var activeLocalSocket: Socket? = null
-    private var bridgeReaderJob: Job? = null
+    private val activeStreams = ConcurrentHashMap<Int, Socket>()
+    private val streamReaderJobs = ConcurrentHashMap<Int, Job>()
+
+    @Volatile private var currentConfig: TunnelConfig? = null
+    @Volatile private var activeWebSocket: WebSocket? = null
+    @Volatile private var mappedServerPort: Int? = null
     private var reconnectJob: Job? = null
     private var retryAttempt = 0
 
@@ -89,6 +93,7 @@ class WebSocketReverseTunnelAdapter(
 
     private fun openWebSocketSession(config: TunnelConfig) {
         closeActiveSession()
+        mappedServerPort = null
         connectionState.value = TunnelConnectionState.Connecting(config.serverUrl)
 
         val requestBuilder = Request.Builder()
@@ -96,6 +101,9 @@ class WebSocketReverseTunnelAdapter(
             .addHeader("X-Device-Alias", config.deviceAlias)
             .addHeader("X-Local-Adb-Port", config.localAdbPort.toString())
 
+        if (config.cfAuthCookie.isNotEmpty()) {
+            requestBuilder.addHeader("Cookie", config.cfAuthCookie)
+        }
         if (config.cfAccessClientId.isNotEmpty() && config.cfAccessClientSecret.isNotEmpty()) {
             requestBuilder.addHeader("CF-Access-Client-Id", config.cfAccessClientId)
             requestBuilder.addHeader("CF-Access-Client-Secret", config.cfAccessClientSecret)
@@ -107,76 +115,118 @@ class WebSocketReverseTunnelAdapter(
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     retryAttempt = 0
                     bytesBridged.set(0L)
-                    connectionState.value = TunnelConnectionState.Connected(
-                        targetUrl = config.serverUrl,
-                        localAdbPort = config.localAdbPort,
-                        networkType = activeNetwork.value,
-                        bytesBridged = 0L
-                    )
-                    attachLocalAdbSocket(webSocket, config)
+                    webSocket.send(TunnelStreamProtocol.buildHelloJson(config.deviceAlias, config.localAdbPort))
+                    publishConnectedState(config)
+                }
+
+                override fun onMessage(webSocket: WebSocket, text: String) {
+                    TunnelStreamProtocol.parseWelcomePort(text)?.let { port ->
+                        mappedServerPort = port
+                        publishConnectedState(config)
+                    }
                 }
 
                 override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-                    forwardToLocalAdb(bytes)
+                    when (val frame = TunnelStreamProtocol.decode(bytes)) {
+                        is TunnelStreamProtocol.Frame.Open -> openLocalAdbStream(webSocket, frame.streamId, config)
+                        is TunnelStreamProtocol.Frame.Data -> writeToLocalAdbStream(frame.streamId, frame.payload, config)
+                        is TunnelStreamProtocol.Frame.Close -> closeLocalStream(frame.streamId)
+                        null -> Unit
+                    }
                 }
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                    handleSessionDropped("Đường hầm đóng ($code)")
+                    handleSessionDropped("Đường hầm đóng ($code)", authBlocked = false)
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                    handleSessionDropped(t.message ?: "Mất kết nối mạng")
+                    val code = response?.code
+                    if (code in listOf(302, 401, 403)) {
+                        handleSessionDropped(
+                            "Cần xác thực Cloudflare Access — bấm nút 'Đăng nhập Cloudflare' bên dưới",
+                            authBlocked = true
+                        )
+                    } else {
+                        handleSessionDropped(t.message ?: "Mất kết nối mạng", authBlocked = false)
+                    }
                 }
             }
         )
     }
 
-    private fun attachLocalAdbSocket(webSocket: WebSocket, config: TunnelConfig) {
-        bridgeReaderJob?.cancel()
-        bridgeReaderJob = scope.launch {
+    private fun openLocalAdbStream(webSocket: WebSocket, streamId: Int, config: TunnelConfig) {
+        closeLocalStream(streamId)
+        val job = scope.launch {
             runCatching {
                 val socket = Socket()
+                socket.tcpNoDelay = true
                 socket.connect(InetSocketAddress("127.0.0.1", config.localAdbPort), 5_000)
-                activeLocalSocket = socket
+                activeStreams[streamId] = socket
                 val buffer = ByteArray(16 * 1024)
                 val input = socket.getInputStream()
                 while (isActive && !socket.isClosed) {
                     val readCount = input.read(buffer)
                     if (readCount <= 0) break
-                    webSocket.send(buffer.toByteString(0, readCount))
+                    webSocket.send(TunnelStreamProtocol.encodeData(streamId, buffer, readCount))
                     updateBytesCount(readCount.toLong(), config)
                 }
             }
+            activeStreams.remove(streamId)?.let { runCatching { it.close() } }
+            streamReaderJobs.remove(streamId)
+            runCatching { webSocket.send(TunnelStreamProtocol.encodeClose(streamId)) }
         }
+        streamReaderJobs[streamId] = job
     }
 
-    private fun forwardToLocalAdb(bytes: ByteString) {
-        val config = currentConfig ?: return
+    private fun writeToLocalAdbStream(streamId: Int, payload: ByteArray, config: TunnelConfig) {
         scope.launch {
+            for (waitStep in 0..20) {
+                if (activeStreams.containsKey(streamId)) break
+                delay(25L)
+            }
+            val socket = activeStreams[streamId] ?: return@launch
             runCatching {
-                val out = activeLocalSocket?.getOutputStream() ?: return@runCatching
-                out.write(bytes.toByteArray())
+                val out = socket.getOutputStream()
+                out.write(payload)
                 out.flush()
-                updateBytesCount(bytes.size.toLong(), config)
+                updateBytesCount(payload.size.toLong(), config)
+            }.onFailure {
+                closeLocalStream(streamId)
             }
         }
     }
 
+    private fun closeLocalStream(streamId: Int) {
+        streamReaderJobs.remove(streamId)?.cancel()
+        activeStreams.remove(streamId)?.let { runCatching { it.close() } }
+    }
+
+    private fun publishConnectedState(config: TunnelConfig) {
+        connectionState.value = TunnelConnectionState.Connected(
+            targetUrl = config.serverUrl,
+            localAdbPort = config.localAdbPort,
+            networkType = activeNetwork.value,
+            bytesBridged = bytesBridged.get(),
+            mappedServerPort = mappedServerPort
+        )
+    }
+
     private fun updateBytesCount(delta: Long, config: TunnelConfig) {
-        val total = bytesBridged.addAndGet(delta)
+        bytesBridged.addAndGet(delta)
         if (connectionState.value is TunnelConnectionState.Connected) {
-            connectionState.value = TunnelConnectionState.Connected(
-                targetUrl = config.serverUrl,
-                localAdbPort = config.localAdbPort,
-                networkType = activeNetwork.value,
-                bytesBridged = total
-            )
+            publishConnectedState(config)
         }
     }
 
-    private fun handleSessionDropped(reason: String) {
+    private fun handleSessionDropped(reason: String, authBlocked: Boolean) {
         closeActiveSession()
         val cfg = currentConfig
+        if (authBlocked) {
+            userWantsConnected.set(false)
+            TunnelForegroundService.stop(appContext)
+            connectionState.value = TunnelConnectionState.Error(reason)
+            return
+        }
         if (!userWantsConnected.get() || cfg == null || !cfg.autoReconnectOnNetworkChange) {
             connectionState.value = TunnelConnectionState.Error(reason)
             return
@@ -195,17 +245,16 @@ class WebSocketReverseTunnelAdapter(
         )
         reconnectJob = scope.launch {
             delay(delayMs)
-            if (userWantsConnected.get()) {
-                openWebSocketSession(config)
-            }
+            if (userWantsConnected.get()) openWebSocketSession(config)
         }
     }
 
     private fun closeActiveSession() {
-        bridgeReaderJob?.cancel()
-        runCatching { activeLocalSocket?.close() }
+        streamReaderJobs.values.forEach { it.cancel() }
+        streamReaderJobs.clear()
+        activeStreams.values.forEach { runCatching { it.close() } }
+        activeStreams.clear()
         runCatching { activeWebSocket?.close(1000, "Client closing") }
-        activeLocalSocket = null
         activeWebSocket = null
     }
 

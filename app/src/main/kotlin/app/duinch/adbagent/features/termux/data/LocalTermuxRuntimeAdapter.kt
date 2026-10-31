@@ -1,6 +1,7 @@
 package app.duinch.adbagent.features.termux.data
 
 import android.content.Context
+import android.system.Os
 import app.duinch.adbagent.features.termux.domain.BootstrapState
 import app.duinch.adbagent.features.termux.domain.ShellCommandResult
 import app.duinch.adbagent.features.termux.domain.TermuxPrefixPaths
@@ -22,7 +23,7 @@ class LocalTermuxRuntimeAdapter(
     private val nativeLibDir = appContext.applicationInfo.nativeLibraryDir
     private val bootstrapState = MutableStateFlow(BootstrapState.NOT_INSTALLED)
     private val consoleLogs = MutableStateFlow(
-        listOf("[termux-env] Khởi tạo sandbox Embedded Termux...")
+        listOf("[termux-env] Khởi tạo sandbox Embedded Termux + ARM64 ADB...")
     )
 
     override fun observeBootstrapState(): Flow<BootstrapState> = bootstrapState.asStateFlow()
@@ -58,8 +59,17 @@ class LocalTermuxRuntimeAdapter(
                 paths.tmpDir
             ).forEach { dir -> File(dir).mkdirs() }
 
+            val packagedAdb = File(nativeLibDir, "libadb.so")
+            val binAdbLink = File("${paths.usrPrefixDir}/bin/adb")
+            if (packagedAdb.exists()) {
+                runCatching {
+                    if (binAdbLink.exists()) binAdbLink.delete()
+                    Os.symlink(packagedAdb.absolutePath, binAdbLink.absolutePath)
+                }
+            }
+
             bootstrapState.value = BootstrapState.READY
-            appendLog("[termux-env] Sẵn sàng: PREFIX=${paths.usrPrefixDir}")
+            appendLog("[termux-env] Sẵn sàng: ADB=${paths.adbBinaryPath}")
             paths
         }.onFailure { err ->
             bootstrapState.value = BootstrapState.FAILED
@@ -75,15 +85,22 @@ class LocalTermuxRuntimeAdapter(
             val paths = getPrefixPaths()
             appendLog("$ $commandLine")
             val startMs = System.currentTimeMillis()
-            val pb = ProcessBuilder("/system/bin/sh", "-c", commandLine)
+            val wrappedCmd = if (File(paths.adbBinaryPath).exists()) {
+                "adb() { \"${paths.adbBinaryPath}\" \"$@\"; }; $commandLine"
+            } else {
+                commandLine
+            }
+
+            val pb = ProcessBuilder("/system/bin/sh", "-c", wrappedCmd)
             pb.directory(File(paths.homeDir).apply { mkdirs() })
             val env = pb.environment()
             env["PREFIX"] = paths.usrPrefixDir
             env["HOME"] = paths.homeDir
+            env["ANDROID_SDK_HOME"] = paths.homeDir
             env["TMPDIR"] = paths.tmpDir
             env["ANDROID_ADB_SERVER_PORT"] = "5038"
             env["LD_LIBRARY_PATH"] = "$nativeLibDir:${paths.usrPrefixDir}/lib"
-            env["PATH"] = "$nativeLibDir:${paths.usrPrefixDir}/bin:/system/bin:/system/xbin"
+            env["PATH"] = "${paths.usrPrefixDir}/bin:$nativeLibDir:/system/bin:/system/xbin"
 
             val proc = pb.start()
             val finished = proc.waitFor(timeoutSeconds, TimeUnit.SECONDS)

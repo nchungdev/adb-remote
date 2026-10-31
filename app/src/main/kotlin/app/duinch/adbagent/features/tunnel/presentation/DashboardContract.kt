@@ -13,8 +13,10 @@ data class DashboardUiState(
     val localAdbPortInput: String = "5555",
     val cfClientIdInput: String = "",
     val cfClientSecretInput: String = "",
+    val cfAuthCookie: String = "",
     val autoReconnect: Boolean = true,
     val showAdvancedAuth: Boolean = false,
+    val showCloudflareLoginDialog: Boolean = false,
     val activeNetwork: NetworkType = NetworkType.UNKNOWN,
     val connectionState: TunnelConnectionState = TunnelConnectionState.Disconnected,
     val pairing: PairingUiState = PairingUiState(),
@@ -24,6 +26,10 @@ data class DashboardUiState(
         get() = connectionState is TunnelConnectionState.Connected ||
             connectionState is TunnelConnectionState.Connecting ||
             connectionState is TunnelConnectionState.Reconnecting
+
+    val hasCloudflareAuth: Boolean
+        get() = cfAuthCookie.contains("CF_Authorization=") ||
+            (cfClientIdInput.isNotBlank() && cfClientSecretInput.isNotBlank())
 }
 
 sealed interface DashboardUiIntent {
@@ -34,6 +40,9 @@ sealed interface DashboardUiIntent {
     data class UpdateCfClientSecret(val value: String) : DashboardUiIntent
     data class ToggleAutoReconnect(val enabled: Boolean) : DashboardUiIntent
     data object ToggleAdvancedAuth : DashboardUiIntent
+    data object OpenCloudflareLogin : DashboardUiIntent
+    data object CloseCloudflareLogin : DashboardUiIntent
+    data class OnCloudflareCookieCaptured(val cookieHeader: String) : DashboardUiIntent
     data object SaveConfig : DashboardUiIntent
     data object ToggleTunnel : DashboardUiIntent
     data class OnPairingIntent(val intent: PairingUiIntent) : DashboardUiIntent

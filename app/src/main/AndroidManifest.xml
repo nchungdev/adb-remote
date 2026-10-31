@@ -34,6 +34,15 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Maintains user-initiated outbound ADB reverse WebSocket tunnel across Wi-Fi and cellular transitions." />
         </service>
+
+        <service
+            android:name=".features.pairing.data.PairingForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Provides inline RemoteInput notification for Android Wireless Debugging pairing code while user is inside Settings." />
+        </service>
     </application>
 
 </manifest>

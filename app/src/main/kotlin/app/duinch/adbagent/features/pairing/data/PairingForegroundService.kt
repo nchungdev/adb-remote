@@ -1,0 +1,220 @@
+package app.duinch.adbagent.features.pairing.data
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.RemoteInput
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
+import android.os.IBinder
+import app.duinch.adbagent.AdbAgentApp
+import app.duinch.adbagent.MainActivity
+import app.duinch.adbagent.features.pairing.domain.AdbPairingState
+import app.duinch.adbagent.features.pairing.domain.DiscoveredAdbPorts
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+
+class PairingForegroundService : Service() {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var discoveryJob: Job? = null
+    private var latestPorts = DiscoveredAdbPorts()
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        ensureChannel()
+        when (intent?.action) {
+            ACTION_STOP -> {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            ACTION_SUBMIT_CODE -> {
+                val bundle = RemoteInput.getResultsFromIntent(intent)
+                val code = bundle?.getCharSequence(KEY_PAIRING_CODE)?.toString()?.trim().orEmpty()
+                val pairPort = intent.getIntExtra(EXTRA_PAIR_PORT, latestPorts.pairingPort ?: -1)
+                val connPort = intent.getIntExtra(EXTRA_CONN_PORT, latestPorts.connectPort ?: -1)
+                    .takeIf { it > 0 }
+                handleSubmittedCode(pairPort, code, connPort)
+                return START_NOT_STICKY
+            }
+        }
+
+        val initial = buildSearchingNotification()
+        startAsSpecialUseForeground(initial)
+        observeMdnsPorts()
+        return START_STICKY
+    }
+
+    private fun observeMdnsPorts() {
+        val container = (application as AdbAgentApp).container
+        container.adbDiscoveryGateway.startDiscovery()
+        discoveryJob?.cancel()
+        discoveryJob = scope.launch {
+            container.adbDiscoveryGateway.observeDiscoveredPorts().collect { ports ->
+                latestPorts = ports
+                val pairPort = ports.pairingPort
+                if (pairPort != null) {
+                    notifyUpdated(buildReplyNotification(pairPort, ports.connectPort))
+                }
+            }
+        }
+    }
+
+    private fun handleSubmittedCode(pairPort: Int, code: String, connectPort: Int?) {
+        val container = (application as AdbAgentApp).container
+        notifyUpdated(buildStatusNotification("Đang ghép đôi cổng $pairPort...", ongoing = true))
+        container.pairingNotificationGateway.reportPairingState(AdbPairingState.PairingInProgress)
+
+        scope.launch {
+            val res = container.pairLocalAdb(pairPort, code, connectPort)
+            res.fold(
+                onSuccess = { state ->
+                    container.pairingNotificationGateway.reportPairingState(state)
+                    notifyUpdated(
+                        buildStatusNotification(
+                            "Ghép đôi thành công! Cổng ADB ${state.connectPort} đã sẵn sàng cho 4G/5G.",
+                            ongoing = false
+                        )
+                    )
+                    stopForeground(STOP_FOREGROUND_DETACH)
+                    stopSelf()
+                },
+                onFailure = { err ->
+                    val msg = err.message ?: "Sai mã hoặc cổng đã đổi"
+                    container.pairingNotificationGateway.reportPairingState(AdbPairingState.Failed(msg))
+                    notifyUpdated(buildStatusNotification("Lỗi: $msg. Mở lại mã ghép nối để thử lại.", ongoing = false))
+                }
+            )
+        }
+    }
+
+    private fun buildSearchingNotification(): Notification {
+        val stopPending = PendingIntent.getService(
+            this,
+            2,
+            Intent(this, PairingForegroundService::class.java).setAction(ACTION_STOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        return baseBuilder()
+            .setContentTitle("Đang tìm hộp thoại Ghép đôi ADB...")
+            .setContentText("Vào Cài đặt → Gỡ lỗi không dây → Ghép nối bằng mã ghép nối")
+            .addAction(Notification.Action.Builder(null, "Huỷ", stopPending).build())
+            .setOngoing(true)
+            .build()
+    }
+
+    private fun buildReplyNotification(pairPort: Int, connectPort: Int?): Notification {
+        val remoteInput = RemoteInput.Builder(KEY_PAIRING_CODE)
+            .setLabel("Nhập mã 6 chữ số trên màn hình")
+            .build()
+        val replyIntent = Intent(this, PairingForegroundService::class.java).apply {
+            action = ACTION_SUBMIT_CODE
+            putExtra(EXTRA_PAIR_PORT, pairPort)
+            if (connectPort != null) putExtra(EXTRA_CONN_PORT, connectPort)
+        }
+        val flagMutable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0
+        val replyPending = PendingIntent.getService(
+            this,
+            1,
+            replyIntent,
+            flagMutable or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val action = Notification.Action.Builder(null, "Nhập mã 6 số", replyPending)
+            .addRemoteInput(remoteInput)
+            .build()
+
+        return baseBuilder()
+            .setContentTitle("Đã tìm thấy cổng Ghép đôi: $pairPort")
+            .setContentText("Bấm 'Nhập mã 6 số' ngay tại đây (không thoát Cài đặt)")
+            .addAction(action)
+            .setOngoing(true)
+            .build()
+    }
+
+    private fun buildStatusNotification(text: String, ongoing: Boolean): Notification {
+        val openApp = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        return baseBuilder()
+            .setContentTitle("ADB Agent • Ghép đôi nội bộ")
+            .setContentText(text)
+            .setContentIntent(openApp)
+            .setOngoing(ongoing)
+            .setAutoCancel(!ongoing)
+            .build()
+    }
+
+    private fun baseBuilder(): Notification.Builder {
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, CHANNEL_ID)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
+        return builder.setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
+    }
+
+    private fun startAsSpecialUseForeground(notification: Notification) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
+    }
+
+    private fun notifyUpdated(notification: Notification) {
+        getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, notification)
+    }
+
+    private fun ensureChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val nm = getSystemService(NotificationManager::class.java) ?: return
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "ADB Wireless Pairing",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Cho phép nhập mã ghép nối 6 chữ số ngay trên thanh thông báo"
+        }
+        nm.createNotificationChannel(channel)
+    }
+
+    override fun onDestroy() {
+        discoveryJob?.cancel()
+        scope.cancel()
+        super.onDestroy()
+    }
+
+    companion object {
+        private const val CHANNEL_ID = "adb_pairing_interactive_channel"
+        private const val NOTIFICATION_ID = 1043
+        private const val ACTION_START = "app.duinch.adbagent.START_PAIRING"
+        private const val ACTION_STOP = "app.duinch.adbagent.STOP_PAIRING"
+        private const val ACTION_SUBMIT_CODE = "app.duinch.adbagent.SUBMIT_PAIRING_CODE"
+        private const val KEY_PAIRING_CODE = "key_pairing_code"
+        private const val EXTRA_PAIR_PORT = "extra_pair_port"
+        private const val EXTRA_CONN_PORT = "extra_conn_port"
+
+        fun start(context: Context) {
+            val intent = Intent(context, PairingForegroundService::class.java).setAction(ACTION_START)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }
+    }
+}

@@ -1,11 +1,14 @@
 package app.duinch.adbagent.core.di
 
 import android.content.Context
+import app.duinch.adbagent.features.pairing.application.ActivateTcpipModeUseCase
 import app.duinch.adbagent.features.pairing.application.PairLocalAdbUseCase
 import app.duinch.adbagent.features.pairing.data.AndroidMdnsAdbDiscoveryAdapter
+import app.duinch.adbagent.features.pairing.data.AndroidPairingNotificationAdapter
 import app.duinch.adbagent.features.pairing.data.TermuxLocalAdbPairingAdapter
 import app.duinch.adbagent.features.pairing.domain.AdbDiscoveryGateway
 import app.duinch.adbagent.features.pairing.domain.AdbPairingGateway
+import app.duinch.adbagent.features.pairing.domain.PairingNotificationGateway
 import app.duinch.adbagent.features.termux.application.EnsureTermuxBootstrapUseCase
 import app.duinch.adbagent.features.termux.application.RunTermuxCommandUseCase
 import app.duinch.adbagent.features.termux.data.LocalTermuxRuntimeAdapter
@@ -31,6 +34,9 @@ class AppContainer(context: Context) {
     val adbPairingGateway: AdbPairingGateway =
         TermuxLocalAdbPairingAdapter(termuxRuntimeGateway)
 
+    val pairingNotificationGateway: PairingNotificationGateway =
+        AndroidPairingNotificationAdapter(appContext)
+
     val tunnelConfigRepository: TunnelConfigRepository =
         SharedPrefsTunnelConfigRepository(appContext)
 
@@ -42,6 +48,7 @@ class AppContainer(context: Context) {
     val ensureTermuxBootstrap = EnsureTermuxBootstrapUseCase(termuxRuntimeGateway)
     val runTermuxCommand = RunTermuxCommandUseCase(termuxRuntimeGateway)
     val pairLocalAdb = PairLocalAdbUseCase(adbPairingGateway)
+    val activateTcpipMode = ActivateTcpipModeUseCase(adbPairingGateway)
     val saveTunnelConfig = SaveTunnelConfigUseCase(tunnelConfigRepository)
     val toggleReverseTunnel = ToggleReverseTunnelUseCase(
         configRepository = tunnelConfigRepository,

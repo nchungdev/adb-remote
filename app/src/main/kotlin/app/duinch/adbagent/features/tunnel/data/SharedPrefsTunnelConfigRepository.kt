@@ -20,6 +20,7 @@ class SharedPrefsTunnelConfigRepository(
             localAdbPort = prefs.getInt(KEY_LOCAL_PORT, 5555),
             cfAccessClientId = prefs.getString(KEY_CF_CLIENT_ID, "") ?: "",
             cfAccessClientSecret = prefs.getString(KEY_CF_CLIENT_SECRET, "") ?: "",
+            cfAuthCookie = prefs.getString(KEY_CF_AUTH_COOKIE, "") ?: "",
             autoReconnectOnNetworkChange = prefs.getBoolean(KEY_AUTO_RECONNECT, true)
         )
     }
@@ -31,6 +32,7 @@ class SharedPrefsTunnelConfigRepository(
             .putInt(KEY_LOCAL_PORT, config.localAdbPort)
             .putString(KEY_CF_CLIENT_ID, config.cfAccessClientId)
             .putString(KEY_CF_CLIENT_SECRET, config.cfAccessClientSecret)
+            .putString(KEY_CF_AUTH_COOKIE, config.cfAuthCookie)
             .putBoolean(KEY_AUTO_RECONNECT, config.autoReconnectOnNetworkChange)
             .apply()
     }
@@ -42,6 +44,7 @@ class SharedPrefsTunnelConfigRepository(
         private const val KEY_LOCAL_PORT = "local_adb_port"
         private const val KEY_CF_CLIENT_ID = "cf_access_client_id"
         private const val KEY_CF_CLIENT_SECRET = "cf_access_client_secret"
+        private const val KEY_CF_AUTH_COOKIE = "cf_auth_cookie"
         private const val KEY_AUTO_RECONNECT = "auto_reconnect"
     }
 }

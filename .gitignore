@@ -4,6 +4,7 @@ build/
 **/build/
 local.properties
 .kotlin/
+app/src/main/jniLibs/
 
 # IDE
 .idea/

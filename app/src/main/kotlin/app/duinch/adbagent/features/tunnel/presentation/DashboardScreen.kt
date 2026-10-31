@@ -101,6 +101,13 @@ fun DashboardScreen(
         state = state.termux,
         onIntent = { onIntent(DashboardUiIntent.OnTermuxIntent(it)) }
     )
+
+    CloudflareAuthDialog(
+        visible = state.showCloudflareLoginDialog,
+        wssUrl = state.serverUrlInput,
+        onCookieCaptured = { onIntent(DashboardUiIntent.OnCloudflareCookieCaptured(it)) },
+        onDismiss = { onIntent(DashboardUiIntent.CloseCloudflareLogin) }
+    )
 }
 
 @Composable
@@ -119,11 +126,14 @@ private fun TunnelHeroCard(
             conn.targetUrl,
             Color(0xFFFBBF24)
         )
-        is TunnelConnectionState.Connected -> Triple(
-            "ĐÃ KẾT NỐI VỀ MAC MINI",
-            "Cổng nội bộ ${conn.localAdbPort} • ${conn.networkType.label} • ${conn.bytesBridged} B",
-            Color(0xFF34D399)
-        )
+        is TunnelConnectionState.Connected -> {
+            val macPort = conn.mappedServerPort?.let { "Mac 127.0.0.1:$it • " }.orEmpty()
+            Triple(
+                "ĐÃ KẾT NỐI VỀ MAC MINI",
+                "${macPort}ADB ${conn.localAdbPort} • ${conn.networkType.label} • ${conn.bytesBridged} B",
+                Color(0xFF34D399)
+            )
+        }
         is TunnelConnectionState.Reconnecting -> Triple(
             "ĐANG TỰ NỐI LẠI (Lần ${conn.attempt})",
             "${conn.reason} • Thử lại sau ${conn.nextRetryDelayMs / 1000}s",
@@ -206,6 +216,16 @@ private fun TunnelConfigCard(
                 fontWeight = FontWeight.Bold
             )
 
+            OutlinedButton(
+                onClick = { onIntent(DashboardUiIntent.OpenCloudflareLogin) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    if (state.hasCloudflareAuth) "✅ Đã xác thực Cloudflare (Bấm để đăng nhập lại)"
+                    else "🔐 Đăng nhập Cloudflare Access (1 chạm)"
+                )
+            }
+
             OutlinedTextField(
                 value = state.serverUrlInput,
                 onValueChange = { onIntent(DashboardUiIntent.UpdateServerUrl(it)) },
@@ -252,8 +272,8 @@ private fun TunnelConfigCard(
 
             TextButton(onClick = { onIntent(DashboardUiIntent.ToggleAdvancedAuth) }) {
                 Text(
-                    if (state.showAdvancedAuth) "Ẩn xác thực Cloudflare Access Service Token"
-                    else "Cấu hình Cloudflare Access Service Token (Tuỳ chọn)"
+                    if (state.showAdvancedAuth) "Ẩn Service Token nâng cao"
+                    else "Hoặc dùng Service Token nâng cao (Tuỳ chọn)"
                 )
             }
 

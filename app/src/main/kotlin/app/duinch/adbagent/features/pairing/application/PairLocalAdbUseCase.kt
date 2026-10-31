@@ -27,15 +27,22 @@ class PairLocalAdbUseCase(
             )
         }
 
-        val targetConnectPort = connectPortHint?.takeIf { PairingCodeValidator.isValidPort(it) } ?: 5555
-        val connectResult = pairingGateway.connectLocalhost(targetConnectPort)
+        val initialConnectPort = connectPortHint?.takeIf { PairingCodeValidator.isValidPort(it) } ?: 5555
+        val connectResult = pairingGateway.connectLocalhost(initialConnectPort)
         if (connectResult.isFailure) {
             return Result.failure(
                 connectResult.exceptionOrNull()
-                    ?: IllegalStateException("Đã ghép đôi nhưng chưa kết nối được cổng $targetConnectPort")
+                    ?: IllegalStateException("Đã ghép đôi nhưng chưa kết nối được cổng $initialConnectPort")
             )
         }
 
-        return Result.success(AdbPairingState.PairedAndConnected(targetConnectPort))
+        val finalPort = if (initialConnectPort != 5555) {
+            pairingGateway.enablePersistentTcpip(fromPort = initialConnectPort, targetTcpPort = 5555)
+                .getOrDefault(initialConnectPort)
+        } else {
+            5555
+        }
+
+        return Result.success(AdbPairingState.PairedAndConnected(finalPort))
     }
 }

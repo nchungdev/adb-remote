@@ -8,8 +8,13 @@ data class TunnelConfig(
     val localAdbPort: Int = 5555,
     val cfAccessClientId: String = "",
     val cfAccessClientSecret: String = "",
+    val cfAuthCookie: String = "",
     val autoReconnectOnNetworkChange: Boolean = true
 ) {
+    val hasCloudflareAuth: Boolean
+        get() = cfAuthCookie.contains("CF_Authorization=") ||
+            (cfAccessClientId.isNotBlank() && cfAccessClientSecret.isNotBlank())
+
     fun validate(): Result<TunnelConfig> {
         val url = serverUrl.trim()
         if (!url.startsWith("wss://")) {
@@ -32,7 +37,8 @@ data class TunnelConfig(
                 serverUrl = url,
                 deviceAlias = deviceAlias.trim(),
                 cfAccessClientId = cfAccessClientId.trim(),
-                cfAccessClientSecret = cfAccessClientSecret.trim()
+                cfAccessClientSecret = cfAccessClientSecret.trim(),
+                cfAuthCookie = cfAuthCookie.trim()
             )
         )
     }
@@ -49,7 +55,8 @@ sealed interface TunnelConnectionState {
         val targetUrl: String,
         val localAdbPort: Int,
         val networkType: NetworkType,
-        val bytesBridged: Long = 0L
+        val bytesBridged: Long = 0L,
+        val mappedServerPort: Int? = null
     ) : TunnelConnectionState
     data class Reconnecting(
         val attempt: Int,

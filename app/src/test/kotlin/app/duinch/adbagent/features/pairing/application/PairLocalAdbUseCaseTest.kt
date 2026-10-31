@@ -11,11 +11,13 @@ class PairLocalAdbUseCaseTest {
 
     private class FakeAdbPairingGateway(
         var pairResult: Result<String> = Result.success("Successfully paired"),
-        var connectResult: Result<String> = Result.success("connected to 127.0.0.1:41923")
+        var connectResult: Result<String> = Result.success("connected to 127.0.0.1:41923"),
+        var tcpipResult: Result<Int> = Result.success(5555)
     ) : AdbPairingGateway {
         var lastPairPort: Int? = null
         var lastCode: String? = null
         var lastConnectPort: Int? = null
+        var lastTcpipFromPort: Int? = null
 
         override suspend fun pairLocalhost(port: Int, sixDigitCode: String): Result<String> {
             lastPairPort = port
@@ -26,6 +28,11 @@ class PairLocalAdbUseCaseTest {
         override suspend fun connectLocalhost(port: Int): Result<String> {
             lastConnectPort = port
             return connectResult
+        }
+
+        override suspend fun enablePersistentTcpip(fromPort: Int, targetTcpPort: Int): Result<Int> {
+            lastTcpipFromPort = fromPort
+            return tcpipResult
         }
     }
 
@@ -52,7 +59,7 @@ class PairLocalAdbUseCaseTest {
     }
 
     @Test
-    fun `pairs localhost and connects to discovered connect port`() = runTest {
+    fun `pairs localhost and promotes wireless port to persistent tcpip 5555`() = runTest {
         val gateway = FakeAdbPairingGateway()
         val useCase = PairLocalAdbUseCase(gateway)
 
@@ -63,10 +70,24 @@ class PairLocalAdbUseCaseTest {
         )
 
         assertTrue(res.isSuccess)
-        assertEquals(AdbPairingState.PairedAndConnected(41923), res.getOrThrow())
+        assertEquals(AdbPairingState.PairedAndConnected(5555), res.getOrThrow())
         assertEquals(37192, gateway.lastPairPort)
         assertEquals("482910", gateway.lastCode)
         assertEquals(41923, gateway.lastConnectPort)
+        assertEquals(41923, gateway.lastTcpipFromPort)
+    }
+
+    @Test
+    fun `falls back to wireless connect port when tcpip promotion fails`() = runTest {
+        val gateway = FakeAdbPairingGateway(
+            tcpipResult = Result.failure(IllegalStateException("unsupported"))
+        )
+        val useCase = PairLocalAdbUseCase(gateway)
+
+        val res = useCase(pairingPort = 37192, rawCode = "482910", connectPortHint = 41923)
+
+        assertTrue(res.isSuccess)
+        assertEquals(AdbPairingState.PairedAndConnected(41923), res.getOrThrow())
     }
 
     @Test

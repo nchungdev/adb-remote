@@ -14,6 +14,9 @@ data class PairingUiState(
         get() = pairingCodeInput.length == 6 &&
             (pairingPortInput.toIntOrNull() ?: discoveredPairingPort) != null &&
             pairingState !is AdbPairingState.PairingInProgress
+
+    val effectiveConnectPort: Int?
+        get() = connectPortInput.toIntOrNull() ?: discoveredConnectPort
 }
 
 sealed interface PairingUiIntent {
@@ -21,5 +24,6 @@ sealed interface PairingUiIntent {
     data class UpdateConnectPort(val value: String) : PairingUiIntent
     data class UpdatePairingCode(val value: String) : PairingUiIntent
     data object SubmitPair : PairingUiIntent
-    data object OpenDeveloperOptions : PairingUiIntent
+    data object StartNotificationPairing : PairingUiIntent
+    data object ActivateTcpip5555 : PairingUiIntent
 }
