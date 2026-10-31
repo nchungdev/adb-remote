@@ -21,7 +21,8 @@ class UpdaterViewModel(
     private val _uiState = MutableStateFlow(
         UpdaterUiState(
             currentVersionName = container.appUpdateGateway.installedVersionName,
-            currentVersionCode = container.appUpdateGateway.installedVersionCode
+            currentVersionCode = container.appUpdateGateway.installedVersionCode,
+            gitHubToken = container.appUpdateGateway.getGitHubToken()
         )
     )
     val uiState: StateFlow<UpdaterUiState> = _uiState.asStateFlow()
@@ -40,6 +41,14 @@ class UpdaterViewModel(
             UpdaterUiIntent.InstallDownloadedApk -> installExistingApk()
             UpdaterUiIntent.GrantInstallPermission ->
                 _effects.tryEmit(UpdaterUiEffect.OpenInstallUnknownAppsSettings)
+            is UpdaterUiIntent.UpdateGitHubTokenInput -> {
+                _uiState.update { it.copy(gitHubToken = intent.token) }
+            }
+            UpdaterUiIntent.SaveGitHubToken -> {
+                container.appUpdateGateway.setGitHubToken(_uiState.value.gitHubToken)
+                _effects.tryEmit(UpdaterUiEffect.ShowMessage("Đã lưu GitHub Token"))
+                checkUpdate(userInitiated = true)
+            }
         }
     }
 

@@ -20,9 +20,16 @@ class UpdaterUseCasesTest {
             sha256 = "abc123",
             changelog = "GitHub Releases OTA update"
         ),
-        var allowInstalls: Boolean = true
+        var allowInstalls: Boolean = true,
+        var currentToken: String = ""
     ) : AppUpdateGateway {
         var triggeredPath: String? = null
+
+        override fun getGitHubToken(): String = currentToken
+
+        override fun setGitHubToken(token: String) {
+            currentToken = token
+        }
 
         override suspend fun fetchLatestRelease(
             repository: String

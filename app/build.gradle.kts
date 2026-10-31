@@ -23,6 +23,15 @@ val appVersionName = if (versionClassifier.isNotEmpty()) {
     "$versionMajor.$versionMinor.$versionPatch"
 }
 
+val localPropsFile = file("local.properties")
+val localProps = Properties().apply {
+    if (localPropsFile.exists()) {
+        localPropsFile.inputStream().use { load(it) }
+    }
+}
+val defaultGithubToken = System.getenv("GITHUB_TOKEN")
+    ?: localProps.getProperty("github.token", "")
+
 android {
     namespace = "app.duinch.adbagent"
     compileSdk = 35
@@ -34,6 +43,7 @@ android {
         versionCode = appVersionCode
         versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "GITHUB_TOKEN", "\"$defaultGithubToken\"")
         ndk {
             abiFilters += "arm64-v8a"
         }

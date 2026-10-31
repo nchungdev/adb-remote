@@ -181,6 +181,9 @@ fun UpdateBannerCard(
                 }
                 else -> Unit
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            GitHubTokenSettingsSection(state = state, onIntent = onIntent)
         }
     }
 }

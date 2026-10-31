@@ -21,6 +21,17 @@ class OkHttpAppUpdateAdapter(
 ) : AppUpdateGateway {
 
     private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    override fun getGitHubToken(): String {
+        val saved = prefs.getString(KEY_GITHUB_TOKEN, null)
+        if (!saved.isNullOrBlank()) return saved
+        return BuildConfig.GITHUB_TOKEN.trim()
+    }
+
+    override fun setGitHubToken(token: String) {
+        prefs.edit().putString(KEY_GITHUB_TOKEN, token.trim()).apply()
+    }
 
     private val httpClient = OkHttpClient.Builder()
         .followRedirects(true)
@@ -38,15 +49,20 @@ class OkHttpAppUpdateAdapter(
         runCatching {
             val targetRepo = repository.trim().ifBlank { AppUpdateGateway.DEFAULT_REPOSITORY }
             val url = "https://api.github.com/repos/$targetRepo/releases/latest"
-            val req = Request.Builder()
+            val token = getGitHubToken()
+            val reqBuilder = Request.Builder()
                 .url(url)
                 .header("Accept", "application/vnd.github+json")
                 .header("User-Agent", "ADB-Agent/$installedVersionName")
-                .build()
+            if (token.isNotEmpty()) {
+                reqBuilder.header("Authorization", "Bearer $token")
+            }
+            val req = reqBuilder.build()
 
             httpClient.newCall(req).execute().use { resp ->
                 if (resp.code == 404) {
-                    error("Không tìm thấy bản phát hành trên GitHub (hoặc repository '$targetRepo' đang ở chế độ Private).")
+                    val authHint = if (token.isEmpty()) " Bạn có thể nhập GitHub Token trong phần Cập nhật." else ""
+                    error("Không tìm thấy bản phát hành trên GitHub (hoặc repository '$targetRepo' đang ở chế độ Private).$authHint")
                 }
                 if (!resp.isSuccessful) {
                     error("GitHub API trả về lỗi HTTP ${resp.code}")
@@ -63,7 +79,12 @@ class OkHttpAppUpdateAdapter(
                         val asset = assets.getJSONObject(i)
                         val name = asset.optString("name", "")
                         if (name.endsWith(".apk", ignoreCase = true)) {
-                            apkUrl = asset.getString("browser_download_url")
+                            // If token is present, use asset API URL; otherwise use browser_download_url
+                            apkUrl = if (token.isNotEmpty() && asset.has("url")) {
+                                asset.getString("url")
+                            } else {
+                                asset.getString("browser_download_url")
+                            }
                             break
                         }
                     }
@@ -109,11 +130,15 @@ class OkHttpAppUpdateAdapter(
         onProgress: (Int) -> Unit
     ): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
-            val req = Request.Builder()
+            val token = getGitHubToken()
+            val reqBuilder = Request.Builder()
                 .url(release.downloadUrl)
                 .header("User-Agent", "ADB-Agent/$installedVersionName")
                 .header("Accept", "application/octet-stream")
-                .build()
+            if (token.isNotEmpty() && release.downloadUrl.contains("api.github.com")) {
+                reqBuilder.header("Authorization", "Bearer $token")
+            }
+            val req = reqBuilder.build()
             val updatesDir = File(appContext.cacheDir, "updates").apply { mkdirs() }
             updatesDir.listFiles()?.forEach { runCatching { it.delete() } }
             val outFile = File(updatesDir, "adb-agent-v${release.versionName}.apk")
@@ -177,5 +202,10 @@ class OkHttpAppUpdateAdapter(
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         appContext.startActivity(installIntent)
+    }
+
+    companion object {
+        private const val PREFS_NAME = "app_update_prefs"
+        private const val KEY_GITHUB_TOKEN = "github_token"
     }
 }

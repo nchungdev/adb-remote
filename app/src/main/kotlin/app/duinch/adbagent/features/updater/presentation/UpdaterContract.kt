@@ -5,7 +5,8 @@ import app.duinch.adbagent.features.updater.domain.UpdateStatus
 data class UpdaterUiState(
     val currentVersionName: String = "",
     val currentVersionCode: Int = 1,
-    val status: UpdateStatus = UpdateStatus.Idle
+    val status: UpdateStatus = UpdateStatus.Idle,
+    val gitHubToken: String = ""
 )
 
 sealed interface UpdaterUiIntent {
@@ -13,6 +14,8 @@ sealed interface UpdaterUiIntent {
     data object StartUpdate : UpdaterUiIntent
     data object InstallDownloadedApk : UpdaterUiIntent
     data object GrantInstallPermission : UpdaterUiIntent
+    data class UpdateGitHubTokenInput(val token: String) : UpdaterUiIntent
+    data object SaveGitHubToken : UpdaterUiIntent
 }
 
 sealed interface UpdaterUiEffect {

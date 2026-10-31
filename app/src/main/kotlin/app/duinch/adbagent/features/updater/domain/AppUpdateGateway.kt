@@ -4,6 +4,9 @@ interface AppUpdateGateway {
     val installedVersionCode: Int
     val installedVersionName: String
 
+    fun getGitHubToken(): String
+    fun setGitHubToken(token: String)
+
     suspend fun fetchLatestRelease(
         repository: String = DEFAULT_REPOSITORY
     ): Result<AppReleaseInfo>
