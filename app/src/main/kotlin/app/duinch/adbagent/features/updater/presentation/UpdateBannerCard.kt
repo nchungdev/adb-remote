@@ -57,75 +57,83 @@ fun UpdateBannerCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = if (state.status is UpdateStatus.UpToDate) {
-                            AppIcons.CheckCircle
-                        } else {
-                            AppIcons.Download
-                        },
-                        contentDescription = null,
-                        tint = if (isHighlight || state.status is UpdateStatus.UpToDate) {
+                Icon(
+                    imageVector = if (state.status is UpdateStatus.UpToDate) {
+                        AppIcons.CheckCircle
+                    } else {
+                        AppIcons.Download
+                    },
+                    contentDescription = null,
+                    tint = if (isHighlight || state.status is UpdateStatus.UpToDate) {
+                        ext.statusConnected
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "ADB Agent",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "v${state.currentVersionName} (Build ${state.currentVersionCode})",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    val subtitle = when (val s = state.status) {
+                        UpdateStatus.Idle -> "Cập nhật trực tiếp qua Cloudflare OTA"
+                        UpdateStatus.Checking -> "Đang kiểm tra bản phát hành mới..."
+                        is UpdateStatus.UpToDate -> "Đang ở phiên bản mới nhất"
+                        is UpdateStatus.Available -> "Có bản mới v${s.release.versionName}: ${s.release.changelog}"
+                        is UpdateStatus.Downloading -> "Đang tải gói cài đặt... ${s.progressPercent}%"
+                        is UpdateStatus.ReadyToInstall ->
+                            if (s.needsInstallPermission) "Cần cấp quyền cài đặt APK để hoàn tất"
+                            else "Đã tải xong v${s.release.versionName} — sẵn sàng cài đặt"
+                        UpdateStatus.AuthRequired -> "Đăng nhập Cloudflare trước khi kiểm tra OTA"
+                        is UpdateStatus.Failed -> s.reason
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (state.status is UpdateStatus.Available) {
                             ext.statusConnected
                         } else {
-                            MaterialTheme.colorScheme.primary
-                        },
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "Phiên bản v${state.currentVersionName} (Build ${state.currentVersionCode})",
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        val subtitle = when (val s = state.status) {
-                            UpdateStatus.Idle -> "Cập nhật trực tiếp qua Cloudflare OTA"
-                            UpdateStatus.Checking -> "Đang kiểm tra bản phát hành mới..."
-                            is UpdateStatus.UpToDate -> "Đang ở phiên bản mới nhất"
-                            is UpdateStatus.Available -> "Có bản mới v${s.release.versionName}: ${s.release.changelog}"
-                            is UpdateStatus.Downloading -> "Đang tải gói cài đặt... ${s.progressPercent}%"
-                            is UpdateStatus.ReadyToInstall ->
-                                if (s.needsInstallPermission) "Cần cấp quyền cài đặt APK để hoàn tất"
-                                else "Đã tải xong v${s.release.versionName} — sẵn sàng cài đặt"
-                            UpdateStatus.AuthRequired -> "Đăng nhập Cloudflare trước khi kiểm tra OTA"
-                            is UpdateStatus.Failed -> s.reason
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         }
-                        Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (state.status is UpdateStatus.Available) {
-                                ext.statusConnected
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                        )
-                    }
+                    )
                 }
+            }
 
-                if (state.status !is UpdateStatus.Available &&
-                    state.status !is UpdateStatus.Downloading &&
-                    state.status !is UpdateStatus.ReadyToInstall
+            if (state.status !is UpdateStatus.Available &&
+                state.status !is UpdateStatus.Downloading &&
+                state.status !is UpdateStatus.ReadyToInstall
+            ) {
+                Spacer(modifier = Modifier.height(14.dp))
+                OutlinedButton(
+                    onClick = { onIntent(UpdaterUiIntent.CheckForUpdate) },
+                    enabled = state.status !is UpdateStatus.Checking,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 44.dp)
                 ) {
+                    Icon(
+                        imageVector = AppIcons.Refresh,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedButton(
-                        onClick = { onIntent(UpdaterUiIntent.CheckForUpdate) },
-                        enabled = state.status !is UpdateStatus.Checking,
-                        modifier = Modifier.heightIn(min = 48.dp)
-                    ) {
-                        Icon(
-                            imageVector = AppIcons.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(if (state.status is UpdateStatus.Checking) "Đang dò" else "Kiểm tra")
-                    }
+                    Text(if (state.status is UpdateStatus.Checking) "Đang kiểm tra..." else "Kiểm tra bản cập nhật mới")
                 }
             }
 
