@@ -8,8 +8,7 @@ data class PairingUiState(
     val pairingCodeInput: String = "",
     val discoveredPairingPort: Int? = null,
     val discoveredConnectPort: Int? = null,
-    val pairingState: AdbPairingState = AdbPairingState.Idle,
-    val isAccessibilityEnabled: Boolean = false
+    val pairingState: AdbPairingState = AdbPairingState.Idle
 ) {
     val canSubmitPair: Boolean
         get() = pairingCodeInput.length == 6 &&
@@ -26,7 +25,5 @@ sealed interface PairingUiIntent {
     data class UpdatePairingCode(val value: String) : PairingUiIntent
     data object SubmitPair : PairingUiIntent
     data object StartNotificationPairing : PairingUiIntent
-    data object StartAutoPairing : PairingUiIntent
-    data object OpenAccessibilitySettings : PairingUiIntent
     data object ActivateTcpip5555 : PairingUiIntent
 }

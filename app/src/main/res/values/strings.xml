@@ -1,4 +1,3 @@
 <resources>
     <string name="app_name">ADB Agent</string>
-    <string name="accessibility_service_desc">Tự động đọc mã 6 số Gỡ lỗi không dây và kích hoạt cổng ADB 5555 mà không cần nhập tay.</string>
 </resources>

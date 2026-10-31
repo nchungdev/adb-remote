@@ -20,7 +20,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.duinch.adbagent.core.designsystem.AdbAgentTheme
-import app.duinch.adbagent.features.pairing.data.AutoPairAccessibilityService
 import app.duinch.adbagent.features.tunnel.data.TunnelForegroundService
 import app.duinch.adbagent.features.tunnel.presentation.AppTab
 import app.duinch.adbagent.features.tunnel.presentation.DashboardScreen
@@ -90,8 +89,6 @@ class MainActivity : ComponentActivity() {
                                 snackbarHostState.showSnackbar(effect.text)
                             DashboardUiEffect.LaunchDeveloperSettings ->
                                 openDeveloperSettings()
-                            DashboardUiEffect.OpenAccessibilitySettings ->
-                                AutoPairAccessibilityService.openAccessibilitySettings(this@MainActivity)
                         }
                     }
                 }

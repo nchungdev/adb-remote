@@ -36,10 +36,8 @@ class DashboardViewModel(
 
     fun onIntent(intent: DashboardUiIntent) {
         when (intent) {
-            is DashboardUiIntent.SelectTab -> {
-                val acc = app.duinch.adbagent.features.pairing.data.AutoPairAccessibilityService.isServiceEnabled
-                _uiState.update { it.copy(selectedTab = intent.tab, pairing = it.pairing.copy(isAccessibilityEnabled = acc)) }
-            }
+            is DashboardUiIntent.SelectTab ->
+                _uiState.update { it.copy(selectedTab = intent.tab) }
             is DashboardUiIntent.UpdateServerUrl ->
                 _uiState.update { it.copy(serverUrlInput = intent.value) }
             is DashboardUiIntent.UpdateDeviceAlias ->
@@ -192,17 +190,6 @@ class DashboardViewModel(
                 container.pairingNotificationGateway.startInteractivePairing()
                 _effects.tryEmit(DashboardUiEffect.LaunchDeveloperSettings)
             }
-            PairingUiIntent.StartAutoPairing -> {
-                if (app.duinch.adbagent.features.pairing.data.AutoPairAccessibilityService.isServiceEnabled) {
-                    _uiState.update { it.copy(pairing = it.pairing.copy(pairingState = AdbPairingState.PairingInProgress)) }
-                    app.duinch.adbagent.features.pairing.data.AutoPairAccessibilityService.startAutoPairing(container.appContext)
-                    _effects.tryEmit(DashboardUiEffect.ShowMessage("Đang tự động đọc mã ghép đôi và mở cổng 5555..."))
-                } else {
-                    _effects.tryEmit(DashboardUiEffect.ShowMessage("Hãy bật 'ADB Agent' trong mục Ứng dụng đã cài đặt"))
-                    _effects.tryEmit(DashboardUiEffect.OpenAccessibilitySettings)
-                }
-            }
-            PairingUiIntent.OpenAccessibilitySettings -> _effects.tryEmit(DashboardUiEffect.OpenAccessibilitySettings)
             PairingUiIntent.ActivateTcpip5555 -> activateTcpipMode()
             PairingUiIntent.SubmitPair -> submitPairing()
         }
