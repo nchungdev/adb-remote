@@ -168,6 +168,8 @@ class PairingForegroundService : Service() {
     }
 
     private fun startAsSpecialUseForeground(notification: Notification) {
+        @Suppress("DEPRECATION")
+        notification.flags = notification.flags or Notification.FLAG_NO_CLEAR or Notification.FLAG_ONGOING_EVENT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
@@ -176,6 +178,8 @@ class PairingForegroundService : Service() {
     }
 
     private fun notifyUpdated(notification: Notification) {
+        @Suppress("DEPRECATION")
+        notification.flags = notification.flags or Notification.FLAG_NO_CLEAR or Notification.FLAG_ONGOING_EVENT
         getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, notification)
     }
 

@@ -53,6 +53,10 @@ class TunnelForegroundService : Service() {
                 }
                 return START_STICKY
             }
+            ACTION_RESTORE_NOTIFICATION -> {
+                updateNotification()
+                return START_STICKY
+            }
         }
 
         ensureNotificationChannel()
@@ -108,6 +112,17 @@ class TunnelForegroundService : Service() {
         manager.createNotificationChannel(channel)
     }
 
+    private fun updateNotification() {
+        val container = (application as? AdbAgentApp)?.container ?: return
+        val conn = (container.reverseTunnelGateway.observeConnectionState() as? kotlinx.coroutines.flow.StateFlow)?.value
+            ?: TunnelConnectionState.Disconnected
+        val ip = container.reverseTunnelGateway.getLocalWifiIp().orEmpty()
+        val port = container.tunnelConfigRepository.getConfig().localAdbPort
+        val notification = buildNotification(conn, NetworkType.UNKNOWN, ip, port)
+        val manager = getSystemService(NotificationManager::class.java)
+        manager?.notify(NOTIFICATION_ID, notification)
+    }
+
     private fun buildNotification(
         state: TunnelConnectionState,
         net: NetworkType,
@@ -118,6 +133,12 @@ class TunnelForegroundService : Service() {
             this,
             0,
             Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val deleteIntent = PendingIntent.getService(
+            this,
+            4,
+            Intent(this, TunnelForegroundService::class.java).apply { action = ACTION_RESTORE_NOTIFICATION },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
@@ -150,7 +171,14 @@ class TunnelForegroundService : Service() {
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_adb_tunnel)
             .setContentIntent(openIntent)
+            .setDeleteIntent(deleteIntent)
             .setOngoing(true)
+            .setAutoCancel(false)
+            .setOnlyAlertOnce(true)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
+        }
 
         // Actions
         if (state is TunnelConnectionState.Connected) {
@@ -179,7 +207,13 @@ class TunnelForegroundService : Service() {
         )
         builder.addAction(Notification.Action.Builder(null, "Dừng dịch vụ", stopIntent).build())
 
-        return builder.build()
+        val notification = builder.build()
+        @Suppress("DEPRECATION")
+        notification.flags = notification.flags or
+            Notification.FLAG_NO_CLEAR or
+            Notification.FLAG_ONGOING_EVENT or
+            Notification.FLAG_FOREGROUND_SERVICE
+        return notification
     }
 
     override fun onDestroy() {
@@ -194,6 +228,7 @@ class TunnelForegroundService : Service() {
         const val ACTION_STOP = "app.duinch.adbagent.STOP_TUNNEL"
         const val ACTION_CONNECT = "app.duinch.adbagent.ACTION_CONNECT"
         const val ACTION_DISCONNECT = "app.duinch.adbagent.ACTION_DISCONNECT"
+        const val ACTION_RESTORE_NOTIFICATION = "app.duinch.adbagent.ACTION_RESTORE_NOTIFICATION"
 
         fun start(context: Context) {
             val intent = Intent(context, TunnelForegroundService::class.java).apply {
