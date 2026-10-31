@@ -148,9 +148,9 @@ fun PairingSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "3. Hộp thoại nhập mã sẽ tự động hiện lên.",
+                        text = "3. Chụp ảnh màn hình (Screenshot) để tự động ghép đôi!",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = ext.statusConnected
                     )
                 }
 

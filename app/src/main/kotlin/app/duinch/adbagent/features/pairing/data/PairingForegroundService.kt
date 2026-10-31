@@ -28,6 +28,7 @@ class PairingForegroundService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var discoveryJob: Job? = null
     private var latestPorts = DiscoveredAdbPorts()
+    private var screenshotWatcher: ScreenshotPairingWatcher? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -53,7 +54,18 @@ class PairingForegroundService : Service() {
         val initial = buildSearchingNotification()
         startAsSpecialUseForeground(initial)
         observeMdnsPorts()
+        startScreenshotWatcher()
         return START_STICKY
+    }
+
+    private fun startScreenshotWatcher() {
+        screenshotWatcher?.stop()
+        screenshotWatcher = ScreenshotPairingWatcher(this, scope) { code ->
+            val pairPort = latestPorts.pairingPort
+            if (pairPort != null && pairPort > 0) {
+                handleSubmittedCode(pairPort, code, latestPorts.connectPort)
+            }
+        }.apply { start() }
     }
 
     private fun observeMdnsPorts() {
@@ -154,7 +166,7 @@ class PairingForegroundService : Service() {
 
         return baseBuilder()
             .setContentTitle("Tìm thấy cổng ghép nối: $pairPort")
-            .setContentText("Bấm 'Nhập mã' để gõ mã 6 số từ màn hình Cài đặt")
+            .setContentText("Chụp ảnh màn hình để tự động ghép đôi (hoặc bấm 'Nhập mã')")
             .addAction(replyAction)
             .addAction(cancelAction)
             .setOngoing(true)
@@ -217,6 +229,8 @@ class PairingForegroundService : Service() {
     }
 
     override fun onDestroy() {
+        screenshotWatcher?.stop()
+        screenshotWatcher = null
         discoveryJob?.cancel()
         scope.cancel()
         super.onDestroy()
