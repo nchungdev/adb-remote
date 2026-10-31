@@ -1,5 +1,7 @@
-# Claude Code Instructions
+# adb-agent — Claude Code Instructions
 
-Tất cả quy tắc kiến trúc (**Clean Architecture + Feature-First + MVI**), bảo mật và quy trình kiểm thử đều được định nghĩa thống nhất tại [`AGENTS.md`](AGENTS.md) và thư mục [`docs/`](docs/README.md).
+@AGENTS.md
 
-Luôn đọc `AGENTS.md` trước khi thực hiện thay đổi và chạy `python3 scripts/check_project.py` trước khi commit.
+- Follow the 6-Gate coding workflow in `.agents/rules/execution-harness.md`.
+- Enforce `.agents/rules/security-gate.md` (zero hardcoded secrets, <= 450 LOC per file).
+- Reference baseline: `android/nowinandroid` (https://github.com/android/nowinandroid).

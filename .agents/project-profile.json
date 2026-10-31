@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.2.0",
+  "generator": "project-pro",
+  "updatedAt": "2026-10-31T05:51:03Z",
+  "projectName": "adb-agent",
+  "stack": "android",
+  "stackLabel": "Android (Kotlin + Jetpack Compose)",
+  "architecture": "modular-clean",
+  "pattern": "mvi",
+  "referenceRepo": "android/nowinandroid",
+  "referenceRepoUrl": "https://github.com/android/nowinandroid",
+  "fileLineLimits": {
+    "warn": 300,
+    "fail": 450
+  },
+  "selectedFeatures": [
+    "solid-dry",
+    "typed-errors",
+    "di-core",
+    "network-storage",
+    "ui-nav",
+    "arch-lint",
+    "testing-ci"
+  ],
+  "selectedAgentTargets": [
+    "adr-docs",
+    "agent-runtime-hooks",
+    "agents-root",
+    "claude-gemini",
+    "git-security-hooks"
+  ],
+  "commands": {
+    "build": "./gradlew assembleDebug",
+    "test_all": "./gradlew testDebugUnitTest",
+    "test_single": "./gradlew :feature:<name>:testDebugUnitTest --tests '*<ClassName>*'",
+    "lint": "./gradlew ktlintCheck detekt lintDebug",
+    "sec_audit": "./gradlew dependencyCheckAnalyze"
+  }
+}
