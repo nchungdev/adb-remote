@@ -62,4 +62,20 @@ class TermuxLocalAdbPairingAdapter(
         val cmd = "\"$adbBin\" -s 127.0.0.1:$port shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n app.duinch.adbagent/.MainActivity"
         return termuxRuntime.executeCommand(cmd, timeoutSeconds = 5L).map { }
     }
+
+    override suspend fun deleteScreenshot(port: Int, filePath: String?, uriString: String?): Result<Unit> {
+        if (filePath.isNullOrBlank() && uriString.isNullOrBlank()) return Result.success(Unit)
+        termuxRuntime.ensureBootstrapReady()
+        val adbBin = termuxRuntime.getPrefixPaths().adbBinaryPath
+        val cmds = mutableListOf<String>()
+        if (!filePath.isNullOrBlank()) {
+            cmds.add("rm -f \"$filePath\"")
+        }
+        if (!uriString.isNullOrBlank()) {
+            cmds.add("content delete --uri \"$uriString\"")
+        }
+        val shellCmd = cmds.joinToString(" ; ")
+        val cmd = "\"$adbBin\" -s 127.0.0.1:$port shell \"$shellCmd\""
+        return termuxRuntime.executeCommand(cmd, timeoutSeconds = 5L).map { }
+    }
 }

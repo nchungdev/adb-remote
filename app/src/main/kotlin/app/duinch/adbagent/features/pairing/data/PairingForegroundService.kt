@@ -60,10 +60,16 @@ class PairingForegroundService : Service() {
 
     private fun startScreenshotWatcher() {
         screenshotWatcher?.stop()
-        screenshotWatcher = ScreenshotPairingWatcher(this, scope) { code ->
+        screenshotWatcher = ScreenshotPairingWatcher(this, scope) { info ->
             val pairPort = latestPorts.pairingPort
             if (pairPort != null && pairPort > 0) {
-                handleSubmittedCode(pairPort, code, latestPorts.connectPort)
+                handleSubmittedCode(
+                    pairPort = pairPort,
+                    code = info.code,
+                    connectPort = latestPorts.connectPort,
+                    screenshotFilePath = info.filePath,
+                    screenshotUri = info.uri
+                )
             }
         }.apply { start() }
     }
@@ -83,15 +89,30 @@ class PairingForegroundService : Service() {
         }
     }
 
-    private fun handleSubmittedCode(pairPort: Int, code: String, connectPort: Int?) {
+    private fun handleSubmittedCode(
+        pairPort: Int,
+        code: String,
+        connectPort: Int?,
+        screenshotFilePath: String? = null,
+        screenshotUri: android.net.Uri? = null
+    ) {
         val container = (application as AdbAgentApp).container
         notifyUpdated(buildStatusNotification("Đang ghép nối cổng $pairPort...", ongoing = true))
         container.pairingNotificationGateway.reportPairingState(AdbPairingState.PairingInProgress)
 
         scope.launch {
-            val res = container.pairLocalAdb(pairPort, code, connectPort)
+            val res = container.pairLocalAdb(
+                pairingPort = pairPort,
+                rawCode = code,
+                connectPortHint = connectPort,
+                screenshotFilePath = screenshotFilePath,
+                screenshotUri = screenshotUri?.toString()
+            )
             res.fold(
                 onSuccess = { state ->
+                    if (screenshotUri != null) {
+                        runCatching { contentResolver.delete(screenshotUri, null, null) }
+                    }
                     container.pairingNotificationGateway.reportPairingState(state)
                     notifyUpdated(
                         buildStatusNotification(

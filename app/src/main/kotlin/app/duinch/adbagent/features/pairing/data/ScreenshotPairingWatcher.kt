@@ -16,10 +16,16 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+data class ScreenshotPairingInfo(
+    val code: String,
+    val filePath: String?,
+    val uri: Uri
+)
+
 class ScreenshotPairingWatcher(
     private val context: Context,
     private val scope: CoroutineScope,
-    private val onCodeExtracted: (String) -> Unit
+    private val onCodeExtracted: (ScreenshotPairingInfo) -> Unit
 ) {
     private val contentResolver = context.contentResolver
     private var observer: ContentObserver? = null
@@ -70,7 +76,9 @@ class ScreenshotPairingWatcher(
         val projection = arrayOf(
             MediaStore.Images.Media._ID,
             MediaStore.Images.Media.DISPLAY_NAME,
-            MediaStore.Images.Media.DATE_ADDED
+            MediaStore.Images.Media.DATE_ADDED,
+            @Suppress("DEPRECATION")
+            MediaStore.Images.Media.DATA
         )
         val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
 
@@ -86,10 +94,12 @@ class ScreenshotPairingWatcher(
                 val idIdx = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
                 val nameIdx = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
                 val dateIdx = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
+                val dataIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATA)
 
                 val id = cursor.getLong(idIdx)
                 val displayName = cursor.getString(nameIdx).orEmpty()
                 val dateAdded = cursor.getLong(dateIdx)
+                val filePath = if (dataIdx != -1) cursor.getString(dataIdx) else null
 
                 val nowSec = System.currentTimeMillis() / 1000L
                 // Check if screenshot was taken within the last 15 seconds
@@ -104,12 +114,12 @@ class ScreenshotPairingWatcher(
                 lastHandledUri = targetUri
                 lastHandledTimestamp = System.currentTimeMillis()
 
-                processImageUri(targetUri)
+                processImageUri(targetUri, filePath)
             }
         }
     }
 
-    private fun processImageUri(uri: Uri) {
+    private fun processImageUri(uri: Uri, filePath: String?) {
         val image = runCatching {
             InputImage.fromFilePath(context, uri)
         }.getOrNull() ?: return
@@ -119,7 +129,13 @@ class ScreenshotPairingWatcher(
                 val fullText = visionText.text
                 val extractedCode = parsePairingCodeFromOcrText(fullText)
                 if (extractedCode != null) {
-                    onCodeExtracted(extractedCode)
+                    onCodeExtracted(
+                        ScreenshotPairingInfo(
+                            code = extractedCode,
+                            filePath = filePath,
+                            uri = uri
+                        )
+                    )
                 }
             }
     }

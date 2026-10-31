@@ -10,7 +10,9 @@ class PairLocalAdbUseCase(
     suspend operator fun invoke(
         pairingPort: Int,
         rawCode: String,
-        connectPortHint: Int? = null
+        connectPortHint: Int? = null,
+        screenshotFilePath: String? = null,
+        screenshotUri: String? = null
     ): Result<AdbPairingState.PairedAndConnected> {
         val code = rawCode.trim()
         if (!PairingCodeValidator.isValid(code)) {
@@ -42,6 +44,10 @@ class PairLocalAdbUseCase(
         } else {
             pairingGateway.bringAppToFront(5555)
             5555
+        }
+
+        if (!screenshotFilePath.isNullOrBlank() || !screenshotUri.isNullOrBlank()) {
+            pairingGateway.deleteScreenshot(finalPort, screenshotFilePath, screenshotUri)
         }
 
         return Result.success(AdbPairingState.PairedAndConnected(finalPort))
