@@ -54,6 +54,18 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Provides inline RemoteInput notification for Android Wireless Debugging pairing code while user is inside Settings." />
         </service>
+
+        <service
+            android:name=".features.pairing.data.AutoPairAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/auto_pair_accessibility_service_config" />
+        </service>
     </application>
 
 </manifest>

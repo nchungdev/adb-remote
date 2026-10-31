@@ -86,4 +86,5 @@ sealed interface DashboardUiIntent {
 sealed interface DashboardUiEffect {
     data class ShowMessage(val text: String) : DashboardUiEffect
     data object LaunchDeveloperSettings : DashboardUiEffect
+    data object OpenAccessibilitySettings : DashboardUiEffect
 }

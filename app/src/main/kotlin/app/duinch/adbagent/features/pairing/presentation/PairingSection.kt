@@ -119,32 +119,64 @@ fun PairingSection(
                         modifier = Modifier.padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text("1. Bấm nút bên dưới để mở Cài đặt nhà phát triển.", style = MaterialTheme.typography.bodySmall)
-                        Text("2. Vào Gỡ lỗi không dây → Ghép nối bằng mã ghép nối.", style = MaterialTheme.typography.bodySmall)
-                        Text("3. Kéo thanh thông báo xuống và điền 6 chữ số ngay trên thông báo.", style = MaterialTheme.typography.bodySmall)
+                        if (state.isAccessibilityEnabled) {
+                            Text("1. Bấm 'Ghép đôi tự động 1-chạm' bên dưới.", style = MaterialTheme.typography.bodySmall)
+                            Text("2. Ứng dụng tự mở Gỡ lỗi không dây, đọc mã và mở cổng 5555.", style = MaterialTheme.typography.bodySmall)
+                            Text("3. Hoàn tất tức thì không cần gõ mã hay chia đôi màn hình.", style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            Text("1. Bật Trợ năng cho ADB Agent (chỉ cần cấp quyền 1 lần duy nhất).", style = MaterialTheme.typography.bodySmall)
+                            Text("2. Sau khi bật, tính năng Ghép đôi tự động 1-chạm sẽ sẵn sàng.", style = MaterialTheme.typography.bodySmall)
+                            Text("3. Hoặc sử dụng cách Ghép đôi qua thông báo ở nút phụ bên dưới.", style = MaterialTheme.typography.bodySmall)
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
+                if (state.isAccessibilityEnabled) {
+                    Button(
+                        onClick = { onIntent(PairingUiIntent.StartAutoPairing) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp)
+                    ) {
+                        Icon(AppIcons.ShieldBolt, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Ghép đôi tự động 1-chạm")
+                    }
+                } else {
+                    Button(
+                        onClick = { onIntent(PairingUiIntent.OpenAccessibilitySettings) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp)
+                    ) {
+                        Icon(AppIcons.Sliders, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Bật Trợ năng để Ghép đôi tự động 1-chạm")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedButton(
                     onClick = { onIntent(PairingUiIntent.StartNotificationPairing) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 52.dp)
+                        .heightIn(min = 44.dp)
                 ) {
-                    Icon(AppIcons.LinkWireless, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Icon(AppIcons.LinkWireless, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Bắt đầu Ghép đôi qua Thông báo")
+                    Text("Ghép đôi thủ công qua Thông báo")
                 }
 
                 if (state.effectiveConnectPort != null) {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     OutlinedButton(
                         onClick = { onIntent(PairingUiIntent.ActivateTcpip5555) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 48.dp)
+                            .heightIn(min = 44.dp)
                     ) {
                         Text("Máy đã ghép đôi trước đó → Kích hoạt cổng 5555")
                     }
