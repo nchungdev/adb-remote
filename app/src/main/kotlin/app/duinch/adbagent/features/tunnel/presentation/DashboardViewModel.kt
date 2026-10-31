@@ -35,6 +35,8 @@ class DashboardViewModel(
 
     fun onIntent(intent: DashboardUiIntent) {
         when (intent) {
+            is DashboardUiIntent.SelectTab ->
+                _uiState.update { it.copy(selectedTab = intent.tab) }
             is DashboardUiIntent.UpdateServerUrl ->
                 _uiState.update { it.copy(serverUrlInput = intent.value) }
             is DashboardUiIntent.UpdateDeviceAlias ->

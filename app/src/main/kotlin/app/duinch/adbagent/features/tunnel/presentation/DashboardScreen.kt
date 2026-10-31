@@ -1,45 +1,36 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import app.duinch.adbagent.core.designsystem.AppIcons
 import app.duinch.adbagent.features.pairing.presentation.PairingSection
 import app.duinch.adbagent.features.termux.presentation.TermuxConsoleSheet
 import app.duinch.adbagent.features.termux.presentation.TermuxUiIntent
-import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
-import app.duinch.adbagent.features.updater.presentation.UpdateBannerCard
+import app.duinch.adbagent.features.updater.domain.UpdateStatus
 import app.duinch.adbagent.features.updater.presentation.UpdaterUiIntent
 import app.duinch.adbagent.features.updater.presentation.UpdaterUiState
 
@@ -52,25 +43,34 @@ fun DashboardScreen(
     onIntent: (DashboardUiIntent) -> Unit,
     onUpdaterIntent: (UpdaterUiIntent) -> Unit
 ) {
+    val hasUpdateDot = updaterState.status is UpdateStatus.Available ||
+        updaterState.status is UpdateStatus.ReadyToInstall
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("ADB Agent", fontWeight = FontWeight.Bold)
                         Text(
-                            text = "Embedded Termux • Cloudflare Reverse Tunnel",
-                            style = MaterialTheme.typography.labelSmall,
+                            text = "ADB Agent",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = state.deviceAliasInput.ifBlank { "Embedded Termux • Zero-Trust" },
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 actions = {
-                    OutlinedButton(
-                        onClick = { onIntent(DashboardUiIntent.OnTermuxIntent(TermuxUiIntent.OpenConsole)) },
-                        modifier = Modifier.padding(end = 12.dp)
+                    IconButton(
+                        onClick = { onIntent(DashboardUiIntent.OnTermuxIntent(TermuxUiIntent.OpenConsole)) }
                     ) {
-                        Text("Terminal")
+                        Icon(
+                            imageVector = AppIcons.Terminal,
+                            contentDescription = "Mở Terminal nội bộ",
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -78,29 +78,98 @@ fun DashboardScreen(
                 )
             )
         },
+        bottomBar = {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                NavigationBarItem(
+                    selected = state.selectedTab == AppTab.CONNECT,
+                    onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.CONNECT)) },
+                    icon = {
+                        Icon(
+                            imageVector = AppIcons.ShieldBolt,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    },
+                    label = { Text(AppTab.CONNECT.title) }
+                )
+                NavigationBarItem(
+                    selected = state.selectedTab == AppTab.PAIRING,
+                    onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.PAIRING)) },
+                    icon = {
+                        BadgedBox(
+                            badge = {
+                                if (state.pairing.discoveredPairingPort != null) {
+                                    Badge()
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = AppIcons.LinkWireless,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    },
+                    label = { Text(AppTab.PAIRING.title) }
+                )
+                NavigationBarItem(
+                    selected = state.selectedTab == AppTab.SETTINGS,
+                    onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.SETTINGS)) },
+                    icon = {
+                        BadgedBox(
+                            badge = {
+                                if (hasUpdateDot) {
+                                    Badge()
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = AppIcons.Sliders,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    },
+                    label = { Text(AppTab.SETTINGS.title) }
+                )
+            }
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            TunnelHeroCard(state = state, onIntent = onIntent)
-
-            UpdateBannerCard(state = updaterState, onIntent = onUpdaterIntent)
-
-            PairingSection(
-                state = state.pairing,
-                onIntent = { onIntent(DashboardUiIntent.OnPairingIntent(it)) }
-            )
-
-            TunnelConfigCard(state = state, onIntent = onIntent)
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                when (state.selectedTab) {
+                    AppTab.CONNECT -> TunnelHomeTab(
+                        state = state,
+                        updaterState = updaterState,
+                        onIntent = onIntent,
+                        onUpdaterIntent = onUpdaterIntent
+                    )
+                    AppTab.PAIRING -> PairingSection(
+                        state = state.pairing,
+                        onIntent = { onIntent(DashboardUiIntent.OnPairingIntent(it)) }
+                    )
+                    AppTab.SETTINGS -> TunnelSettingsTab(
+                        state = state,
+                        updaterState = updaterState,
+                        onIntent = onIntent,
+                        onUpdaterIntent = onUpdaterIntent
+                    )
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+            }
         }
     }
 
@@ -115,199 +184,4 @@ fun DashboardScreen(
         onCookieCaptured = { onIntent(DashboardUiIntent.OnCloudflareCookieCaptured(it)) },
         onDismiss = { onIntent(DashboardUiIntent.CloseCloudflareLogin) }
     )
-}
-
-@Composable
-private fun TunnelHeroCard(
-    state: DashboardUiState,
-    onIntent: (DashboardUiIntent) -> Unit
-) {
-    val (statusTitle, statusDesc, accentColor) = when (val conn = state.connectionState) {
-        TunnelConnectionState.Disconnected -> Triple(
-            "CHƯA KẾT NỐI",
-            "Sẵn sàng mở đường hầm bảo mật về Mac mini",
-            MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        is TunnelConnectionState.Connecting -> Triple(
-            "ĐANG KẾT NỐI...",
-            conn.targetUrl,
-            Color(0xFFFBBF24)
-        )
-        is TunnelConnectionState.Connected -> {
-            val macPort = conn.mappedServerPort?.let { "Mac 127.0.0.1:$it • " }.orEmpty()
-            Triple(
-                "ĐÃ KẾT NỐI VỀ MAC MINI",
-                "${macPort}ADB ${conn.localAdbPort} • ${conn.networkType.label} • ${conn.bytesBridged} B",
-                Color(0xFF34D399)
-            )
-        }
-        is TunnelConnectionState.Reconnecting -> Triple(
-            "ĐANG TỰ NỐI LẠI (Lần ${conn.attempt})",
-            "${conn.reason} • Thử lại sau ${conn.nextRetryDelayMs / 1000}s",
-            Color(0xFFFBBF24)
-        )
-        is TunnelConnectionState.Error -> Triple(
-            "MẤT KẾT NỐI",
-            conn.message,
-            MaterialTheme.colorScheme.error
-        )
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = statusTitle,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = accentColor
-                )
-                Text(
-                    text = state.activeNetwork.label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = statusDesc,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Button(
-                onClick = { onIntent(DashboardUiIntent.ToggleTunnel) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = if (state.isTunnelActive) {
-                    ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                } else {
-                    ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                }
-            ) {
-                Text(
-                    text = if (state.isTunnelActive) "Ngắt đường hầm" else "Bật kết nối tự động về Mac mini",
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TunnelConfigCard(
-    state: DashboardUiState,
-    onIntent: (DashboardUiIntent) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = "2. Cấu hình Cloudflare Reverse Tunnel",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            OutlinedButton(
-                onClick = { onIntent(DashboardUiIntent.OpenCloudflareLogin) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    if (state.hasCloudflareAuth) "✅ Đã xác thực Cloudflare (Bấm để đăng nhập lại)"
-                    else "🔐 Đăng nhập Cloudflare Access (1 chạm)"
-                )
-            }
-
-            OutlinedTextField(
-                value = state.serverUrlInput,
-                onValueChange = { onIntent(DashboardUiIntent.UpdateServerUrl(it)) },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Cloudflare Tunnel WSS Endpoint") },
-                singleLine = true
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = state.deviceAliasInput,
-                    onValueChange = { onIntent(DashboardUiIntent.UpdateDeviceAlias(it)) },
-                    modifier = Modifier.weight(1.4f),
-                    label = { Text("Tên máy") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = state.localAdbPortInput,
-                    onValueChange = { onIntent(DashboardUiIntent.UpdateLocalAdbPort(it)) },
-                    modifier = Modifier.weight(1f),
-                    label = { Text("Cổng ADB") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Tự kết nối lại khi đổi Wi-Fi / 4G",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Switch(
-                    checked = state.autoReconnect,
-                    onCheckedChange = { onIntent(DashboardUiIntent.ToggleAutoReconnect(it)) }
-                )
-            }
-
-            TextButton(onClick = { onIntent(DashboardUiIntent.ToggleAdvancedAuth) }) {
-                Text(
-                    if (state.showAdvancedAuth) "Ẩn Service Token nâng cao"
-                    else "Hoặc dùng Service Token nâng cao (Tuỳ chọn)"
-                )
-            }
-
-            if (state.showAdvancedAuth) {
-                OutlinedTextField(
-                    value = state.cfClientIdInput,
-                    onValueChange = { onIntent(DashboardUiIntent.UpdateCfClientId(it)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("CF-Access-Client-Id") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = state.cfClientSecretInput,
-                    onValueChange = { onIntent(DashboardUiIntent.UpdateCfClientSecret(it)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("CF-Access-Client-Secret") },
-                    visualTransformation = PasswordVisualTransformation(),
-                    singleLine = true
-                )
-            }
-
-            OutlinedButton(
-                onClick = { onIntent(DashboardUiIntent.SaveConfig) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Lưu cấu hình")
-            }
-        }
-    }
 }

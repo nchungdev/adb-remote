@@ -1,31 +1,27 @@
 # UX & Interaction Specification (`UX.md`)
 
-## 1. Triết lý Giao diện
+## 1. Triết lý Giao diện Mobile-First (UI/UX Pro Max)
 
-- **Zero CLI Friction:** Người dùng phổ thông điều khiển mọi thứ bằng nút bấm trực quan trên 1 màn hình chính duy nhất (**Single-Screen Dashboard**).
-- **Power-User Escape Hatch:** Vẫn cung cấp ngăn kéo **Embedded Termux Console** (Bottom Sheet) để chạy lệnh chẩn đoán trực tiếp khi cần.
-- **Dark-First Technical Aesthetic:** Giao diện tối chuẩn kỹ thuật (Slate/Cyan palette đồng bộ với web dashboard `adb.duinch.app`), độ tương phản cao, hỗ trợ Dynamic Type.
+- **Thumb-Zone Bottom Navigation (3 Tab):** Tách biệt luồng vận hành hằng ngày (**Kết nối**) khỏi luồng cài đặt lần đầu (**Ghép đôi**) và cấu hình hệ thống (**Thiết lập**) thay vì nhồi toàn bộ biểu mẫu vào một trang cuộn dài.
+- **Progressive Disclosure:** Các trường nhập nâng cao (chế độ chia đôi màn hình, Service Token) mặc định thu gọn trong accordion và chỉ mở khi cần.
+- **Vector-Only & Semantic Tokens:** Tuyệt đối không dùng emoji làm icon điều hướng/trạng thái; toàn bộ icon sử dụng bộ vector hình học 24dp / nét 2px đồng nhất (`AppIcons`), màu sắc lấy từ `MaterialTheme` & `AdbTheme.colors` đạt chuẩn tương phản WCAG AA (`>= 4.5:1`) cho cả Dark Mode và Light Mode.
+- **Android Touch & Safe-Area Standards:** Mọi vùng chạm đạt tối thiểu `48dp` (`56dp` cho nút CTA chính), tôn trọng vùng khuyết màn hình, thanh điều hướng cử chỉ và bàn phím ảo (`imePadding`).
 
 ---
 
-## 2. Cấu trúc Màn hình Chính (`DashboardScreen`)
+## 2. Cấu trúc 3 Tab Chính (`DashboardScreen`)
 
-1. **Hero Status Banner (Trạng thái Đường hầm):**
-   - Hiển thị trạng thái thời gian thực: `Disconnected` (Xám), `Connecting` / `Reconnecting` (Vàng), `Connected` (Xanh ngọc), `Error` (Đỏ).
-   - Hiển thị loại mạng hiện tại (`Wi-Fi`, `Cellular 4G/5G`) và cổng ADB nội bộ đã gắn.
-   - Nút hành động chính (Primary CTA): **"Bật kết nối về Mac mini"** / **"Ngắt kết nối"**.
+1. **Tab 1 — Kết nối (`TunnelHomeTab`):**
+   - **Compact OTA Strip:** Chỉ xuất hiện khi phát hiện bản cập nhật mới hoặc đang tải.
+   - **Hero Switchboard Card:** Biểu tượng khiên trạng thái chuyển màu mượt mà, dải 3 ô Bento Telemetry (`Mạng`, `Cổng ADB`, `Lưu lượng`) và nút CTA 56dp bật/ngắt đường hầm.
+   - **Readiness Checklist:** 2 thẻ trạng thái kiểm tra nhanh *Cổng ADB nội bộ* và *Xác thực Cloudflare Access* (chạm để chuyển thẳng tới bước xử lý tương ứng).
 
-2. **Thẻ Ghép đôi Wireless ADB (`PairingSection`):**
-   - Trạng thái mDNS tự động: *"Đang dò cổng ghép đôi..."* hoặc *"Đã phát hiện cổng Pairing: 46653"*.
-   - Nút mở nhanh **Cài đặt cho nhà phát triển** (Split-screen / Notification friendly).
-   - Ô nhập mã 6 chữ số (chỉ nhận số, tự kích hoạt nút **Ghép đôi** khi đủ 6 số).
+2. **Tab 2 — Ghép đôi (`PairingSection`):**
+   - Hướng dẫn 3 bước trực quan và nút chính **Bắt đầu Ghép đôi qua Thông báo** (nhập mã 6 số trực tiếp trên thanh thông báo mà không rời Cài đặt).
+   - Nút kích hoạt nhanh cổng cố định `5555` cho máy đã từng ghép đôi.
+   - Khung mở rộng **Nhập mã trực tiếp (Chia đôi màn hình)**.
 
-3. **Thẻ Cấu hình Cloudflare Tunnel:**
-   - Endpoint URL (mặc định `wss://adb.duinch.app/api/tunnel`).
-   - Tên định danh thiết bị (`Device Alias`, ví dụ `Galaxy-S24-Plus`).
-   - Tuỳ chọn nâng cao (ẩn/hiện): `CF-Access-Client-Id` & `CF-Access-Client-Secret` (ẩn ký tự nhạy cảm).
-   - Công tắc: *"Tự động kết nối lại khi đổi mạng Wi-Fi / 4G"*.
-
-4. **Embedded Termux Console Sheet:**
-   - Mở bằng nút **Terminal** trên thanh TopAppBar.
-   - Hiển thị trạng thái Bootstrap (`Ready` / `Extracting`), log phiên và ô nhập lệnh nhanh (`adb devices`, `getprop`,...).
+3. **Tab 3 — Thiết lập (`TunnelSettingsTab`):**
+   - Thẻ kiểm tra & cập nhật OTA tự động (`UpdateBannerCard`).
+   - Thẻ mở **Embedded Termux Console** (kèm dải chip lệnh nhanh `adb devices -l`, `adb tcpip 5555`, `adb version`...).
+   - Cấu hình Cloudflare Reverse Tunnel, đăng nhập Cloudflare Access 1 chạm và accordion Service Token.

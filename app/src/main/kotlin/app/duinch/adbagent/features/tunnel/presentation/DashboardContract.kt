@@ -7,7 +7,14 @@ import app.duinch.adbagent.features.termux.presentation.TermuxUiIntent
 import app.duinch.adbagent.features.termux.presentation.TermuxUiState
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
 
+enum class AppTab(val title: String) {
+    CONNECT("Kết nối"),
+    PAIRING("Ghép đôi"),
+    SETTINGS("Thiết lập")
+}
+
 data class DashboardUiState(
+    val selectedTab: AppTab = AppTab.CONNECT,
     val serverUrlInput: String = "",
     val deviceAliasInput: String = "",
     val localAdbPortInput: String = "5555",
@@ -33,6 +40,7 @@ data class DashboardUiState(
 }
 
 sealed interface DashboardUiIntent {
+    data class SelectTab(val tab: AppTab) : DashboardUiIntent
     data class UpdateServerUrl(val value: String) : DashboardUiIntent
     data class UpdateDeviceAlias(val value: String) : DashboardUiIntent
     data class UpdateLocalAdbPort(val value: String) : DashboardUiIntent

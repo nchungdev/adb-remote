@@ -1,15 +1,20 @@
 package app.duinch.adbagent.features.updater.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -17,87 +22,138 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.duinch.adbagent.core.designsystem.AdbTheme
+import app.duinch.adbagent.core.designsystem.AppIcons
 import app.duinch.adbagent.features.updater.domain.UpdateStatus
+
+@Composable
+fun CompactUpdateAlertBanner(
+    state: UpdaterUiState,
+    onIntent: (UpdaterUiIntent) -> Unit
+) {
+    val active = state.status is UpdateStatus.Available ||
+        state.status is UpdateStatus.Downloading ||
+        state.status is UpdateStatus.ReadyToInstall
+    if (!active) return
+
+    UpdateBannerCard(state = state, onIntent = onIntent)
+}
 
 @Composable
 fun UpdateBannerCard(
     state: UpdaterUiState,
     onIntent: (UpdaterUiIntent) -> Unit
 ) {
+    val ext = AdbTheme.colors
+    val isHighlight = state.status is UpdateStatus.Available || state.status is UpdateStatus.ReadyToInstall
+    val borderColor = if (isHighlight) ext.statusConnected else ext.cardBorder
+
     Card(
         modifier = Modifier.fillMaxWidth(),
+        border = BorderStroke(1.dp, borderColor),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Phiên bản v${state.currentVersionName} (${state.currentVersionCode})",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    val subtitle = when (val s = state.status) {
-                        UpdateStatus.Idle -> "Cập nhật tự động qua Cloudflare OTA"
-                        UpdateStatus.Checking -> "Đang kiểm tra phiên bản mới..."
-                        is UpdateStatus.UpToDate -> "✅ Đang ở phiên bản mới nhất"
-                        is UpdateStatus.Available -> "🚀 Có bản mới v${s.release.versionName}: ${s.release.changelog}"
-                        is UpdateStatus.Downloading -> "Đang tải gói APK... ${s.progressPercent}%"
-                        is UpdateStatus.ReadyToInstall ->
-                            if (s.needsInstallPermission) "Cấp quyền 'Cài đặt ứng dụng không xác định' rồi bấm Cài đặt"
-                            else "Đã tải xong v${s.release.versionName} — sẵn sàng cài đặt"
-                        UpdateStatus.AuthRequired -> "Đăng nhập Cloudflare để kiểm tra cập nhật tự động"
-                        is UpdateStatus.Failed -> "Lỗi: ${s.reason}"
-                    }
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (state.status is UpdateStatus.Available) {
-                            Color(0xFF34D399)
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (state.status is UpdateStatus.UpToDate) {
+                            AppIcons.CheckCircle
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
+                            AppIcons.Download
+                        },
+                        contentDescription = null,
+                        tint = if (isHighlight || state.status is UpdateStatus.UpToDate) {
+                            ext.statusConnected
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                        modifier = Modifier.size(22.dp)
                     )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Phiên bản v${state.currentVersionName} (Build ${state.currentVersionCode})",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        val subtitle = when (val s = state.status) {
+                            UpdateStatus.Idle -> "Cập nhật trực tiếp qua Cloudflare OTA"
+                            UpdateStatus.Checking -> "Đang kiểm tra bản phát hành mới..."
+                            is UpdateStatus.UpToDate -> "Đang ở phiên bản mới nhất"
+                            is UpdateStatus.Available -> "Có bản mới v${s.release.versionName}: ${s.release.changelog}"
+                            is UpdateStatus.Downloading -> "Đang tải gói cài đặt... ${s.progressPercent}%"
+                            is UpdateStatus.ReadyToInstall ->
+                                if (s.needsInstallPermission) "Cần cấp quyền cài đặt APK để hoàn tất"
+                                else "Đã tải xong v${s.release.versionName} — sẵn sàng cài đặt"
+                            UpdateStatus.AuthRequired -> "Đăng nhập Cloudflare trước khi kiểm tra OTA"
+                            is UpdateStatus.Failed -> s.reason
+                        }
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (state.status is UpdateStatus.Available) {
+                                ext.statusConnected
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
                 }
 
                 if (state.status !is UpdateStatus.Available &&
                     state.status !is UpdateStatus.Downloading &&
                     state.status !is UpdateStatus.ReadyToInstall
                 ) {
+                    Spacer(modifier = Modifier.width(8.dp))
                     OutlinedButton(
                         onClick = { onIntent(UpdaterUiIntent.CheckForUpdate) },
-                        enabled = state.status !is UpdateStatus.Checking
+                        enabled = state.status !is UpdateStatus.Checking,
+                        modifier = Modifier.heightIn(min = 48.dp)
                     ) {
-                        Text(if (state.status is UpdateStatus.Checking) "..." else "Kiểm tra")
+                        Icon(
+                            imageVector = AppIcons.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (state.status is UpdateStatus.Checking) "Đang dò" else "Kiểm tra")
                     }
                 }
             }
 
             when (val s = state.status) {
                 is UpdateStatus.Available -> {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Button(
                         onClick = { onIntent(UpdaterUiIntent.StartUpdate) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
                     ) {
-                        Text("⬇ Tải & Cập nhật ngay lên v${s.release.versionName}", fontWeight = FontWeight.Bold)
+                        Icon(AppIcons.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Tải & Cập nhật lên v${s.release.versionName}")
                     }
                 }
                 is UpdateStatus.Downloading -> {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     LinearProgressIndicator(
                         progress = { s.progressPercent / 100f },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
                     )
                 }
                 is UpdateStatus.ReadyToInstall -> {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Button(
                         onClick = {
                             if (s.needsInstallPermission) {
@@ -106,11 +162,13 @@ fun UpdateBannerCard(
                                 onIntent(UpdaterUiIntent.InstallDownloadedApk)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
                     ) {
                         Text(
                             if (s.needsInstallPermission) "Mở Cài đặt cấp quyền Cài APK"
-                            else "Cài đặt bản cập nhật v${s.release.versionName}"
+                            else "Cài đặt ngay bản v${s.release.versionName}"
                         )
                     }
                 }

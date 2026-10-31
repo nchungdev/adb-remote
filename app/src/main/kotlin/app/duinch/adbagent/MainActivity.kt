@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.duinch.adbagent.core.designsystem.AdbAgentTheme
+import app.duinch.adbagent.features.tunnel.presentation.AppTab
 import app.duinch.adbagent.features.tunnel.presentation.DashboardScreen
 import app.duinch.adbagent.features.tunnel.presentation.DashboardUiEffect
 import app.duinch.adbagent.features.tunnel.presentation.DashboardUiIntent
@@ -63,6 +65,16 @@ class MainActivity : ComponentActivity() {
                 onUnknownSourcesReturned = {
                     if (packageManager.canRequestPackageInstalls()) {
                         updaterVm.onIntent(UpdaterUiIntent.InstallDownloadedApk)
+                    }
+                }
+
+                BackHandler(enabled = uiState.selectedTab != AppTab.CONNECT) {
+                    dashboardVm.onIntent(DashboardUiIntent.SelectTab(AppTab.CONNECT))
+                }
+
+                LaunchedEffect(uiState.cfAuthCookie) {
+                    if (uiState.cfAuthCookie.contains("CF_Authorization=")) {
+                        updaterVm.onIntent(UpdaterUiIntent.CheckForUpdate)
                     }
                 }
 
