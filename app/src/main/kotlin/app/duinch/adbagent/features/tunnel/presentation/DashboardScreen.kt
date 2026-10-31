@@ -39,13 +39,18 @@ import app.duinch.adbagent.features.pairing.presentation.PairingSection
 import app.duinch.adbagent.features.termux.presentation.TermuxConsoleSheet
 import app.duinch.adbagent.features.termux.presentation.TermuxUiIntent
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
+import app.duinch.adbagent.features.updater.presentation.UpdateBannerCard
+import app.duinch.adbagent.features.updater.presentation.UpdaterUiIntent
+import app.duinch.adbagent.features.updater.presentation.UpdaterUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     state: DashboardUiState,
+    updaterState: UpdaterUiState,
     snackbarHostState: SnackbarHostState,
-    onIntent: (DashboardUiIntent) -> Unit
+    onIntent: (DashboardUiIntent) -> Unit,
+    onUpdaterIntent: (UpdaterUiIntent) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -85,6 +90,8 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             TunnelHeroCard(state = state, onIntent = onIntent)
+
+            UpdateBannerCard(state = updaterState, onIntent = onUpdaterIntent)
 
             PairingSection(
                 state = state.pairing,

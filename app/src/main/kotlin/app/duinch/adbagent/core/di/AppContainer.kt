@@ -20,6 +20,10 @@ import app.duinch.adbagent.features.tunnel.data.SharedPrefsTunnelConfigRepositor
 import app.duinch.adbagent.features.tunnel.data.WebSocketReverseTunnelAdapter
 import app.duinch.adbagent.features.tunnel.domain.ReverseTunnelGateway
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfigRepository
+import app.duinch.adbagent.features.updater.application.CheckAppUpdateUseCase
+import app.duinch.adbagent.features.updater.application.DownloadAndInstallUpdateUseCase
+import app.duinch.adbagent.features.updater.data.OkHttpAppUpdateAdapter
+import app.duinch.adbagent.features.updater.domain.AppUpdateGateway
 
 class AppContainer(context: Context) {
 
@@ -40,6 +44,9 @@ class AppContainer(context: Context) {
     val tunnelConfigRepository: TunnelConfigRepository =
         SharedPrefsTunnelConfigRepository(appContext)
 
+    val appUpdateGateway: AppUpdateGateway =
+        OkHttpAppUpdateAdapter(appContext)
+
     private val computeReconnectBackoff = ComputeReconnectBackoffUseCase()
 
     val reverseTunnelGateway: ReverseTunnelGateway =
@@ -54,4 +61,6 @@ class AppContainer(context: Context) {
         configRepository = tunnelConfigRepository,
         tunnelGateway = reverseTunnelGateway
     )
+    val checkAppUpdate = CheckAppUpdateUseCase(appUpdateGateway, tunnelConfigRepository)
+    val downloadAndInstallUpdate = DownloadAndInstallUpdateUseCase(appUpdateGateway, tunnelConfigRepository)
 }
