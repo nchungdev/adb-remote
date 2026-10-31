@@ -1,5 +1,6 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +18,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -25,6 +27,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.duinch.adbagent.core.designsystem.AppIcons
@@ -83,9 +86,13 @@ fun DashboardScreen(
             )
         },
         bottomBar = {
+            val isDark = isSystemInDarkTheme()
+            val unselectedNavColor = MaterialTheme.colorScheme.onSurfaceVariant
+
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
+                // Tab 1: Kết nối (Màu Xanh Ngọc Emerald)
                 NavigationBarItem(
                     selected = state.selectedTab == AppTab.CONNECT,
                     onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.CONNECT)) },
@@ -96,8 +103,17 @@ fun DashboardScreen(
                             modifier = Modifier.size(22.dp)
                         )
                     },
-                    label = { Text(AppTab.CONNECT.title) }
+                    label = { Text(AppTab.CONNECT.title) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = if (isDark) Color(0xFF34D399) else Color(0xFF059669),
+                        selectedTextColor = if (isDark) Color(0xFF34D399) else Color(0xFF059669),
+                        indicatorColor = if (isDark) Color(0xFF064E3B) else Color(0xFFD1FAE5),
+                        unselectedIconColor = unselectedNavColor,
+                        unselectedTextColor = unselectedNavColor
+                    )
                 )
+
+                // Tab 2: Nhật ký (Màu Lam Indigo Hoàng Gia)
                 NavigationBarItem(
                     selected = state.selectedTab == AppTab.HISTORY,
                     onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.HISTORY)) },
@@ -108,8 +124,17 @@ fun DashboardScreen(
                             modifier = Modifier.size(22.dp)
                         )
                     },
-                    label = { Text(AppTab.HISTORY.title) }
+                    label = { Text(AppTab.HISTORY.title) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5),
+                        selectedTextColor = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5),
+                        indicatorColor = if (isDark) Color(0xFF312E81) else Color(0xFFEEF2FF),
+                        unselectedIconColor = unselectedNavColor,
+                        unselectedTextColor = unselectedNavColor
+                    )
                 )
+
+                // Tab 3: Cài đặt (Màu Tím Violet Sang Trọng)
                 NavigationBarItem(
                     selected = state.selectedTab == AppTab.SETTINGS,
                     onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.SETTINGS)) },
@@ -128,7 +153,14 @@ fun DashboardScreen(
                             )
                         }
                     },
-                    label = { Text(AppTab.SETTINGS.title) }
+                    label = { Text(AppTab.SETTINGS.title) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = if (isDark) Color(0xFFC084FC) else Color(0xFF9333EA),
+                        selectedTextColor = if (isDark) Color(0xFFC084FC) else Color(0xFF9333EA),
+                        indicatorColor = if (isDark) Color(0xFF581C87) else Color(0xFFF3E8FF),
+                        unselectedIconColor = unselectedNavColor,
+                        unselectedTextColor = unselectedNavColor
+                    )
                 )
             }
         },
