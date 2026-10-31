@@ -231,6 +231,27 @@ fun TunnelSettingsTab(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
+                        Text("Duy trì chạy ngầm (Foreground Service)", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = "Giữ tiến trình trên thanh thông báo để nhận lệnh liên tục",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = state.runInBackground,
+                        onCheckedChange = { onIntent(DashboardUiIntent.ToggleRunInBackground(it)) }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text("Tự nối lại khi chuyển Wi-Fi / 4G", style = MaterialTheme.typography.bodyMedium)
                         Text(
                             text = "Duy trì kết nối ngầm bằng Exponential Backoff",

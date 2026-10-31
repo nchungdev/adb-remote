@@ -31,7 +31,7 @@ import app.duinch.adbagent.features.updater.domain.AppUpdateGateway
 
 class AppContainer(context: Context) {
 
-    private val appContext = context.applicationContext
+    val appContext: Context = context.applicationContext
 
     val termuxRuntimeGateway: TermuxRuntimeGateway =
         LocalTermuxRuntimeAdapter(appContext)

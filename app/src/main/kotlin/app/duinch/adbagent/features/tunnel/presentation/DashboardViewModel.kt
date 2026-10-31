@@ -7,6 +7,7 @@ import app.duinch.adbagent.core.di.AppContainer
 import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
 import app.duinch.adbagent.features.termux.presentation.TermuxUiIntent
+import app.duinch.adbagent.features.tunnel.data.TunnelForegroundService
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfig
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +50,20 @@ class DashboardViewModel(
                 _uiState.update { it.copy(cfClientSecretInput = intent.value) }
             is DashboardUiIntent.ToggleAutoReconnect ->
                 _uiState.update { it.copy(autoReconnect = intent.enabled) }
+            is DashboardUiIntent.ToggleRunInBackground -> {
+                _uiState.update { it.copy(runInBackground = intent.enabled) }
+                saveCurrentConfig(silent = true)
+                val msg = if (intent.enabled) {
+                    TunnelForegroundService.start(container.appContext)
+                    "Đã bật dịch vụ chạy ngầm trên thanh thông báo"
+                } else {
+                    if (!_uiState.value.isTunnelActive) {
+                        TunnelForegroundService.stop(container.appContext)
+                    }
+                    "Đã tắt dịch vụ chạy ngầm"
+                }
+                _effects.tryEmit(DashboardUiEffect.ShowMessage(msg))
+            }
             is DashboardUiIntent.UpdateTrustedHomeSsid ->
                 _uiState.update { it.copy(trustedHomeSsidInput = intent.value) }
             is DashboardUiIntent.ToggleAutoSwitchHomeWifi ->
@@ -287,6 +302,7 @@ class DashboardViewModel(
             cfClientSecretInput = saved.cfAccessClientSecret,
             cfAuthCookie = saved.cfAuthCookie,
             autoReconnect = saved.autoReconnectOnNetworkChange,
+            runInBackground = saved.runInBackground,
             trustedHomeSsidInput = saved.trustedHomeSsid,
             autoSwitchOnHomeWifi = saved.autoSwitchOnHomeWifi,
             currentWifiSsid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty(),
@@ -303,6 +319,7 @@ class DashboardViewModel(
         cfAccessClientSecret = state.cfClientSecretInput,
         cfAuthCookie = state.cfAuthCookie,
         autoReconnectOnNetworkChange = state.autoReconnect,
+        runInBackground = state.runInBackground,
         trustedHomeSsid = state.trustedHomeSsidInput,
         autoSwitchOnHomeWifi = state.autoSwitchOnHomeWifi
     )

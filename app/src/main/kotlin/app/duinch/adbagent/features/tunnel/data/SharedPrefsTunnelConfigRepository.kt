@@ -23,7 +23,8 @@ class SharedPrefsTunnelConfigRepository(
             cfAuthCookie = prefs.getString(KEY_CF_AUTH_COOKIE, "") ?: "",
             autoReconnectOnNetworkChange = prefs.getBoolean(KEY_AUTO_RECONNECT, true),
             trustedHomeSsid = prefs.getString(KEY_TRUSTED_HOME_SSID, "") ?: "",
-            autoSwitchOnHomeWifi = prefs.getBoolean(KEY_AUTO_SWITCH_HOME_WIFI, true)
+            autoSwitchOnHomeWifi = prefs.getBoolean(KEY_AUTO_SWITCH_HOME_WIFI, true),
+            runInBackground = prefs.getBoolean(KEY_RUN_IN_BACKGROUND, true)
         )
     }
 
@@ -38,6 +39,7 @@ class SharedPrefsTunnelConfigRepository(
             .putBoolean(KEY_AUTO_RECONNECT, config.autoReconnectOnNetworkChange)
             .putString(KEY_TRUSTED_HOME_SSID, config.trustedHomeSsid)
             .putBoolean(KEY_AUTO_SWITCH_HOME_WIFI, config.autoSwitchOnHomeWifi)
+            .putBoolean(KEY_RUN_IN_BACKGROUND, config.runInBackground)
             .apply()
     }
 
@@ -52,5 +54,6 @@ class SharedPrefsTunnelConfigRepository(
         private const val KEY_AUTO_RECONNECT = "auto_reconnect"
         private const val KEY_TRUSTED_HOME_SSID = "trusted_home_ssid"
         private const val KEY_AUTO_SWITCH_HOME_WIFI = "auto_switch_home_wifi"
+        private const val KEY_RUN_IN_BACKGROUND = "run_in_background"
     }
 }

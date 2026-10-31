@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.duinch.adbagent.core.designsystem.AdbAgentTheme
+import app.duinch.adbagent.features.tunnel.data.TunnelForegroundService
 import app.duinch.adbagent.features.tunnel.presentation.AppTab
 import app.duinch.adbagent.features.tunnel.presentation.DashboardScreen
 import app.duinch.adbagent.features.tunnel.presentation.DashboardUiEffect
@@ -49,6 +50,9 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermissionIfNeeded()
 
         val appContainer = (application as AdbAgentApp).container
+        if (appContainer.tunnelConfigRepository.getConfig().runInBackground) {
+            TunnelForegroundService.start(this)
+        }
 
         setContent {
             AdbAgentTheme {

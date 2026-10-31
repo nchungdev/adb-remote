@@ -10,31 +10,88 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import app.duinch.adbagent.AdbAgentApp
 import app.duinch.adbagent.MainActivity
+import app.duinch.adbagent.R
+import app.duinch.adbagent.core.model.NetworkType
+import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 
 class TunnelForegroundService : Service() {
+
+    private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var isObserving = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
-            return START_NOT_STICKY
+        val app = application as? AdbAgentApp
+        val container = app?.container
+
+        when (intent?.action) {
+            ACTION_STOP -> {
+                serviceScope.launch {
+                    container?.reverseTunnelGateway?.disconnect()
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
+                return START_NOT_STICKY
+            }
+            ACTION_DISCONNECT -> {
+                serviceScope.launch { container?.reverseTunnelGateway?.disconnect() }
+                return START_STICKY
+            }
+            ACTION_CONNECT -> {
+                serviceScope.launch {
+                    val cfg = container?.tunnelConfigRepository?.getConfig()
+                    if (cfg != null) container.toggleReverseTunnel(cfg)
+                }
+                return START_STICKY
+            }
         }
 
         ensureNotificationChannel()
-        val notification = buildNotification()
+        val initialNotif = buildNotification(
+            state = container?.reverseTunnelGateway?.observeConnectionState()?.let {
+                (it as? kotlinx.coroutines.flow.StateFlow)?.value
+            } ?: TunnelConnectionState.Disconnected,
+            net = NetworkType.UNKNOWN,
+            wifiIp = container?.reverseTunnelGateway?.getLocalWifiIp().orEmpty(),
+            localPort = container?.tunnelConfigRepository?.getConfig()?.localAdbPort ?: 5555
+        )
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-            )
+            startForeground(NOTIFICATION_ID, initialNotif, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
-            startForeground(NOTIFICATION_ID, notification)
+            startForeground(NOTIFICATION_ID, initialNotif)
         }
+
+        startObservingFlows()
         return START_STICKY
+    }
+
+    private fun startObservingFlows() {
+        if (isObserving) return
+        val container = (application as? AdbAgentApp)?.container ?: return
+        isObserving = true
+
+        serviceScope.launch {
+            combine(
+                container.reverseTunnelGateway.observeConnectionState(),
+                container.reverseTunnelGateway.observeActiveNetwork()
+            ) { conn, net -> conn to net }.collect { (conn, net) ->
+                val ip = container.reverseTunnelGateway.getLocalWifiIp().orEmpty()
+                val port = container.tunnelConfigRepository.getConfig().localAdbPort
+                val notification = buildNotification(conn, net, ip, port)
+                val manager = getSystemService(NotificationManager::class.java)
+                manager?.notify(NOTIFICATION_ID, notification)
+            }
+        }
     }
 
     private fun ensureNotificationChannel() {
@@ -42,21 +99,44 @@ class TunnelForegroundService : Service() {
         val manager = getSystemService(NotificationManager::class.java) ?: return
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "ADB Reverse Tunnel",
+            "Dịch vụ chạy ngầm ADB Agent",
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "Duy trì kết nối ADB từ xa về Mac mini khi chuyển mạng"
+            description = "Duy trì kết nối ADB nội bộ và đường hầm từ xa về Mac mini"
+            setShowBadge(false)
         }
         manager.createNotificationChannel(channel)
     }
 
-    private fun buildNotification(): Notification {
+    private fun buildNotification(
+        state: TunnelConnectionState,
+        net: NetworkType,
+        wifiIp: String,
+        localPort: Int
+    ): Notification {
         val openIntent = PendingIntent.getActivity(
             this,
             0,
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+
+        val (title, text) = when (state) {
+            is TunnelConnectionState.Connected -> {
+                val mapped = state.mappedServerPort?.let { "127.0.0.1:$it" } ?: "Đã nhận cổng"
+                "ADB Agent • Đang trực tuyến" to "Mac mini: $mapped • Wi-Fi: ${wifiIp.ifBlank { "LAN" }}:$localPort"
+            }
+            is TunnelConnectionState.Connecting ->
+                "ADB Agent • Đang kết nối..." to "Đang bắt tay kênh bảo mật về adb.duinch.app"
+            is TunnelConnectionState.Reconnecting ->
+                "ADB Agent • Đang tự nối lại" to "Lần thử ${state.attempt} • Thử lại sau ${state.nextRetryDelayMs / 1000}s"
+            is TunnelConnectionState.Error ->
+                "ADB Agent • Gián đoạn kết nối" to (state.message.take(45))
+            TunnelConnectionState.Disconnected -> {
+                val ipDisplay = if (wifiIp.isNotBlank()) "Wi-Fi: $wifiIp:$localPort" else "Cổng ADB: $localPort"
+                "ADB Agent • Sẵn sàng chạy ngầm" to "$ipDisplay • Đang duy trì kết nối"
+            }
+        }
 
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(this, CHANNEL_ID)
@@ -65,20 +145,55 @@ class TunnelForegroundService : Service() {
             Notification.Builder(this)
         }
 
-        return builder
-            .setContentTitle("ADB Agent đang kết nối")
-            .setContentText("Đường hầm bảo mật về adb.duinch.app đang hoạt động")
-            .setSmallIcon(android.R.drawable.stat_sys_upload_done)
+        builder
+            .setContentTitle(title)
+            .setContentText(text)
+            .setSmallIcon(R.drawable.ic_adb_tunnel)
             .setContentIntent(openIntent)
             .setOngoing(true)
-            .build()
+
+        // Actions
+        if (state is TunnelConnectionState.Connected) {
+            val disconnectIntent = PendingIntent.getService(
+                this,
+                1,
+                Intent(this, TunnelForegroundService::class.java).apply { action = ACTION_DISCONNECT },
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            builder.addAction(Notification.Action.Builder(null, "Ngắt kết nối", disconnectIntent).build())
+        } else {
+            val connectIntent = PendingIntent.getService(
+                this,
+                2,
+                Intent(this, TunnelForegroundService::class.java).apply { action = ACTION_CONNECT },
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            builder.addAction(Notification.Action.Builder(null, "Bật đường hầm", connectIntent).build())
+        }
+
+        val stopIntent = PendingIntent.getService(
+            this,
+            3,
+            Intent(this, TunnelForegroundService::class.java).apply { action = ACTION_STOP },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        builder.addAction(Notification.Action.Builder(null, "Dừng dịch vụ", stopIntent).build())
+
+        return builder.build()
+    }
+
+    override fun onDestroy() {
+        serviceScope.cancel()
+        super.onDestroy()
     }
 
     companion object {
         private const val CHANNEL_ID = "adb_reverse_tunnel_channel"
         private const val NOTIFICATION_ID = 1042
-        private const val ACTION_START = "app.duinch.adbagent.START_TUNNEL"
-        private const val ACTION_STOP = "app.duinch.adbagent.STOP_TUNNEL"
+        const val ACTION_START = "app.duinch.adbagent.START_TUNNEL"
+        const val ACTION_STOP = "app.duinch.adbagent.STOP_TUNNEL"
+        const val ACTION_CONNECT = "app.duinch.adbagent.ACTION_CONNECT"
+        const val ACTION_DISCONNECT = "app.duinch.adbagent.ACTION_DISCONNECT"
 
         fun start(context: Context) {
             val intent = Intent(context, TunnelForegroundService::class.java).apply {

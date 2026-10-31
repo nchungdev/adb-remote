@@ -24,6 +24,7 @@ data class DashboardUiState(
     val cfClientSecretInput: String = "",
     val cfAuthCookie: String = "",
     val autoReconnect: Boolean = true,
+    val runInBackground: Boolean = true,
     val trustedHomeSsidInput: String = "",
     val autoSwitchOnHomeWifi: Boolean = true,
     val currentWifiSsid: String = "",
@@ -64,6 +65,7 @@ sealed interface DashboardUiIntent {
     data class UpdateCfClientId(val value: String) : DashboardUiIntent
     data class UpdateCfClientSecret(val value: String) : DashboardUiIntent
     data class ToggleAutoReconnect(val enabled: Boolean) : DashboardUiIntent
+    data class ToggleRunInBackground(val enabled: Boolean) : DashboardUiIntent
     data class UpdateTrustedHomeSsid(val value: String) : DashboardUiIntent
     data class ToggleAutoSwitchHomeWifi(val enabled: Boolean) : DashboardUiIntent
     data object UseCurrentWifiAsHome : DashboardUiIntent

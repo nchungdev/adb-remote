@@ -183,4 +183,19 @@ class TunnelUseCasesTest {
         val stateCellular = stateAtHome.copy(activeNetwork = NetworkType.CELLULAR)
         assertFalse(stateCellular.isAtHomeWifi)
     }
+
+    @Test
+    fun `tunnel config preserves runInBackground flag and defaults to true`() {
+        val config = TunnelConfig()
+        assertTrue(config.runInBackground)
+
+        val repo = FakeTunnelConfigRepository()
+        val saveUseCase = SaveTunnelConfigUseCase(repo)
+        val updated = config.copy(
+            serverUrl = "wss://adb.duinch.app/api/tunnel",
+            runInBackground = false
+        )
+        saveUseCase(updated)
+        assertFalse(repo.getConfig().runInBackground)
+    }
 }

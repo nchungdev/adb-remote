@@ -105,7 +105,9 @@ class WebSocketReverseTunnelAdapter(
         finishHistorySession("Chủ động ngắt kết nối")
         closeActiveSession()
         connectionState.value = TunnelConnectionState.Disconnected
-        TunnelForegroundService.stop(appContext)
+        if (currentConfig?.runInBackground != true) {
+            TunnelForegroundService.stop(appContext)
+        }
     }
 
     private fun openWebSocketSession(config: TunnelConfig) {
@@ -133,10 +135,8 @@ class WebSocketReverseTunnelAdapter(
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     retryAttempt = 0
                     bytesBridged.set(0L)
-                    val now = System.currentTimeMillis()
-                    val sid = UUID.randomUUID().toString()
-                    connectedAtEpochMs = now
-                    activeSessionId = sid
+                    val now = System.currentTimeMillis().also { connectedAtEpochMs = it }
+                    val sid = UUID.randomUUID().toString().also { activeSessionId = it }
                     historyRepository.recordSessionStarted(
                         TunnelHistoryEntry(
                             sessionId = sid,
