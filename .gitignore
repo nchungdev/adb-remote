@@ -1,0 +1,23 @@
+# Gradle & Android
+.gradle/
+build/
+**/build/
+local.properties
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+._*
+Thumbs.db
+
+# Keystores & Secrets
+keystore/*.jks
+keystore/*.keystore
+!keystore/README.md
+*.env
+.local-artifacts/
