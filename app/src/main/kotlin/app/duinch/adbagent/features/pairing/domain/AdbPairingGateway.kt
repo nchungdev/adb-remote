@@ -12,6 +12,7 @@ interface AdbPairingGateway {
     suspend fun pairLocalhost(port: Int, sixDigitCode: String): Result<String>
     suspend fun connectLocalhost(port: Int): Result<String>
     suspend fun enablePersistentTcpip(fromPort: Int, targetTcpPort: Int = 5555): Result<Int>
+    suspend fun bringAppToFront(port: Int = 5555): Result<Unit> = Result.success(Unit)
 }
 
 interface PairingNotificationGateway {

@@ -51,7 +51,15 @@ class TermuxLocalAdbPairingAdapter(
             }
             delay(1_200L)
             connectLocalhost(targetTcpPort).getOrThrow()
+            bringAppToFront(targetTcpPort)
             targetTcpPort
         }
+    }
+
+    override suspend fun bringAppToFront(port: Int): Result<Unit> {
+        termuxRuntime.ensureBootstrapReady()
+        val adbBin = termuxRuntime.getPrefixPaths().adbBinaryPath
+        val cmd = "\"$adbBin\" -s 127.0.0.1:$port shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n app.duinch.adbagent/.MainActivity"
+        return termuxRuntime.executeCommand(cmd, timeoutSeconds = 5L).map { }
     }
 }

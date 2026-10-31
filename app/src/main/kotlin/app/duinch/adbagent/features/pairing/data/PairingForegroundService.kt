@@ -95,10 +95,14 @@ class PairingForegroundService : Service() {
                     container.pairingNotificationGateway.reportPairingState(state)
                     notifyUpdated(
                         buildStatusNotification(
-                            "Ghép nối thành công! ADB đã sẵn sàng.",
+                            "Ghép nối thành công! Đang mở ADB Agent...",
                             ongoing = false
                         )
                     )
+                    val homeIntent = Intent(this@PairingForegroundService, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    }
+                    startActivity(homeIntent)
                     stopForeground(STOP_FOREGROUND_DETACH)
                     stopSelf()
                 },

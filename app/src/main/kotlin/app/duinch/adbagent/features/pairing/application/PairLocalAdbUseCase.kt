@@ -40,6 +40,7 @@ class PairLocalAdbUseCase(
             pairingGateway.enablePersistentTcpip(fromPort = initialConnectPort, targetTcpPort = 5555)
                 .getOrDefault(initialConnectPort)
         } else {
+            pairingGateway.bringAppToFront(5555)
             5555
         }
 

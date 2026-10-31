@@ -142,9 +142,12 @@ class DashboardViewModel(
         viewModelScope.launch {
             container.pairingNotificationGateway.observeNotificationPairing().collect { pState ->
                 _uiState.update { cur ->
+                    val isSuccess = pState is AdbPairingState.PairedAndConnected
                     val portStr = (pState as? AdbPairingState.PairedAndConnected)?.connectPort?.toString()
                         ?: cur.localAdbPortInput
                     cur.copy(
+                        selectedTab = if (isSuccess) AppTab.CONNECT else cur.selectedTab,
+                        forceShowPairing = if (isSuccess) false else cur.forceShowPairing,
                         localAdbPortInput = portStr,
                         pairing = cur.pairing.copy(pairingState = pState)
                     )
