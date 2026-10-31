@@ -95,6 +95,18 @@ fun DashboardScreen(
                     label = { Text(AppTab.CONNECT.title) }
                 )
                 NavigationBarItem(
+                    selected = state.selectedTab == AppTab.HISTORY,
+                    onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.HISTORY)) },
+                    icon = {
+                        Icon(
+                            imageVector = AppIcons.Clock,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    },
+                    label = { Text(AppTab.HISTORY.title) }
+                )
+                NavigationBarItem(
                     selected = state.selectedTab == AppTab.PAIRING,
                     onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.PAIRING)) },
                     icon = {
@@ -156,6 +168,10 @@ fun DashboardScreen(
                         updaterState = updaterState,
                         onIntent = onIntent,
                         onUpdaterIntent = onUpdaterIntent
+                    )
+                    AppTab.HISTORY -> TunnelHistoryTab(
+                        state = state,
+                        onIntent = onIntent
                     )
                     AppTab.PAIRING -> PairingSection(
                         state = state.pairing,

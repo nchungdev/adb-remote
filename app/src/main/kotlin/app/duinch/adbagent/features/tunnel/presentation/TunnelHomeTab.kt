@@ -260,15 +260,15 @@ fun TunnelHomeTab(
             modifier = Modifier.padding(horizontal = 4.dp)
         )
 
+        val isTunnelOnline = state.connectionState is TunnelConnectionState.Connected
         val locallyPaired = state.pairing.pairingState is AdbPairingState.PairedAndConnected
-        val bridgedViaHost = connected != null && connected.bytesBridged > 0L
         val portDisplay = state.localAdbPortInput.ifBlank { "5555" }
         val (adbSub, adbOk) = when {
             locallyPaired -> "Đã ghép đôi nội bộ & cố định cổng 5555 cho 4G/5G" to true
-            bridgedViaHost && portDisplay == "5555" ->
+            isTunnelOnline && portDisplay == "5555" ->
                 "Đang hoạt động qua cổng 5555 (hỗ trợ cả Wi-Fi & 4G/5G)" to true
-            bridgedViaHost ->
-                "Đang thông suốt về Mac mini (Tùy chọn: đổi cổng 5555 nếu ra ngoài dùng 4G/5G)" to true
+            isTunnelOnline ->
+                "Đang thông suốt về Mac mini qua cổng $portDisplay (Không cần ghép đôi lại)" to true
             else ->
                 "Tùy chọn cho 4G/5G & Terminal nội bộ (không bắt buộc nếu Mac đã nhận máy)" to false
         }
@@ -289,23 +289,6 @@ fun TunnelHomeTab(
             },
             isReady = state.hasCloudflareAuth,
             onClick = { onIntent(DashboardUiIntent.OpenCloudflareLogin) }
-        )
-
-        // Host Commands & Activity Section
-        HostActivitySection(
-            commands = state.hostCommands,
-            isExpanded = state.showAllHostCommands,
-            onToggleExpand = { onIntent(DashboardUiIntent.ToggleHostCommandsExpand) },
-            onClear = { onIntent(DashboardUiIntent.ClearHostCommands) }
-        )
-
-        // Connection History Section
-        TunnelHistorySection(
-            history = state.history,
-            showAll = state.showAllHistory,
-            nowEpochMs = nowEpochMs,
-            onToggleExpand = { onIntent(DashboardUiIntent.ToggleHistoryExpand) },
-            onClearHistory = { onIntent(DashboardUiIntent.ClearHistory) }
         )
     }
 }
