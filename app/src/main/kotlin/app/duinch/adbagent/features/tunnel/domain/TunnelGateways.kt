@@ -11,6 +11,8 @@ interface TunnelConfigRepository {
 interface ReverseTunnelGateway {
     fun observeConnectionState(): Flow<TunnelConnectionState>
     fun observeActiveNetwork(): Flow<NetworkType>
+    fun getLocalWifiIp(): String? = null
+    fun isUsbConnected(): Boolean = false
     suspend fun connect(config: TunnelConfig): Result<Unit>
     suspend fun disconnect()
 }

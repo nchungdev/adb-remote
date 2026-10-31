@@ -82,6 +82,10 @@ class WebSocketReverseTunnelAdapter(
 
     override fun observeActiveNetwork(): Flow<NetworkType> = activeNetwork.asStateFlow()
 
+    override fun getLocalWifiIp(): String? = networkObserver.findWifiIpAddress()
+
+    override fun isUsbConnected(): Boolean = networkObserver.isUsbConnected()
+
     override suspend fun connect(config: TunnelConfig): Result<Unit> {
         return config.validate().map { valid ->
             userWantsConnected.set(true)

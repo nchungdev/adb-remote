@@ -83,7 +83,9 @@ class DashboardViewModel(
         }
         viewModelScope.launch {
             container.reverseTunnelGateway.observeActiveNetwork().collect { net ->
-                _uiState.update { it.copy(activeNetwork = net) }
+                val ip = container.reverseTunnelGateway.getLocalWifiIp().orEmpty()
+                val usb = container.reverseTunnelGateway.isUsbConnected()
+                _uiState.update { it.copy(activeNetwork = net, localWifiIp = ip, isUsbConnected = usb) }
             }
         }
         viewModelScope.launch {
@@ -269,7 +271,9 @@ class DashboardViewModel(
             cfClientIdInput = saved.cfAccessClientId,
             cfClientSecretInput = saved.cfAccessClientSecret,
             cfAuthCookie = saved.cfAuthCookie,
-            autoReconnect = saved.autoReconnectOnNetworkChange
+            autoReconnect = saved.autoReconnectOnNetworkChange,
+            localWifiIp = container.reverseTunnelGateway.getLocalWifiIp().orEmpty(),
+            isUsbConnected = container.reverseTunnelGateway.isUsbConnected()
         )
     }
 

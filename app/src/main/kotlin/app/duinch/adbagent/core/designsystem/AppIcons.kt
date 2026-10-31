@@ -190,6 +190,17 @@ object AppIcons {
         }
     }
 
+    val Usb: ImageVector by lazy {
+        strokeIcon("Usb") {
+            moveTo(12f, 2f); verticalLineTo(12f)
+            moveTo(8f, 6f); horizontalLineTo(16f); verticalLineTo(12f); horizontalLineTo(8f); close()
+            moveTo(10f, 2f); verticalLineTo(6f)
+            moveTo(14f, 2f); verticalLineTo(6f)
+            moveTo(12f, 12f); verticalLineTo(20f)
+            moveTo(9f, 20f); horizontalLineTo(15f)
+        }
+    }
+
     val Copy: ImageVector by lazy {
         strokeIcon("Copy") {
             moveTo(9f, 9f)

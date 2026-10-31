@@ -27,6 +27,8 @@ data class DashboardUiState(
     val showAdvancedAuth: Boolean = false,
     val showCloudflareLoginDialog: Boolean = false,
     val activeNetwork: NetworkType = NetworkType.UNKNOWN,
+    val localWifiIp: String = "",
+    val isUsbConnected: Boolean = false,
     val connectionState: TunnelConnectionState = TunnelConnectionState.Disconnected,
     val history: List<TunnelHistoryEntry> = emptyList(),
     val showAllHistory: Boolean = false,

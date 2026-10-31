@@ -1,12 +1,17 @@
 package app.duinch.adbagent.features.tunnel.data
 
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.os.BatteryManager
 import app.duinch.adbagent.core.model.NetworkType
+import java.net.Inet4Address
+import java.net.NetworkInterface
 
-class NetworkConnectivityObserver(context: Context) {
+class NetworkConnectivityObserver(private val context: Context) {
 
     private val connectivityManager =
         context.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
@@ -16,6 +21,34 @@ class NetworkConnectivityObserver(context: Context) {
         val net = cm.activeNetwork ?: return NetworkType.NONE
         val caps = cm.getNetworkCapabilities(net) ?: return NetworkType.NONE
         return mapCapabilities(caps)
+    }
+
+    fun findWifiIpAddress(): String? {
+        runCatching {
+            val interfaces = NetworkInterface.getNetworkInterfaces() ?: return null
+            for (iface in interfaces) {
+                if (iface.isLoopback || !iface.isUp) continue
+                val addresses = iface.inetAddresses
+                for (addr in addresses) {
+                    if (addr is Inet4Address && !addr.isLoopbackAddress) {
+                        val host = addr.hostAddress ?: continue
+                        if (host.startsWith("192.168.") || host.startsWith("10.") || host.startsWith("172.")) {
+                            return host
+                        }
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    fun isUsbConnected(): Boolean {
+        return runCatching {
+            val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+            val intent = context.applicationContext.registerReceiver(null, filter)
+            val plugged = intent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) ?: -1
+            plugged == BatteryManager.BATTERY_PLUGGED_USB
+        }.getOrDefault(false)
     }
 
     fun register(onNetworkChange: (NetworkType) -> Unit) {
