@@ -92,7 +92,7 @@ fun TunnelHistoryTab(
                             }
                         }
                         Text(
-                            text = "Thống kê lịch sử",
+                            text = "Nhật ký kết nối",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
