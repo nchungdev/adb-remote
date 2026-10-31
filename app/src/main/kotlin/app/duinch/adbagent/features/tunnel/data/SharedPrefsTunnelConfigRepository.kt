@@ -18,6 +18,7 @@ class SharedPrefsTunnelConfigRepository(
                 ?: TunnelConfig.DEFAULT_TUNNEL_URL,
             deviceAlias = prefs.getString(KEY_DEVICE_ALIAS, defaultAlias) ?: defaultAlias,
             localAdbPort = prefs.getInt(KEY_LOCAL_PORT, 5555),
+            tunnelMode = prefs.getString(KEY_TUNNEL_MODE, TunnelConfig.MODE_WEBRTC) ?: TunnelConfig.MODE_WEBRTC,
             cfAccessClientId = prefs.getString(KEY_CF_CLIENT_ID, "") ?: "",
             cfAccessClientSecret = prefs.getString(KEY_CF_CLIENT_SECRET, "") ?: "",
             cfAuthCookie = prefs.getString(KEY_CF_AUTH_COOKIE, "") ?: "",
@@ -33,6 +34,7 @@ class SharedPrefsTunnelConfigRepository(
             .putString(KEY_SERVER_URL, config.serverUrl)
             .putString(KEY_DEVICE_ALIAS, config.deviceAlias)
             .putInt(KEY_LOCAL_PORT, config.localAdbPort)
+            .putString(KEY_TUNNEL_MODE, config.tunnelMode)
             .putString(KEY_CF_CLIENT_ID, config.cfAccessClientId)
             .putString(KEY_CF_CLIENT_SECRET, config.cfAccessClientSecret)
             .putString(KEY_CF_AUTH_COOKIE, config.cfAuthCookie)
@@ -48,6 +50,7 @@ class SharedPrefsTunnelConfigRepository(
         private const val KEY_SERVER_URL = "server_url"
         private const val KEY_DEVICE_ALIAS = "device_alias"
         private const val KEY_LOCAL_PORT = "local_adb_port"
+        private const val KEY_TUNNEL_MODE = "tunnel_mode"
         private const val KEY_CF_CLIENT_ID = "cf_access_client_id"
         private const val KEY_CF_CLIENT_SECRET = "cf_access_client_secret"
         private const val KEY_CF_AUTH_COOKIE = "cf_auth_cookie"
