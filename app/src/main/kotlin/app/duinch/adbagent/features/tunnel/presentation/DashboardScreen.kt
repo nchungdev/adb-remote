@@ -1,5 +1,7 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
@@ -88,27 +91,49 @@ fun DashboardScreen(
         bottomBar = {
             val isDark = isSystemInDarkTheme()
             val unselectedNavColor = MaterialTheme.colorScheme.onSurfaceVariant
+            val adbTabVisual = rememberAdbTabVisual(state = state, isDark = isDark)
+            val animatedAdbSelectedIconColor by animateColorAsState(
+                targetValue = adbTabVisual.selectedColor,
+                label = "adbTabSelectedIconColor"
+            )
+            val animatedAdbSelectedTextColor by animateColorAsState(
+                targetValue = adbTabVisual.selectedTextColor,
+                label = "adbTabSelectedTextColor"
+            )
+            val animatedAdbIndicatorColor by animateColorAsState(
+                targetValue = adbTabVisual.indicatorColor,
+                label = "adbTabIndicatorColor"
+            )
+            val animatedAdbUnselectedIconColor by animateColorAsState(
+                targetValue = adbTabVisual.unselectedIconColor,
+                label = "adbTabUnselectedIconColor"
+            )
 
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
-                // Tab 1: Kết nối (Màu Xanh Ngọc Emerald)
+                // Tab 1: Kết nối (Cập nhật biểu tượng và màu sắc theo trạng thái ADB)
                 NavigationBarItem(
                     selected = state.selectedTab == AppTab.CONNECT,
                     onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.CONNECT)) },
                     icon = {
-                        Icon(
-                            imageVector = AppIcons.ShieldBolt,
-                            contentDescription = null,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        Crossfade(
+                            targetState = adbTabVisual.icon,
+                            label = "adbTabIconCrossfade"
+                        ) { iconVector ->
+                            Icon(
+                                imageVector = iconVector,
+                                contentDescription = adbTabVisual.contentDescription,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     },
                     label = { Text(AppTab.CONNECT.title) },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = if (isDark) Color(0xFF34D399) else Color(0xFF059669),
-                        selectedTextColor = if (isDark) Color(0xFF34D399) else Color(0xFF059669),
-                        indicatorColor = if (isDark) Color(0xFF064E3B) else Color(0xFFD1FAE5),
-                        unselectedIconColor = unselectedNavColor,
+                        selectedIconColor = animatedAdbSelectedIconColor,
+                        selectedTextColor = animatedAdbSelectedTextColor,
+                        indicatorColor = animatedAdbIndicatorColor,
+                        unselectedIconColor = animatedAdbUnselectedIconColor,
                         unselectedTextColor = unselectedNavColor
                     )
                 )

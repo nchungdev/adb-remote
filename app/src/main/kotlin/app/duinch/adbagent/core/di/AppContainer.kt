@@ -20,7 +20,7 @@ import app.duinch.adbagent.features.tunnel.application.SaveTunnelConfigUseCase
 import app.duinch.adbagent.features.tunnel.application.ToggleReverseTunnelUseCase
 import app.duinch.adbagent.features.tunnel.data.SharedPrefsTunnelConfigRepository
 import app.duinch.adbagent.features.tunnel.data.SharedPrefsTunnelHistoryRepository
-import app.duinch.adbagent.features.tunnel.data.WebSocketReverseTunnelAdapter
+import app.duinch.adbagent.features.tunnel.data.WebRtcReverseTunnelAdapter
 import app.duinch.adbagent.features.tunnel.domain.ReverseTunnelGateway
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfigRepository
 import app.duinch.adbagent.features.tunnel.domain.TunnelHistoryRepository
@@ -59,26 +59,12 @@ class AppContainer(context: Context) {
 
     private val computeReconnectBackoff = ComputeReconnectBackoffUseCase()
 
-    val webSocketGateway: WebSocketReverseTunnelAdapter =
-        WebSocketReverseTunnelAdapter(
-            appContext,
-            computeReconnectBackoff,
-            tunnelHistoryRepository,
-            hostActivityRepository
-        )
-
-    val webRtcGateway: app.duinch.adbagent.features.tunnel.data.WebRtcReverseTunnelAdapter =
-        app.duinch.adbagent.features.tunnel.data.WebRtcReverseTunnelAdapter(
-            appContext,
-            computeReconnectBackoff,
-            tunnelHistoryRepository,
-            hostActivityRepository
-        )
-
     val reverseTunnelGateway: ReverseTunnelGateway =
-        app.duinch.adbagent.features.tunnel.data.DynamicReverseTunnelGateway(
-            webRtcAdapter = webRtcGateway,
-            webSocketAdapter = webSocketGateway
+        WebRtcReverseTunnelAdapter(
+            appContext,
+            computeReconnectBackoff,
+            tunnelHistoryRepository,
+            hostActivityRepository
         )
 
     val ensureTermuxBootstrap = EnsureTermuxBootstrapUseCase(termuxRuntimeGateway)

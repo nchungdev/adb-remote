@@ -16,14 +16,14 @@ Trên Android 11+, Google bổ sung tính năng **Wireless Debugging (Gỡ lỗi
 
 1. **Tự động bắt cổng nội bộ (mDNS Loopback):** Dùng `NsdManager` phát hiện ngay cổng `_adb-tls-pairing._tcp` và `_adb-tls-connect._tcp` trên chính điện thoại.
 2. **Ghép đôi 1 lần duy nhất:** Người dùng chỉ cần nhập mã ghép nối 6 chữ số ở lần đầu tiên; khóa RSA ADB được lưu bền vững trong sandbox ứng dụng.
-3. **Đảo chiều kết nối (Outbound Reverse Tunnel):** Điện thoại chủ động mở kết nối `WSS` (TLS 443) về `https://adb.duinch.app` (Cloudflare Tunnel nối về Mac mini).
-4. **Tự phục hồi khi đổi mạng:** Khi chuyển từ Wi-Fi sang 4G/5G hoặc đổi điểm phát Wi-Fi, dịch vụ chạy nền tự động kết nối lại cổng ADB nội bộ mới và khôi phục đường hầm về Mac mini mà người dùng không cần chạm tay.
+3. **Đường hầm P2P WebRTC trực tiếp:** Điện thoại và máy chủ thiết lập kết nối ngang hàng trực tiếp (P2P DataChannel), không cần mở cổng inbound trên router và không qua trung gian bên thứ ba.
+4. **Tự phục hồi khi đổi mạng:** Khi chuyển từ Wi-Fi sang 4G/5G hoặc đổi điểm phát Wi-Fi, dịch vụ chạy nền tự động kết nối lại cổng ADB nội bộ mới và khôi phục đường hầm P2P mà người dùng không cần chạm tay.
 
 ---
 
 ## 3. Ranh giới Bảo mật (Non-Goals & Security Invariants)
 
-- **Không mở cổng Inbound trên Mac mini / Router:** Mọi kết nối đi qua Cloudflare Tunnel HTTPS/WSS.
-- **Xác thực hai lớp:** Hỗ trợ Cloudflare Zero Trust Service Token (`CF-Access-Client-Id` & `CF-Access-Client-Secret`).
+- **Không mở cổng Inbound trên Máy chủ / Router:** Kết nối P2P qua ICE/STUN và DTLS 1.3 mã hóa đầu cuối.
+- **Không phụ thuộc VPN/Tunnel bên thứ ba:** Hoạt động độc lập không cần Cloudflare WARP hay Tailscale.
 - **Không yêu cầu Root:** Hoạt động 100% dựa trên API chuẩn của Android 11+ (API 30+) và tương thích ngược xuống API 26 cho chế độ ADB TCP `5555`.
 - **Không thu thập Telemetry:** Không có SDK phân tích hay quảng cáo của bên thứ ba.

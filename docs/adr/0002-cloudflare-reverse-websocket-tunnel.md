@@ -1,6 +1,6 @@
 # ADR 0002: Đường hầm Đảo chiều WebSocket qua Cloudflare Tunnel (`adb.duinch.app`)
 
-- **Trạng thái:** Approved
+- **Trạng thái:** Superseded bởi [ADR 0003](0003-p2p-webrtc-datachannel-tunnel.md)
 - **Ngày:** 2026-10-31
 
 ## Bối cảnh

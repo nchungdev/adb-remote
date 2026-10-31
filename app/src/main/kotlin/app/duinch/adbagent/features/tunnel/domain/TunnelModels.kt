@@ -6,7 +6,6 @@ data class TunnelConfig(
     val serverUrl: String = DEFAULT_TUNNEL_URL,
     val deviceAlias: String = "Android-Device",
     val localAdbPort: Int = 5555,
-    val tunnelMode: String = MODE_WEBRTC,
     val autoReconnectOnNetworkChange: Boolean = true,
     val trustedHomeSsid: String = "",
     val autoSwitchOnHomeWifi: Boolean = true,
@@ -14,10 +13,13 @@ data class TunnelConfig(
 ) {
     fun validate(): Result<TunnelConfig> {
         val url = serverUrl.trim()
-        val isValidProtocol = url.startsWith("wss://") || url.startsWith("https://")
+        val isValidProtocol = url.startsWith("https://") ||
+            url.startsWith("http://") ||
+            url.startsWith("wss://") ||
+            url.startsWith("ws://")
         if (!isValidProtocol) {
             return Result.failure(
-                IllegalArgumentException("Endpoint bắt buộc dùng giao thức mã hoá TLS (https:// hoặc wss://)")
+                IllegalArgumentException("Endpoint máy chủ bắt buộc dùng giao thức http(s):// hoặc ws(s)://")
             )
         }
         if (deviceAlias.trim().isEmpty()) {
@@ -39,9 +41,7 @@ data class TunnelConfig(
     }
 
     companion object {
-        const val MODE_WEBRTC = "webrtc"
-        const val MODE_WEBSOCKET = "websocket"
-        const val DEFAULT_TUNNEL_URL = "wss://adb.duinch.app/api/tunnel"
+        const val DEFAULT_TUNNEL_URL = "https://adb.duinch.app"
     }
 }
 

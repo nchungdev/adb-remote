@@ -56,13 +56,13 @@ class TunnelUseCasesTest {
     }
 
     @Test
-    fun `rejects non-TLS ws url to enforce zero-trust encrypted transport`() {
+    fun `rejects unsupported scheme url`() {
         val repo = FakeTunnelConfigRepository()
         val saveUseCase = SaveTunnelConfigUseCase(repo)
 
         val result = saveUseCase(
             TunnelConfig(
-                serverUrl = "ws://adb.duinch.app/api/tunnel",
+                serverUrl = "ftp://adb.duinch.app/api/tunnel",
                 deviceAlias = "Pixel-9",
                 localAdbPort = 5555
             )

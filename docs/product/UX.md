@@ -14,7 +14,7 @@
 1. **Tab 1 — Kết nối (`TunnelHomeTab`):**
    - **Compact OTA Strip:** Chỉ xuất hiện khi phát hiện bản cập nhật mới hoặc đang tải.
    - **Hero Switchboard Card:** Biểu tượng khiên trạng thái chuyển màu mượt mà, dải 3 ô Bento Telemetry (`Mạng`, `Cổng ADB`, `Lưu lượng`) và nút CTA 56dp bật/ngắt đường hầm.
-   - **Readiness Checklist:** 2 thẻ trạng thái kiểm tra nhanh *Cổng ADB nội bộ* và *Xác thực Cloudflare Access* (chạm để chuyển thẳng tới bước xử lý tương ứng).
+   - **Readiness Checklist:** Thẻ trạng thái kiểm tra nhanh *Cổng ADB nội bộ* (chạm để chuyển thẳng tới bước xử lý tương ứng).
 
 2. **Tab 2 — Ghép đôi (`PairingSection`):**
    - Hướng dẫn 3 bước trực quan và nút chính **Bắt đầu Ghép đôi qua Thông báo** (nhập mã 6 số trực tiếp trên thanh thông báo mà không rời Cài đặt).
@@ -24,4 +24,4 @@
 3. **Tab 3 — Thiết lập (`TunnelSettingsTab`):**
    - Thẻ kiểm tra & cập nhật OTA tự động (`UpdateBannerCard`).
    - Thẻ mở **Embedded Termux Console** (kèm dải chip lệnh nhanh `adb devices -l`, `adb tcpip 5555`, `adb version`...).
-   - Cấu hình Cloudflare Reverse Tunnel, đăng nhập Cloudflare Access 1 chạm và accordion Service Token.
+   - Cấu hình P2P WebRTC Signaling Endpoint và Wi-Fi nhà tin cậy.

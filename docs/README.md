@@ -19,4 +19,5 @@ Tài liệu chính thức của hệ thống **ADB Agent** (`app.duinch.adbagent
 
 ## Architecture Decision Records — `adr/`
 - [`0001-embedded-termux-and-wireless-adb.md`](adr/0001-embedded-termux-and-wireless-adb.md): Nhúng môi trường Termux Bootstrap & tự động dò cổng mDNS Wireless ADB.
-- [`0002-cloudflare-reverse-websocket-tunnel.md`](adr/0002-cloudflare-reverse-websocket-tunnel.md): Giao thức Reverse WebSocket Tunnel qua Cloudflare Zero Trust (`adb.duinch.app`).
+- [`0002-cloudflare-reverse-websocket-tunnel.md`](adr/0002-cloudflare-reverse-websocket-tunnel.md): [Đã thay thế] Giao thức Reverse WebSocket Tunnel qua Cloudflare Zero Trust.
+- [`0003-p2p-webrtc-datachannel-tunnel.md`](adr/0003-p2p-webrtc-datachannel-tunnel.md): Đường hầm P2P WebRTC DataChannel trực tiếp (Zero Port Forwarding).

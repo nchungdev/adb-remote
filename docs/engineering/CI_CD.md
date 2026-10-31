@@ -24,4 +24,4 @@ Mọi Pull Request vào nhánh `main` chạy tuần tự 3 bước:
 2. **JVM Unit Tests:** `./gradlew testDebugUnitTest`
 3. **Debug APK Packaging:** `./gradlew assembleDebug`
 
-Không bao giờ tải khóa ký cá nhân (`release.keystore`) hay token Cloudflare dưới dạng văn bản rõ lên kho lưu trữ; sử dụng GitHub Actions Secrets khi xuất bản bản Release.
+Không bao giờ tải khóa ký cá nhân (`release.keystore`) hay token bí mật dưới dạng văn bản rõ lên kho lưu trữ; sử dụng GitHub Actions Secrets khi xuất bản bản Release.

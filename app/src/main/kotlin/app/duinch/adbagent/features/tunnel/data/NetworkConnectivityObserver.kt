@@ -7,6 +7,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
+import android.os.Build
 import app.duinch.adbagent.core.model.NetworkType
 import java.net.Inet4Address
 import java.net.NetworkInterface
@@ -48,11 +49,13 @@ class NetworkConnectivityObserver(private val context: Context) {
         val caps = cm.getNetworkCapabilities(net) ?: return null
         if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return null
 
-        val transportInfo = caps.transportInfo
-        if (transportInfo is android.net.wifi.WifiInfo) {
-            val raw = transportInfo.ssid
-            if (!raw.isNullOrBlank() && raw != "<unknown ssid>") {
-                return raw.removePrefix("\"").removeSuffix("\"")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val transportInfo = caps.transportInfo
+            if (transportInfo is android.net.wifi.WifiInfo) {
+                val raw = transportInfo.ssid
+                if (!raw.isNullOrBlank() && raw != "<unknown ssid>") {
+                    return raw.removePrefix("\"").removeSuffix("\"")
+                }
             }
         }
 

@@ -7,7 +7,7 @@
 | Domain Entity / Value Object | Danh từ rõ nghĩa | `WirelessAdbEndpoint`, `TunnelConfig` |
 | Domain Gateway / Repository | `*Gateway` hoặc `*Repository` | `AdbPairingGateway`, `TunnelConfigRepository` |
 | Application Use Case | `<Động từ><Danh từ>UseCase` | `PairLocalAdbUseCase`, `ToggleReverseTunnelUseCase` |
-| Data Adapter | `<Công nghệ><Tên>Adapter` / `*RepositoryImpl` | `AndroidMdnsAdbDiscoveryAdapter`, `WebSocketReverseTunnelAdapter` |
+| Data Adapter | `<Công nghệ><Tên>Adapter` / `*RepositoryImpl` | `AndroidMdnsAdbDiscoveryAdapter`, `WebRtcReverseTunnelAdapter` |
 | MVI State | `*UiState` | `DashboardUiState` |
 | MVI Intent | `*UiIntent` | `DashboardUiIntent` |
 | MVI Side-Effect | `*UiEffect` | `DashboardUiEffect` |
