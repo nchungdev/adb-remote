@@ -272,12 +272,16 @@ class WebSocketReverseTunnelAdapter(
         )
     }
 
+    @Volatile private var lastBytesPublishEpochMs: Long = 0L
+
     private fun updateBytesCount(delta: Long, config: TunnelConfig) {
         val total = bytesBridged.addAndGet(delta)
         activeSessionId?.let { sid ->
             historyRepository.updateActiveSession(sid, mappedServerPort, total, activeNetwork.value)
         }
-        if (connectionState.value is TunnelConnectionState.Connected) {
+        val now = System.currentTimeMillis()
+        if (now - lastBytesPublishEpochMs >= 1000L && connectionState.value is TunnelConnectionState.Connected) {
+            lastBytesPublishEpochMs = now
             publishConnectedState(config)
         }
     }
@@ -333,9 +337,10 @@ class WebSocketReverseTunnelAdapter(
 
     private fun registerNetworkCallback() {
         networkObserver.register { net ->
+            val prevNet = activeNetwork.value
             activeNetwork.value = net
             val cfg = currentConfig
-            if (userWantsConnected.get() && cfg != null && cfg.autoReconnectOnNetworkChange) {
+            if (prevNet != net && net != NetworkType.NONE && userWantsConnected.get() && cfg != null && cfg.autoReconnectOnNetworkChange) {
                 retryAttempt = 0
                 reconnectJob?.cancel()
                 openWebSocketSession(cfg)

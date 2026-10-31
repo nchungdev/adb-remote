@@ -74,20 +74,35 @@ class NetworkConnectivityObserver(private val context: Context) {
         }.getOrDefault(false)
     }
 
+    @Volatile private var lastKnownType: NetworkType = NetworkType.UNKNOWN
+
     fun register(onNetworkChange: (NetworkType) -> Unit) {
         val cm = connectivityManager ?: return
+        lastKnownType = detectCurrentNetwork()
         runCatching {
             cm.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
-                    onNetworkChange(detectCurrentNetwork())
+                    val current = detectCurrentNetwork()
+                    if (current != lastKnownType) {
+                        lastKnownType = current
+                        onNetworkChange(current)
+                    }
                 }
 
                 override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
-                    onNetworkChange(mapCapabilities(caps))
+                    val current = mapCapabilities(caps)
+                    if (current != lastKnownType) {
+                        lastKnownType = current
+                        onNetworkChange(current)
+                    }
                 }
 
                 override fun onLost(network: Network) {
-                    onNetworkChange(detectCurrentNetwork())
+                    val current = detectCurrentNetwork()
+                    if (current != lastKnownType) {
+                        lastKnownType = current
+                        onNetworkChange(current)
+                    }
                 }
             })
         }

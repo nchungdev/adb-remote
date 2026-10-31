@@ -42,51 +42,14 @@ fun TunnelHistorySection(
     onClearHistory: () -> Unit
 ) {
     val ext = AdbTheme.colors
-    val hasCompletedItems = history.any { !it.isActive }
     val visibleEntries = if (showAll) history else history.take(5)
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = AppIcons.Clock,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = "Lịch sử kết nối (${history.size})",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        if (hasCompletedItems) {
-            TextButton(onClick = onClearHistory) {
-                Text(
-                    text = "Xóa cũ",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        border = BorderStroke(1.dp, ext.cardBorder),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         if (history.isEmpty()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 22.dp),
+                    .padding(vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -97,14 +60,14 @@ fun TunnelHistorySection(
             }
         } else {
             Column(modifier = Modifier.fillMaxWidth()) {
-                visibleEntries.forEachIndexed { idx, entry ->
+                for ((idx, entry) in visibleEntries.withIndex()) {
                     HistoryEntryRow(entry = entry, nowEpochMs = nowEpochMs)
                     if (idx < visibleEntries.lastIndex) {
-                        HorizontalDivider(color = ext.cardBorder.copy(alpha = 0.6f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     }
                 }
                 if (history.size > 5) {
-                    HorizontalDivider(color = ext.cardBorder.copy(alpha = 0.6f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center

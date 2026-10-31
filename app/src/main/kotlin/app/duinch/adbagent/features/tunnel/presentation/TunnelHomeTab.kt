@@ -210,6 +210,53 @@ fun TunnelHomeTab(
                         }
                     }
 
+                    val uptimeText = if (connected != null) {
+                        formatDurationVi((nowEpochMs - connected.connectedAtEpochMs).coerceAtLeast(0L))
+                    } else {
+                        "--:--"
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 4 mục Telemetry tích hợp bên trong Card kết nối
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            TelemetryTile(
+                                label = "Thời gian",
+                                value = uptimeText,
+                                monospace = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            TelemetryTile(
+                                label = "Mạng",
+                                value = state.activeNetwork.label,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            TelemetryTile(
+                                label = "Cổng ADB",
+                                value = state.localAdbPortInput.ifBlank { "5555" },
+                                monospace = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            TelemetryTile(
+                                label = "Lưu lượng",
+                                value = formatBytesVi(connected?.bytesBridged ?: 0L),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(18.dp))
 
                     // Nút kết nối 1-chạm Master
@@ -237,47 +284,6 @@ fun TunnelHomeTab(
                             maxLines = 1
                         )
                     }
-                }
-            }
-
-            // Hàng Telemetry phẳng trực tiếp ở root (Không lồng thêm Card cha)
-            val uptimeText = if (connected != null) {
-                formatDurationVi((nowEpochMs - connected.connectedAtEpochMs).coerceAtLeast(0L))
-            } else {
-                "--:--"
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TelemetryTile(
-                        label = "Thời gian",
-                        value = uptimeText,
-                        monospace = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                    TelemetryTile(
-                        label = "Mạng",
-                        value = state.activeNetwork.label,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TelemetryTile(
-                        label = "Cổng ADB",
-                        value = state.localAdbPortInput.ifBlank { "5555" },
-                        monospace = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                    TelemetryTile(
-                        label = "Lưu lượng",
-                        value = formatBytesVi(connected?.bytesBridged ?: 0L),
-                        modifier = Modifier.weight(1f)
-                    )
                 }
             }
 

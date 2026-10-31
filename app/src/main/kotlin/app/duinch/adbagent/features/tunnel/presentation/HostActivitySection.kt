@@ -16,8 +16,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,87 +46,39 @@ fun HostActivitySection(
     commands: List<HostCommandRecord>,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
-    onClear: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(if (commands.isNotEmpty()) Color(0xFF22C55E) else Color(0xFF64748B))
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(
-                        text = "Lệnh & Tiến trình từ máy tính",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.size(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = commands.size.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
-                }
-                if (commands.isNotEmpty()) {
-                    TextButton(onClick = onClear) {
-                        Text(
-                            text = "Xóa nhật ký",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error
+    Column(modifier = modifier.fillMaxWidth()) {
+        if (commands.isEmpty()) {
+            Text(
+                text = "Chưa ghi nhận lệnh nào từ máy tính Mac mini. Khi máy tính chạy ADB shell, chụp màn hình hoặc thăm dò specs, tiến trình sẽ xuất hiện ở đây.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 12.dp)
+            )
+        } else {
+            val displayed = if (isExpanded) commands else commands.take(5)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                for ((idx, cmd) in displayed.withIndex()) {
+                    HostCommandRow(cmd)
+                    if (idx < displayed.lastIndex) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            if (commands.isEmpty()) {
-                Text(
-                    text = "Chưa ghi nhận lệnh nào từ máy tính Mac mini. Khi máy tính chạy ADB shell, chụp màn hình hoặc thăm dò specs, tiến trình sẽ xuất hiện ở đây.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                val displayed = if (isExpanded) commands else commands.take(5)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    displayed.forEach { cmd ->
-                        HostCommandRow(cmd)
-                    }
-                }
-
-                if (commands.size > 5) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    TextButton(
-                        onClick = onToggleExpand,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    ) {
-                        Text(
-                            text = if (isExpanded) "Thu gọn bớt" else "Xem tất cả (${commands.size} lệnh)",
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    }
+            if (commands.size > 5) {
+                Spacer(modifier = Modifier.height(6.dp))
+                TextButton(
+                    onClick = onToggleExpand,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text(
+                        text = if (isExpanded) "Thu gọn bớt" else "Xem tất cả (${commands.size} lệnh)",
+                        style = MaterialTheme.typography.labelMedium
+                    )
                 }
             }
         }
@@ -143,79 +97,73 @@ private fun HostCommandRow(cmd: HostCommandRecord) {
         else -> Color(0xFFEF4444)
     }
 
-    Card(
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { if (cmd.outputSnippet.isNotBlank()) expanded = !expanded }
+            .clickable(enabled = cmd.outputSnippet.isNotBlank()) { expanded = !expanded }
+            .padding(vertical = 10.dp)
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(horizontal = 5.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = cmd.source.uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = timeStr,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.size(6.dp))
-                    Text(
-                        text = if (cmd.status == "running") "Đang chạy" else "${cmd.durationMs}ms",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = statusColor,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                Text(
+                    text = cmd.source.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = timeStr,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.size(6.dp))
+                Text(
+                    text = if (cmd.status == "running") "Đang chạy" else "${cmd.durationMs}ms",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = statusColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
 
-            Text(
-                text = cmd.command,
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+        Spacer(modifier = Modifier.height(4.dp))
 
-            if (cmd.outputSnippet.isNotBlank()) {
-                AnimatedVisibility(visible = expanded) {
-                    Column(modifier = Modifier.padding(top = 6.dp)) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Color(0xFF090D16))
-                                .padding(8.dp)
-                        ) {
-                            Text(
-                                text = cmd.outputSnippet,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontFamily = FontFamily.Monospace,
-                                color = Color(0xFFA5F3FC)
-                            )
-                        }
+        Text(
+            text = cmd.command,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        if (cmd.outputSnippet.isNotBlank()) {
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(top = 6.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0xFF090D16))
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = cmd.outputSnippet,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color(0xFFA5F3FC)
+                        )
                     }
                 }
             }

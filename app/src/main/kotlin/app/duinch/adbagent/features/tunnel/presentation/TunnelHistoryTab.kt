@@ -1,7 +1,8 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,14 +17,19 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -32,9 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.duinch.adbagent.core.designsystem.AdbTheme
 import app.duinch.adbagent.core.designsystem.AppIcons
-import app.duinch.adbagent.features.tunnel.domain.HostCommandRecord
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
-import app.duinch.adbagent.features.tunnel.domain.TunnelHistoryEntry
 import kotlinx.coroutines.delay
 
 @Composable
@@ -52,13 +56,22 @@ fun TunnelHistoryTab(
 
     val totalBytes = state.history.sumOf { it.bytesBridged }
     val activeSessions = state.history.count { it.isActive }
+    val isOnline = state.connectionState is TunnelConnectionState.Connected
     val hostGroupTitle = "Mac mini (${state.serverUrlInput.ifBlank { "adb.duinch.app" }.substringAfter("://")})"
+
+    val hostCommands = state.hostCommands.filter { it.source != "Embedded Termux" }
+    val termuxCommands = state.hostCommands.filter { it.source == "Embedded Termux" }
+
+    // Mặc định chỉ expand thiết bị đang active; các thiết bị/mục khác mở bằng nút lịch sử
+    var isHostExpanded by remember(isOnline) { mutableStateOf(isOnline) }
+    var isTermuxExpanded by remember { mutableStateOf(false) }
+    var isHistoryExpanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Telemetry Summary Card
+        // Card 1: Telemetry Summary Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
@@ -132,7 +145,7 @@ fun TunnelHistoryTab(
                     )
                     MetricMiniBox(
                         title = "Lưu lượng",
-                        value = formatBytes(totalBytes),
+                        value = formatBytesVi(totalBytes),
                         modifier = Modifier.weight(1f)
                     )
                     MetricMiniBox(
@@ -144,175 +157,186 @@ fun TunnelHistoryTab(
             }
         }
 
-        // Group 1: Remote Host Device (Mac mini / adb.duinch.app)
-        DeviceHistoryCard(
-            deviceTitle = hostGroupTitle,
-            deviceSubtitle = "Đường hầm Cloudflare Tunnel • Cổng 15555",
-            isOnline = state.connectionState is TunnelConnectionState.Connected,
-            history = state.history,
-            commands = state.hostCommands.filter { it.source != "Embedded Termux" },
-            isHistoryExpanded = state.showAllHistory,
-            isCommandsExpanded = state.showAllHostCommands,
-            nowEpochMs = nowEpochMs,
-            onToggleHistoryExpand = { onIntent(DashboardUiIntent.ToggleHistoryExpand) },
-            onToggleCommandsExpand = { onIntent(DashboardUiIntent.ToggleHostCommandsExpand) },
-            onClearHistory = { onIntent(DashboardUiIntent.ClearHistory) },
-            onClearCommands = { onIntent(DashboardUiIntent.ClearHostCommands) }
-        )
-
-        // Group 2: Local ADB / Embedded Termux (if commands exist)
-        val termuxCommands = state.hostCommands.filter { it.source == "Embedded Termux" }
-        if (termuxCommands.isNotEmpty()) {
-            DeviceHistoryCard(
-                deviceTitle = "Thiết bị nội bộ (Embedded Termux)",
-                deviceSubtitle = "Phiên lệnh ADB Shell trực tiếp trên điện thoại",
-                isOnline = true,
-                history = emptyList(),
-                commands = termuxCommands,
-                isHistoryExpanded = false,
-                isCommandsExpanded = state.showAllHostCommands,
-                nowEpochMs = nowEpochMs,
-                onToggleHistoryExpand = {},
-                onToggleCommandsExpand = { onIntent(DashboardUiIntent.ToggleHostCommandsExpand) },
-                onClearHistory = {},
-                onClearCommands = { onIntent(DashboardUiIntent.ClearHostCommands) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun DeviceHistoryCard(
-    deviceTitle: String,
-    deviceSubtitle: String,
-    isOnline: Boolean,
-    history: List<TunnelHistoryEntry>,
-    commands: List<HostCommandRecord>,
-    isHistoryExpanded: Boolean,
-    isCommandsExpanded: Boolean,
-    nowEpochMs: Long,
-    onToggleHistoryExpand: () -> Unit,
-    onToggleCommandsExpand: () -> Unit,
-    onClearHistory: () -> Unit,
-    onClearCommands: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            // Device Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = if (isOnline) AdbTheme.colors.statusConnectedContainer else MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.size(10.dp)
-                        ) {}
+        // Card 2: Lệnh từ máy tính Mac mini (Mặc định mở khi active)
+        CollapsibleHistoryCard(
+            title = "Lệnh từ máy tính",
+            subtitle = "$hostGroupTitle • ${if (isOnline) "Đang trực tuyến" else "Ngoại tuyến"}",
+            badgeCount = hostCommands.size,
+            isExpanded = isHostExpanded,
+            onToggleExpand = { isHostExpanded = !isHostExpanded },
+            statusDotColor = if (isOnline) AdbTheme.colors.statusConnectedContainer else MaterialTheme.colorScheme.surfaceVariant,
+            actionButton = if (hostCommands.isNotEmpty()) {
+                {
+                    TextButton(onClick = { onIntent(DashboardUiIntent.ClearHostCommands) }) {
                         Text(
-                            text = deviceTitle,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            text = "Xóa",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelMedium
                         )
                     }
-                    Text(
-                        text = deviceSubtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (isOnline) AdbTheme.colors.statusConnectedContainer else MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Text(
-                        text = if (isOnline) "TRỰC TUYẾN" else "NGOẠI TUYẾN",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isOnline) AdbTheme.colors.statusConnected else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            // Embedded Host Commands for this device
+            } else null
+        ) {
             HostActivitySection(
-                commands = commands,
-                isExpanded = isCommandsExpanded,
-                onToggleExpand = onToggleCommandsExpand,
-                onClear = onClearCommands
+                commands = hostCommands,
+                isExpanded = state.showAllHostCommands,
+                onToggleExpand = { onIntent(DashboardUiIntent.ToggleHostCommandsExpand) }
             )
+        }
 
-            // Embedded Tunnel Sessions for this device
-            if (history.isNotEmpty()) {
-                TunnelHistorySection(
-                    history = history,
-                    showAll = isHistoryExpanded,
-                    nowEpochMs = nowEpochMs,
-                    onToggleExpand = onToggleHistoryExpand,
-                    onClearHistory = onClearHistory
+        // Card 3: Embedded Termux (nếu có lệnh)
+        if (termuxCommands.isNotEmpty()) {
+            CollapsibleHistoryCard(
+                title = "Thiết bị nội bộ (Termux)",
+                subtitle = "Phiên lệnh ADB Shell trực tiếp trên máy",
+                badgeCount = termuxCommands.size,
+                isExpanded = isTermuxExpanded,
+                onToggleExpand = { isTermuxExpanded = !isTermuxExpanded },
+                statusDotColor = AdbTheme.colors.statusConnectedContainer
+            ) {
+                HostActivitySection(
+                    commands = termuxCommands,
+                    isExpanded = state.showAllHostCommands,
+                    onToggleExpand = { onIntent(DashboardUiIntent.ToggleHostCommandsExpand) }
                 )
             }
         }
-    }
-}
 
-@Composable
-private fun MetricMiniBox(
-    title: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.height(58.dp),
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+        // Card 4: Lịch sử phiên kết nối (Mặc định thu gọn, mở bằng nút lịch sử)
+        CollapsibleHistoryCard(
+            title = "Lịch sử phiên kết nối",
+            subtitle = "Các phiên kết nối đường hầm đã ghi nhận",
+            badgeCount = state.history.size,
+            isExpanded = isHistoryExpanded,
+            onToggleExpand = { isHistoryExpanded = !isHistoryExpanded },
+            leadingIcon = AppIcons.Clock,
+            actionButton = if (state.history.any { !it.isActive }) {
+                {
+                    TextButton(onClick = { onIntent(DashboardUiIntent.ClearHistory) }) {
+                        Text(
+                            text = "Xóa cũ",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+            } else null
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+            TunnelHistorySection(
+                history = state.history,
+                showAll = state.showAllHistory,
+                nowEpochMs = nowEpochMs,
+                onToggleExpand = { onIntent(DashboardUiIntent.ToggleHistoryExpand) },
+                onClearHistory = { onIntent(DashboardUiIntent.ClearHistory) }
             )
         }
     }
 }
 
-private fun formatBytes(bytes: Long): String = when {
-    bytes <= 0L -> "0 B"
-    bytes < 1024L -> "$bytes B"
-    bytes < 1024L * 1024L -> String.format(java.util.Locale.US, "%.1f KB", bytes / 1024.0)
-    bytes < 1024L * 1024L * 1024L -> String.format(java.util.Locale.US, "%.1f MB", bytes / (1024.0 * 1024.0))
-    else -> String.format(java.util.Locale.US, "%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0))
+@Composable
+private fun CollapsibleHistoryCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    badgeCount: Int? = null,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
+    statusDotColor: androidx.compose.ui.graphics.Color? = null,
+    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    actionButton: (@Composable () -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggleExpand() },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (leadingIcon != null) {
+                        Icon(
+                            imageVector = leadingIcon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    } else if (statusDotColor != null) {
+                        Surface(
+                            shape = CircleShape,
+                            color = statusDotColor,
+                            modifier = Modifier.size(10.dp)
+                        ) {}
+                    }
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            if (badgeCount != null) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                ) {
+                                    Text(
+                                        text = "$badgeCount",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontFamily = FontFamily.Monospace,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                        if (subtitle != null) {
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    actionButton?.invoke()
+                    IconButton(
+                        onClick = onToggleExpand,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isExpanded) AppIcons.ChevronDown else AppIcons.ChevronRight,
+                            contentDescription = if (isExpanded) "Thu gọn" else "Mở lịch sử",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(visible = isExpanded) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    )
+                    content()
+                }
+            }
+        }
+    }
 }
