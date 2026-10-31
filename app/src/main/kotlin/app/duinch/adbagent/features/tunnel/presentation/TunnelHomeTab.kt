@@ -34,10 +34,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.duinch.adbagent.core.designsystem.AdbTheme
 import app.duinch.adbagent.core.designsystem.AppIcons
-import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
 import app.duinch.adbagent.features.updater.presentation.CompactUpdateAlertBanner
 import app.duinch.adbagent.features.updater.presentation.UpdaterUiIntent
@@ -70,26 +70,25 @@ fun TunnelHomeTab(
     val (badgeLabel, subtitle, orbTint, orbContainer) = when (val conn = state.connectionState) {
         TunnelConnectionState.Disconnected -> StatusVisual(
             badge = "CHƯA KẾT NỐI",
-            subtitle = "Sẵn sàng mở đường hầm bảo mật về Mac mini (0 port mở)",
+            subtitle = "Sẵn sàng mở đường hầm bảo mật về Mac mini",
             tint = MaterialTheme.colorScheme.primary,
             container = MaterialTheme.colorScheme.primaryContainer
         )
         is TunnelConnectionState.Connecting -> StatusVisual(
             badge = "ĐANG KẾT NỐI...",
-            subtitle = "Đang thiết lập kênh TLS về adb.duinch.app",
+            subtitle = "Đang thiết lập kênh TLS về Mac mini",
             tint = ext.statusWarning,
             container = ext.statusWarningContainer
         )
         is TunnelConnectionState.Connected -> StatusVisual(
             badge = "ĐANG TRỰC TUYẾN",
-            subtitle = conn.mappedServerPort?.let { "Mac mini đã nhận thiết bị tại 127.0.0.1:$it" }
-                ?: "Đã kết nối thông suốt về Mac mini",
+            subtitle = conn.mappedServerPort?.let { "127.0.0.1:$it" } ?: "Đã kết nối thông suốt",
             tint = ext.statusConnected,
             container = ext.statusConnectedContainer
         )
         is TunnelConnectionState.Reconnecting -> StatusVisual(
-            badge = "ĐANG TỰ NỐI LẠI (LẦN ${conn.attempt})",
-            subtitle = "${conn.reason} • Thử lại sau ${conn.nextRetryDelayMs / 1000}s",
+            badge = "ĐANG NỐI LẠI (${conn.attempt})",
+            subtitle = "Thử lại sau ${conn.nextRetryDelayMs / 1000}s",
             tint = ext.statusWarning,
             container = ext.statusWarningContainer
         )
@@ -119,12 +118,12 @@ fun TunnelHomeTab(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 24.dp),
+                    .padding(horizontal = 20.dp, vertical = 22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
+                        .size(68.dp)
                         .background(animatedContainer, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
@@ -132,18 +131,20 @@ fun TunnelHomeTab(
                         imageVector = AppIcons.ShieldBolt,
                         contentDescription = null,
                         tint = animatedTint,
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(32.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Surface(color = animatedContainer, shape = CircleShape) {
                     Text(
                         text = badgeLabel,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelMedium,
                         color = animatedTint,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -157,7 +158,9 @@ fun TunnelHomeTab(
                         text = subtitle,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     val mappedAddr = connected?.mappedServerPort?.let { "127.0.0.1:$it" }
                     if (mappedAddr != null) {
@@ -174,8 +177,8 @@ fun TunnelHomeTab(
                                 contentDescription = "Sao chép $mappedAddr",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
-                                    .padding(6.dp)
-                                    .size(14.dp)
+                                    .padding(5.dp)
+                                    .size(13.dp)
                             )
                         }
                     }
@@ -183,7 +186,7 @@ fun TunnelHomeTab(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // 2x2 Bento Telemetry Grid (Uptime, Network, Port, Traffic)
+                // Telemetry 2x2 Grid with Synchronized Tile Heights
                 val uptimeText = if (connected != null) {
                     formatDurationVi((nowEpochMs - connected.connectedAtEpochMs).coerceAtLeast(0L))
                 } else {
@@ -195,7 +198,7 @@ fun TunnelHomeTab(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         TelemetryTile(
-                            label = "Đã kết nối",
+                            label = "Thời gian",
                             value = uptimeText,
                             monospace = true,
                             modifier = Modifier.weight(1f)
@@ -230,7 +233,7 @@ fun TunnelHomeTab(
                     onClick = { onIntent(DashboardUiIntent.ToggleTunnel) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 56.dp),
+                        .heightIn(min = 52.dp),
                     shape = MaterialTheme.shapes.medium,
                     colors = if (state.isTunnelActive) {
                         ButtonDefaults.buttonColors(
@@ -245,60 +248,22 @@ fun TunnelHomeTab(
                     }
                 ) {
                     Text(
-                        text = if (state.isTunnelActive) "Ngắt kết nối đường hầm" else "Bật kết nối về Mac mini",
-                        style = MaterialTheme.typography.titleMedium
+                        text = if (state.isTunnelActive) "Ngắt kết nối" else "Kết nối Mac mini",
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1
                     )
                 }
             }
         }
 
-        // 3 Connection Modes: USB, Wi-Fi Local, Cloudflare Tunnel
-        ConnectionModesSection(
+        // Active Connection Mode Card (Direct, Wi-Fi Local or Tunnel)
+        ActiveConnectionModeCard(
             wifiIp = state.localWifiIp,
             adbPort = state.localAdbPortInput.ifBlank { "5555" },
             isUsbConnected = state.isUsbConnected,
             isAtHomeWifi = state.isAtHomeWifi,
             homeSsid = state.trustedHomeSsidInput.ifBlank { state.currentWifiSsid },
             onCopyCommand = { cmd -> clipboard.setText(AnnotatedString(cmd)) }
-        )
-
-        // Quick Readiness Checklist Section
-        Text(
-            text = "Trạng thái sẵn sàng",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        )
-
-        val isTunnelOnline = state.connectionState is TunnelConnectionState.Connected
-        val locallyPaired = state.pairing.pairingState is AdbPairingState.PairedAndConnected
-        val portDisplay = state.localAdbPortInput.ifBlank { "5555" }
-        val (adbSub, adbOk) = when {
-            locallyPaired -> "Đã ghép đôi nội bộ & cố định cổng 5555 cho 4G/5G" to true
-            isTunnelOnline && portDisplay == "5555" ->
-                "Đang hoạt động qua cổng 5555 (hỗ trợ cả Wi-Fi & 4G/5G)" to true
-            isTunnelOnline ->
-                "Đang thông suốt về Mac mini qua cổng $portDisplay (Không cần ghép đôi lại)" to true
-            else ->
-                "Tùy chọn cho 4G/5G & Terminal nội bộ (không bắt buộc nếu Mac đã nhận máy)" to false
-        }
-
-        ReadinessRowCard(
-            title = "1. Cổng ADB trên máy ($portDisplay)",
-            subtitle = adbSub,
-            isReady = adbOk,
-            onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.PAIRING)) }
-        )
-
-        ReadinessRowCard(
-            title = "2. Xác thực Cloudflare Access",
-            subtitle = if (state.hasCloudflareAuth) {
-                "Đã lưu phiên xác thực an toàn cho adb.duinch.app"
-            } else {
-                "Bấm để đăng nhập 1 chạm trước khi mở đường hầm"
-            },
-            isReady = state.hasCloudflareAuth,
-            onClick = { onIntent(DashboardUiIntent.OpenCloudflareLogin) }
         )
     }
 }

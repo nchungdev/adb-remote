@@ -131,11 +131,11 @@ fun PairingSection(
                     onClick = { onIntent(PairingUiIntent.StartNotificationPairing) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 52.dp)
+                        .heightIn(min = 50.dp)
                 ) {
                     Icon(AppIcons.LinkWireless, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Bắt đầu Ghép đôi qua Thông báo")
+                    Text("Ghép đôi qua Thông báo", maxLines = 1)
                 }
 
                 if (state.effectiveConnectPort != null) {
@@ -144,9 +144,9 @@ fun PairingSection(
                         onClick = { onIntent(PairingUiIntent.ActivateTcpip5555) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 48.dp)
+                            .heightIn(min = 46.dp)
                     ) {
-                        Text("Máy đã ghép đôi trước đó → Kích hoạt cổng 5555")
+                        Text("Kích hoạt lại cổng 5555", maxLines = 1)
                     }
                 }
             }
@@ -169,11 +169,12 @@ fun PairingSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Nhập mã trực tiếp (Chia đôi màn hình)", style = MaterialTheme.typography.titleSmall)
+                        Text("Nhập mã thủ công (Chia đôi màn hình)", style = MaterialTheme.typography.titleSmall, maxLines = 1)
                         Text(
-                            text = "Dùng khi bạn mở Cài đặt và ADB Agent song song",
+                            text = "Dùng khi mở Cài đặt và ADB Agent song song",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
                         )
                     }
                     Icon(
@@ -199,7 +200,7 @@ fun PairingSection(
                                 value = state.pairingPortInput,
                                 onValueChange = { onIntent(PairingUiIntent.UpdatePairingPort(it)) },
                                 modifier = Modifier.weight(1f),
-                                label = { Text("Cổng Pair") },
+                                label = { Text("Cổng Pair", maxLines = 1) },
                                 placeholder = { Text(state.discoveredPairingPort?.toString() ?: "46653") },
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Number,
@@ -211,7 +212,7 @@ fun PairingSection(
                                 value = state.pairingCodeInput,
                                 onValueChange = { onIntent(PairingUiIntent.UpdatePairingCode(it)) },
                                 modifier = Modifier.weight(1f),
-                                label = { Text("Mã 6 chữ số") },
+                                label = { Text("Mã 6 số", maxLines = 1) },
                                 placeholder = { Text("611208") },
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Number,
@@ -228,7 +229,7 @@ fun PairingSection(
                             value = state.connectPortInput,
                             onValueChange = { onIntent(PairingUiIntent.UpdateConnectPort(it)) },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Cổng Connect nội bộ (mDNS tự điền)") },
+                            label = { Text("Cổng Connect (mDNS tự điền)", maxLines = 1) },
                             placeholder = { Text(state.discoveredConnectPort?.toString() ?: "38517") },
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Number,
@@ -246,7 +247,8 @@ fun PairingSection(
                         ) {
                             Text(
                                 if (state.pairingState is AdbPairingState.PairingInProgress) "Đang ghép đôi..."
-                                else "Xác nhận Ghép đôi"
+                                else "Xác nhận ghép đôi",
+                                maxLines = 1
                             )
                         }
                     }
