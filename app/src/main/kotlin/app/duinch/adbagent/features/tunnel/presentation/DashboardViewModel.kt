@@ -49,6 +49,20 @@ class DashboardViewModel(
                 _uiState.update { it.copy(cfClientSecretInput = intent.value) }
             is DashboardUiIntent.ToggleAutoReconnect ->
                 _uiState.update { it.copy(autoReconnect = intent.enabled) }
+            is DashboardUiIntent.UpdateTrustedHomeSsid ->
+                _uiState.update { it.copy(trustedHomeSsidInput = intent.value) }
+            is DashboardUiIntent.ToggleAutoSwitchHomeWifi ->
+                _uiState.update { it.copy(autoSwitchOnHomeWifi = intent.enabled) }
+            DashboardUiIntent.UseCurrentWifiAsHome -> {
+                val currentSsid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty()
+                if (currentSsid.isNotBlank()) {
+                    _uiState.update { it.copy(trustedHomeSsidInput = currentSsid) }
+                    saveCurrentConfig(silent = true)
+                    _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã đặt Wi-Fi '$currentSsid' làm Wi-Fi nhà"))
+                } else {
+                    _effects.tryEmit(DashboardUiEffect.ShowMessage("Chưa phát hiện tên Wi-Fi hiện tại"))
+                }
+            }
             DashboardUiIntent.ToggleAdvancedAuth ->
                 _uiState.update { it.copy(showAdvancedAuth = !it.showAdvancedAuth) }
             DashboardUiIntent.OpenCloudflareLogin ->
@@ -84,8 +98,9 @@ class DashboardViewModel(
         viewModelScope.launch {
             container.reverseTunnelGateway.observeActiveNetwork().collect { net ->
                 val ip = container.reverseTunnelGateway.getLocalWifiIp().orEmpty()
+                val ssid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty()
                 val usb = container.reverseTunnelGateway.isUsbConnected()
-                _uiState.update { it.copy(activeNetwork = net, localWifiIp = ip, isUsbConnected = usb) }
+                _uiState.update { it.copy(activeNetwork = net, localWifiIp = ip, currentWifiSsid = ssid, isUsbConnected = usb) }
             }
         }
         viewModelScope.launch {
@@ -272,6 +287,9 @@ class DashboardViewModel(
             cfClientSecretInput = saved.cfAccessClientSecret,
             cfAuthCookie = saved.cfAuthCookie,
             autoReconnect = saved.autoReconnectOnNetworkChange,
+            trustedHomeSsidInput = saved.trustedHomeSsid,
+            autoSwitchOnHomeWifi = saved.autoSwitchOnHomeWifi,
+            currentWifiSsid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty(),
             localWifiIp = container.reverseTunnelGateway.getLocalWifiIp().orEmpty(),
             isUsbConnected = container.reverseTunnelGateway.isUsbConnected()
         )
@@ -284,7 +302,9 @@ class DashboardViewModel(
         cfAccessClientId = state.cfClientIdInput,
         cfAccessClientSecret = state.cfClientSecretInput,
         cfAuthCookie = state.cfAuthCookie,
-        autoReconnectOnNetworkChange = state.autoReconnect
+        autoReconnectOnNetworkChange = state.autoReconnect,
+        trustedHomeSsid = state.trustedHomeSsidInput,
+        autoSwitchOnHomeWifi = state.autoSwitchOnHomeWifi
     )
 
     override fun onCleared() {

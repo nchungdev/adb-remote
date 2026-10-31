@@ -84,6 +84,8 @@ class WebSocketReverseTunnelAdapter(
 
     override fun getLocalWifiIp(): String? = networkObserver.findWifiIpAddress()
 
+    override fun getCurrentWifiSsid(): String? = networkObserver.detectCurrentWifiSsid()
+
     override fun isUsbConnected(): Boolean = networkObserver.isUsbConnected()
 
     override suspend fun connect(config: TunnelConfig): Result<Unit> {
@@ -143,7 +145,9 @@ class WebSocketReverseTunnelAdapter(
                             localAdbPort = config.localAdbPort
                         )
                     )
-                    webSocket.send(TunnelStreamProtocol.buildHelloJson(config.deviceAlias, config.localAdbPort))
+                    val ip = networkObserver.findWifiIpAddress().orEmpty()
+                    val ssid = networkObserver.detectCurrentWifiSsid().orEmpty()
+                    webSocket.send(TunnelStreamProtocol.buildHelloJson(config.deviceAlias, config.localAdbPort, ip, ssid))
                     publishConnectedState(config)
                 }
 

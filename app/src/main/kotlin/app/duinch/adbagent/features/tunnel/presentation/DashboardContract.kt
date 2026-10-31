@@ -24,6 +24,9 @@ data class DashboardUiState(
     val cfClientSecretInput: String = "",
     val cfAuthCookie: String = "",
     val autoReconnect: Boolean = true,
+    val trustedHomeSsidInput: String = "",
+    val autoSwitchOnHomeWifi: Boolean = true,
+    val currentWifiSsid: String = "",
     val showAdvancedAuth: Boolean = false,
     val showCloudflareLoginDialog: Boolean = false,
     val activeNetwork: NetworkType = NetworkType.UNKNOWN,
@@ -45,6 +48,12 @@ data class DashboardUiState(
     val hasCloudflareAuth: Boolean
         get() = cfAuthCookie.contains("CF_Authorization=") ||
             (cfClientIdInput.isNotBlank() && cfClientSecretInput.isNotBlank())
+
+    val isAtHomeWifi: Boolean
+        get() = autoSwitchOnHomeWifi &&
+            activeNetwork == NetworkType.WIFI &&
+            trustedHomeSsidInput.isNotBlank() &&
+            currentWifiSsid.equals(trustedHomeSsidInput.trim(), ignoreCase = true)
 }
 
 sealed interface DashboardUiIntent {
@@ -55,6 +64,9 @@ sealed interface DashboardUiIntent {
     data class UpdateCfClientId(val value: String) : DashboardUiIntent
     data class UpdateCfClientSecret(val value: String) : DashboardUiIntent
     data class ToggleAutoReconnect(val enabled: Boolean) : DashboardUiIntent
+    data class UpdateTrustedHomeSsid(val value: String) : DashboardUiIntent
+    data class ToggleAutoSwitchHomeWifi(val enabled: Boolean) : DashboardUiIntent
+    data object UseCurrentWifiAsHome : DashboardUiIntent
     data object ToggleAdvancedAuth : DashboardUiIntent
     data object OpenCloudflareLogin : DashboardUiIntent
     data object CloseCloudflareLogin : DashboardUiIntent

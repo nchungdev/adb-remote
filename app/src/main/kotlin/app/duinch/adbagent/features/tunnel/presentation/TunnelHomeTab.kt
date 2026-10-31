@@ -253,11 +253,12 @@ fun TunnelHomeTab(
         }
 
         // 3 Connection Modes: USB, Wi-Fi Local, Cloudflare Tunnel
-        val clipboard = LocalClipboardManager.current
         ConnectionModesSection(
             wifiIp = state.localWifiIp,
             adbPort = state.localAdbPortInput.ifBlank { "5555" },
             isUsbConnected = state.isUsbConnected,
+            isAtHomeWifi = state.isAtHomeWifi,
+            homeSsid = state.trustedHomeSsidInput.ifBlank { state.currentWifiSsid },
             onCopyCommand = { cmd -> clipboard.setText(AnnotatedString(cmd)) }
         )
 

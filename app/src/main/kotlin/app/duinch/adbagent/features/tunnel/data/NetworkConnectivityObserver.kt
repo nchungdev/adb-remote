@@ -42,6 +42,29 @@ class NetworkConnectivityObserver(private val context: Context) {
         return null
     }
 
+    fun detectCurrentWifiSsid(): String? {
+        val cm = connectivityManager ?: return null
+        val net = cm.activeNetwork ?: return null
+        val caps = cm.getNetworkCapabilities(net) ?: return null
+        if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return null
+
+        val transportInfo = caps.transportInfo
+        if (transportInfo is android.net.wifi.WifiInfo) {
+            val raw = transportInfo.ssid
+            if (!raw.isNullOrBlank() && raw != "<unknown ssid>") {
+                return raw.removePrefix("\"").removeSuffix("\"")
+            }
+        }
+
+        val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
+        val info = runCatching { wm?.connectionInfo }.getOrNull()
+        val raw = info?.ssid
+        if (!raw.isNullOrBlank() && raw != "<unknown ssid>") {
+            return raw.removePrefix("\"").removeSuffix("\"")
+        }
+        return null
+    }
+
     fun isUsbConnected(): Boolean {
         return runCatching {
             val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)

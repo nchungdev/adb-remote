@@ -46,12 +46,38 @@ object TunnelStreamProtocol {
         }
     }
 
-    fun buildHelloJson(alias: String, localPort: Int): String =
+    fun buildHelloJson(
+        alias: String,
+        localPort: Int,
+        wifiIp: String = "",
+        wifiSsid: String = ""
+    ): String =
         JSONObject()
             .put("type", "hello")
             .put("alias", alias)
             .put("local_adb_port", localPort)
+            .apply {
+                if (wifiIp.isNotBlank()) put("local_wifi_ip", wifiIp)
+                if (wifiSsid.isNotBlank()) put("wifi_ssid", wifiSsid)
+            }
             .toString()
+
+    data class WelcomeServerInfo(
+        val mappedPort: Int?,
+        val serverLanIp: String?,
+        val serverSsid: String?
+    )
+
+    fun parseWelcomeServerInfo(jsonText: String): WelcomeServerInfo? = runCatching {
+        val obj = JSONObject(jsonText)
+        if (obj.optString("type") == "welcome") {
+            WelcomeServerInfo(
+                mappedPort = obj.optInt("mapped_port").takeIf { it > 0 },
+                serverLanIp = obj.optString("server_lan_ip").takeIf { it.isNotBlank() },
+                serverSsid = obj.optString("server_ssid").takeIf { it.isNotBlank() }
+            )
+        } else null
+    }.getOrNull()
 
     fun parseWelcomePort(jsonText: String): Int? = runCatching {
         val obj = JSONObject(jsonText)

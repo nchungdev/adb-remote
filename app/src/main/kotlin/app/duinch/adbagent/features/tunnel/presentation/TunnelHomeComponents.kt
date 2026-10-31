@@ -36,6 +36,8 @@ internal fun ConnectionModesSection(
     wifiIp: String,
     adbPort: String,
     isUsbConnected: Boolean,
+    isAtHomeWifi: Boolean = false,
+    homeSsid: String = "",
     onCopyCommand: (String) -> Unit
 ) {
     Card(
@@ -106,11 +108,18 @@ internal fun ConnectionModesSection(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "2. Không dây cùng Wi-Fi Local", style = MaterialTheme.typography.titleSmall)
                     Text(
-                        text = if (hasWifi) "IP: $wifiIp • Cổng: $adbPort (Ping < 2ms)" else "Chưa kết nối Wi-Fi nội bộ",
+                        text = if (isAtHomeWifi) "2. Không dây cùng Wi-Fi Local (Ưu tiên)" else "2. Không dây cùng Wi-Fi Local",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = when {
+                            isAtHomeWifi -> "Đang ở Wi-Fi nhà ($homeSsid) • IP: $wifiIp • Cổng: $adbPort (Ping < 2ms)"
+                            hasWifi -> "IP: $wifiIp • Cổng: $adbPort (Ping < 2ms)"
+                            else -> "Chưa kết nối Wi-Fi nội bộ"
+                        },
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isAtHomeWifi) AdbTheme.colors.statusConnected else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (hasWifi) {
                         Spacer(modifier = Modifier.height(6.dp))
@@ -170,7 +179,11 @@ internal fun ConnectionModesSection(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = "3. Đường hầm từ xa (Cloudflare)", style = MaterialTheme.typography.titleSmall)
                     Text(
-                        text = "Dùng khi ra ngoài, khác mạng Wi-Fi hoặc 4G/5G qua nút bật bên dưới.",
+                        text = if (isAtHomeWifi) {
+                            "Đang ở Wi-Fi nhà: Tự ưu tiên mạng nội bộ LAN, đường hầm ở chế độ chờ."
+                        } else {
+                            "Dùng khi ra ngoài, khác mạng Wi-Fi hoặc 4G/5G qua nút bật bên dưới."
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -9,7 +9,9 @@ data class TunnelConfig(
     val cfAccessClientId: String = "",
     val cfAccessClientSecret: String = "",
     val cfAuthCookie: String = "",
-    val autoReconnectOnNetworkChange: Boolean = true
+    val autoReconnectOnNetworkChange: Boolean = true,
+    val trustedHomeSsid: String = "",
+    val autoSwitchOnHomeWifi: Boolean = true
 ) {
     val hasCloudflareAuth: Boolean
         get() = cfAuthCookie.contains("CF_Authorization=") ||

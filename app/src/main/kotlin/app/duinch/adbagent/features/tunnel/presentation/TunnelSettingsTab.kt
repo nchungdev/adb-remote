@@ -90,6 +90,68 @@ fun TunnelSettingsTab(
             }
         }
 
+        // Smart Local Wi-Fi Handover Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            border = BorderStroke(1.dp, ext.cardBorder),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Tự đổi sang nội bộ khi ở Wi-Fi nhà", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = "Ưu tiên mạng LAN trực tiếp (ping < 2ms, 0 tốn data)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = state.autoSwitchOnHomeWifi,
+                        onCheckedChange = { onIntent(DashboardUiIntent.ToggleAutoSwitchHomeWifi(it)) }
+                    )
+                }
+
+                if (state.autoSwitchOnHomeWifi) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = state.trustedHomeSsidInput,
+                            onValueChange = { onIntent(DashboardUiIntent.UpdateTrustedHomeSsid(it)) },
+                            modifier = Modifier.weight(1f),
+                            label = { Text("Tên Wi-Fi nhà (SSID)") },
+                            placeholder = { Text("Nhập tên Wi-Fi") },
+                            singleLine = true
+                        )
+                        OutlinedButton(
+                            onClick = { onIntent(DashboardUiIntent.UseCurrentWifiAsHome) },
+                            modifier = Modifier.heightIn(min = 52.dp)
+                        ) {
+                            Text("Lấy Wi-Fi này")
+                        }
+                    }
+                    if (state.currentWifiSsid.isNotBlank()) {
+                        Text(
+                            text = if (state.isAtHomeWifi) "Đang kết nối đúng Wi-Fi nhà: ${state.currentWifiSsid}"
+                            else "Wi-Fi hiện tại: ${state.currentWifiSsid}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (state.isAtHomeWifi) ext.statusConnected else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
         // Cloudflare Tunnel Configuration Card
         Card(
             modifier = Modifier.fillMaxWidth(),

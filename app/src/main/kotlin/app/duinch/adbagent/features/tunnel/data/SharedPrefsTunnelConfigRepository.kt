@@ -21,7 +21,9 @@ class SharedPrefsTunnelConfigRepository(
             cfAccessClientId = prefs.getString(KEY_CF_CLIENT_ID, "") ?: "",
             cfAccessClientSecret = prefs.getString(KEY_CF_CLIENT_SECRET, "") ?: "",
             cfAuthCookie = prefs.getString(KEY_CF_AUTH_COOKIE, "") ?: "",
-            autoReconnectOnNetworkChange = prefs.getBoolean(KEY_AUTO_RECONNECT, true)
+            autoReconnectOnNetworkChange = prefs.getBoolean(KEY_AUTO_RECONNECT, true),
+            trustedHomeSsid = prefs.getString(KEY_TRUSTED_HOME_SSID, "") ?: "",
+            autoSwitchOnHomeWifi = prefs.getBoolean(KEY_AUTO_SWITCH_HOME_WIFI, true)
         )
     }
 
@@ -34,6 +36,8 @@ class SharedPrefsTunnelConfigRepository(
             .putString(KEY_CF_CLIENT_SECRET, config.cfAccessClientSecret)
             .putString(KEY_CF_AUTH_COOKIE, config.cfAuthCookie)
             .putBoolean(KEY_AUTO_RECONNECT, config.autoReconnectOnNetworkChange)
+            .putString(KEY_TRUSTED_HOME_SSID, config.trustedHomeSsid)
+            .putBoolean(KEY_AUTO_SWITCH_HOME_WIFI, config.autoSwitchOnHomeWifi)
             .apply()
     }
 
@@ -46,5 +50,7 @@ class SharedPrefsTunnelConfigRepository(
         private const val KEY_CF_CLIENT_SECRET = "cf_access_client_secret"
         private const val KEY_CF_AUTH_COOKIE = "cf_auth_cookie"
         private const val KEY_AUTO_RECONNECT = "auto_reconnect"
+        private const val KEY_TRUSTED_HOME_SSID = "trusted_home_ssid"
+        private const val KEY_AUTO_SWITCH_HOME_WIFI = "auto_switch_home_wifi"
     }
 }
