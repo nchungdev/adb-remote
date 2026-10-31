@@ -1,17 +1,16 @@
-# Active Plan: Tool Dashboard UI + Enforce 300-Line Limit
+# Active Plan: macOS Status Bar App + 6-Digit Room Code P2P Signaling
 
 ## Objective
-1. Redesign Web Management UI into a modern developer tool dashboard (Linear / Docker Desktop / Raycast inspired sidebar layout).
-2. Modularize Web UI (`index.html`, `layout.css`, `components.css`, `app.js`, `modals.js`) so every file is <= 300 lines.
-3. Refactor all remaining files > 300 LOC in Android & Go server down to <= 300 LOC.
-4. Update `scripts/check_project.py` with `MAX_LINES = 300` and include `.go`, `.html`, `.js`, `.css` extensions.
-5. Rebuild Go server and restart launch agent.
+1. Package Go server daemon into a native macOS Menu Bar (Status Bar) App (`ADB Device Manager.app`) using `github.com/getlantern/systray`.
+2. Implement 6-Digit P2P Room Code (`XXX-XXX`) with zero-config public MQTT signaling relay so devices can connect across different networks (4G/5G/Wi-Fi) without opening ports or creating Cloudflare Workers.
+3. Add Menu Bar actions: Status indicator, copy P2P Room Code, copy LAN IP, Open Web Dashboard, QR pairing, Pause/Resume, Restart ADB, and Quit.
+4. Update packaging script (`scripts/package_macos.sh`) to build `.app` bundle with `LSUIElement=true`.
+5. Enforce 100% strict `<= 300` LOC limit per file and verify via `check_project.py` and test suites.
 
 ## Steps
-- [x] 1. Modularize Web UI into `server/internal/controller/http/ui/` (`index.html`, `layout.css`, `components.css`, `app.js`, `modals.js`).
-- [x] 2. Update `server/internal/controller/http/ui/embed.go` & `router.go` to serve static assets (`/ui/*`).
-- [x] 3. Refactor `hub.go` (336 -> 292) and `device_service.go` (335 -> 274).
-- [x] 4. Refactor Kotlin files: `DashboardViewModel.kt` (310 -> 249), `TunnelHomeTab.kt` (322 -> 180), `TunnelHistoryTab.kt` (342 -> 235), `WebRtcReverseTunnelAdapter.kt` (325 -> 296).
-- [x] 5. Update `scripts/check_project.py` with `MAX_LINES = 300` and multi-extension scan (`.kt`, `.py`, `.go`, `.html`, `.js`, `.css`).
-- [x] 6. Run `./gradlew testDebugUnitTest`, `go test ./...`, and `python3 scripts/check_project.py` (All GREEN).
-- [x] 7. Build and restart Go server daemon (`com.duinch.adb-manager` LaunchAgent).
+- [ ] 1. Create `server/internal/signaling/mqtt_relay.go` to handle P2P 6-digit room code signaling.
+- [ ] 2. Create `server/internal/tray/tray.go` with status bar UI and clipboard actions.
+- [ ] 3. Update `server/cmd/api/main.go` to integrate systray when running on macOS.
+- [ ] 4. Create `scripts/package_macos.sh` to build macOS `.app` bundle.
+- [ ] 5. Run tests (`go test ./...`, `./gradlew testDebugUnitTest`, `python3 scripts/check_project.py`).
+- [ ] 6. Build and launch status bar app, verify menu items.

@@ -1,16 +1,19 @@
 package app.duinch.adbagent
 
 import android.Manifest
+import android.app.RecoverableSecurityException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
@@ -44,10 +47,15 @@ class MainActivity : ComponentActivity() {
         onUnknownSourcesReturned?.invoke()
     }
 
+    private val deleteScreenshotLauncher = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { /* User confirmed or dismissed system delete dialog */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         requestNotificationPermissionIfNeeded()
+        handleScreenshotDeletionIntent(intent)
 
         val appContainer = (application as AdbAgentApp).container
         if (appContainer.tunnelConfigRepository.getConfig().runInBackground) {
@@ -129,6 +137,36 @@ class MainActivity : ComponentActivity() {
             }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleScreenshotDeletionIntent(intent)
+    }
+
+    private fun handleScreenshotDeletionIntent(intent: Intent?) {
+        val uriString = intent?.getStringExtra(EXTRA_DELETE_SCREENSHOT_URI) ?: return
+        intent.removeExtra(EXTRA_DELETE_SCREENSHOT_URI)
+        val uri = Uri.parse(uriString) ?: return
+        requestScreenshotDeletion(uri)
+    }
+
+    private fun requestScreenshotDeletion(uri: Uri) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val pendingIntent = MediaStore.createDeleteRequest(contentResolver, listOf(uri))
+            val request = IntentSenderRequest.Builder(pendingIntent.intentSender).build()
+            runCatching { deleteScreenshotLauncher.launch(request) }
+        } else {
+            runCatching {
+                contentResolver.delete(uri, null, null)
+            }.onFailure { ex ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && ex is RecoverableSecurityException) {
+                    val request = IntentSenderRequest.Builder(ex.userAction.actionIntent.intentSender).build()
+                    runCatching { deleteScreenshotLauncher.launch(request) }
+                }
+            }
+        }
+    }
+
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val granted = ContextCompat.checkSelfPermission(
@@ -139,5 +177,9 @@ class MainActivity : ComponentActivity() {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_DELETE_SCREENSHOT_URI = "extra_delete_screenshot_uri"
     }
 }

@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 class ScreenshotPairingWatcher(
     private val context: Context,
     private val scope: CoroutineScope,
-    private val onCodeExtracted: (String) -> Unit
+    private val onCodeExtracted: (code: String, screenshotUri: Uri) -> Unit
 ) {
     private val contentResolver = context.contentResolver
     private var observer: ContentObserver? = null
@@ -119,7 +119,7 @@ class ScreenshotPairingWatcher(
                 val fullText = visionText.text
                 val extractedCode = parsePairingCodeFromOcrText(fullText)
                 if (extractedCode != null) {
-                    onCodeExtracted(extractedCode)
+                    onCodeExtracted(extractedCode, uri)
                 }
             }
     }

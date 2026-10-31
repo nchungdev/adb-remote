@@ -29,6 +29,7 @@ class PairingForegroundService : Service() {
     private var discoveryJob: Job? = null
     private var latestPorts = DiscoveredAdbPorts()
     private var screenshotWatcher: ScreenshotPairingWatcher? = null
+    private var latestScreenshotUri: android.net.Uri? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -60,7 +61,8 @@ class PairingForegroundService : Service() {
 
     private fun startScreenshotWatcher() {
         screenshotWatcher?.stop()
-        screenshotWatcher = ScreenshotPairingWatcher(this, scope) { code ->
+        screenshotWatcher = ScreenshotPairingWatcher(this, scope) { code, uri ->
+            latestScreenshotUri = uri
             val pairPort = latestPorts.pairingPort
             if (pairPort != null && pairPort > 0) {
                 handleSubmittedCode(pairPort, code, latestPorts.connectPort)
@@ -101,6 +103,9 @@ class PairingForegroundService : Service() {
                     )
                     val homeIntent = Intent(this@PairingForegroundService, MainActivity::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                        latestScreenshotUri?.let {
+                            putExtra(MainActivity.EXTRA_DELETE_SCREENSHOT_URI, it.toString())
+                        }
                     }
                     startActivity(homeIntent)
                     stopForeground(STOP_FOREGROUND_DETACH)
