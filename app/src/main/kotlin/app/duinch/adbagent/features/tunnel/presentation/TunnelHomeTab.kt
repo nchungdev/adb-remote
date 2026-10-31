@@ -291,6 +291,14 @@ fun TunnelHomeTab(
             onClick = { onIntent(DashboardUiIntent.OpenCloudflareLogin) }
         )
 
+        // Host Commands & Activity Section
+        HostActivitySection(
+            commands = state.hostCommands,
+            isExpanded = state.showAllHostCommands,
+            onToggleExpand = { onIntent(DashboardUiIntent.ToggleHostCommandsExpand) },
+            onClear = { onIntent(DashboardUiIntent.ClearHostCommands) }
+        )
+
         // Connection History Section
         TunnelHistorySection(
             history = state.history,

@@ -29,6 +29,8 @@ data class DashboardUiState(
     val connectionState: TunnelConnectionState = TunnelConnectionState.Disconnected,
     val history: List<TunnelHistoryEntry> = emptyList(),
     val showAllHistory: Boolean = false,
+    val hostCommands: List<app.duinch.adbagent.features.tunnel.domain.HostCommandRecord> = emptyList(),
+    val showAllHostCommands: Boolean = false,
     val pairing: PairingUiState = PairingUiState(),
     val termux: TermuxUiState = TermuxUiState()
 ) {
@@ -58,6 +60,8 @@ sealed interface DashboardUiIntent {
     data object ToggleTunnel : DashboardUiIntent
     data object ToggleHistoryExpand : DashboardUiIntent
     data object ClearHistory : DashboardUiIntent
+    data object ToggleHostCommandsExpand : DashboardUiIntent
+    data object ClearHostCommands : DashboardUiIntent
     data class OnPairingIntent(val intent: PairingUiIntent) : DashboardUiIntent
     data class OnTermuxIntent(val intent: TermuxUiIntent) : DashboardUiIntent
 }

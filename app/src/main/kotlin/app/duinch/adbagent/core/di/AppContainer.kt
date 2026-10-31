@@ -51,13 +51,21 @@ class AppContainer(context: Context) {
     val tunnelHistoryRepository: TunnelHistoryRepository =
         SharedPrefsTunnelHistoryRepository(appContext)
 
+    val hostActivityRepository: app.duinch.adbagent.features.tunnel.domain.HostActivityRepository =
+        app.duinch.adbagent.features.tunnel.data.InMemoryHostActivityRepository()
+
     val appUpdateGateway: AppUpdateGateway =
         OkHttpAppUpdateAdapter(appContext)
 
     private val computeReconnectBackoff = ComputeReconnectBackoffUseCase()
 
     val reverseTunnelGateway: ReverseTunnelGateway =
-        WebSocketReverseTunnelAdapter(appContext, computeReconnectBackoff, tunnelHistoryRepository)
+        WebSocketReverseTunnelAdapter(
+            appContext,
+            computeReconnectBackoff,
+            tunnelHistoryRepository,
+            hostActivityRepository
+        )
 
     val ensureTermuxBootstrap = EnsureTermuxBootstrapUseCase(termuxRuntimeGateway)
     val runTermuxCommand = RunTermuxCommandUseCase(termuxRuntimeGateway)

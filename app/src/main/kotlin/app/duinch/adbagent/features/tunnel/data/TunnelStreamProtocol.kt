@@ -57,4 +57,36 @@ object TunnelStreamProtocol {
         val obj = JSONObject(jsonText)
         if (obj.optString("type") == "welcome") obj.optInt("mapped_port").takeIf { it > 0 } else null
     }.getOrNull()
+
+    fun parseCommandEvent(jsonText: String): app.duinch.adbagent.features.tunnel.domain.HostCommandRecord? = runCatching {
+        val obj = JSONObject(jsonText)
+        if (obj.optString("type") == "command_event") {
+            val ev = obj.optJSONObject("event") ?: return@runCatching null
+            app.duinch.adbagent.features.tunnel.domain.HostCommandRecord(
+                id = ev.optString("id", java.util.UUID.randomUUID().toString().take(8)),
+                command = ev.optString("command"),
+                source = ev.optString("source", "server"),
+                status = ev.optString("status", "success"),
+                timestampEpochMs = ev.optLong("start_time", System.currentTimeMillis()),
+                durationMs = ev.optLong("duration_ms", 0L),
+                outputSnippet = ev.optString("output")
+            )
+        } else null
+    }.getOrNull()
+
+    fun parseAdbOpenPacket(payload: ByteArray): String? {
+        if (payload.size < 24) return null
+        // Little-endian A_OPEN is ASCII "OPEN": 0x4f, 0x50, 0x45, 0x4e
+        if (payload[0] != 0x4f.toByte() || payload[1] != 0x50.toByte() ||
+            payload[2] != 0x45.toByte() || payload[3] != 0x4e.toByte()
+        ) {
+            return null
+        }
+        val len = ByteBuffer.wrap(payload, 12, 4).order(java.nio.ByteOrder.LITTLE_ENDIAN).int
+        if (len in 1..2048 && payload.size >= 24 + len) {
+            val cmd = String(payload, 24, len, Charsets.UTF_8).trimEnd('\u0000')
+            if (cmd.isNotBlank()) return cmd
+        }
+        return null
+    }
 }

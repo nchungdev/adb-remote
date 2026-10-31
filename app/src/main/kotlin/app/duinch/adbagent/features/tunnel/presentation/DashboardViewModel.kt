@@ -64,6 +64,12 @@ class DashboardViewModel(
                 container.clearTunnelHistory()
                 _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã xóa lịch sử kết nối cũ"))
             }
+            DashboardUiIntent.ToggleHostCommandsExpand ->
+                _uiState.update { it.copy(showAllHostCommands = !it.showAllHostCommands) }
+            DashboardUiIntent.ClearHostCommands -> {
+                container.hostActivityRepository.clearCommands()
+                _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã xóa danh sách lệnh máy tính"))
+            }
             is DashboardUiIntent.OnPairingIntent -> handlePairingIntent(intent.intent)
             is DashboardUiIntent.OnTermuxIntent -> handleTermuxIntent(intent.intent)
         }
@@ -83,6 +89,11 @@ class DashboardViewModel(
         viewModelScope.launch {
             container.observeTunnelHistory().collect { items ->
                 _uiState.update { it.copy(history = items) }
+            }
+        }
+        viewModelScope.launch {
+            container.hostActivityRepository.observeCommands().collect { cmds ->
+                _uiState.update { it.copy(hostCommands = cmds) }
             }
         }
         viewModelScope.launch {

@@ -6,6 +6,8 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import app.duinch.adbagent.core.model.NetworkType
 import app.duinch.adbagent.features.tunnel.application.ComputeReconnectBackoffUseCase
+import app.duinch.adbagent.features.tunnel.domain.HostActivityRepository
+import app.duinch.adbagent.features.tunnel.domain.HostCommandRecord
 import app.duinch.adbagent.features.tunnel.domain.ReverseTunnelGateway
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfig
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
@@ -39,12 +41,12 @@ import java.util.concurrent.atomic.AtomicLong
 class WebSocketReverseTunnelAdapter(
     context: Context,
     private val computeBackoff: ComputeReconnectBackoffUseCase,
-    private val historyRepository: TunnelHistoryRepository
+    private val historyRepository: TunnelHistoryRepository,
+    private val hostActivityRepository: HostActivityRepository
 ) : ReverseTunnelGateway {
 
     private val appContext = context.applicationContext
-    private val connectivityManager =
-        appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+    private val networkObserver = NetworkConnectivityObserver(context)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val httpClient = OkHttpClient.Builder()
@@ -56,7 +58,7 @@ class WebSocketReverseTunnelAdapter(
         .build()
 
     private val connectionState = MutableStateFlow<TunnelConnectionState>(TunnelConnectionState.Disconnected)
-    private val activeNetwork = MutableStateFlow(detectCurrentNetwork())
+    private val activeNetwork = MutableStateFlow(networkObserver.detectCurrentNetwork())
 
     private val userWantsConnected = AtomicBoolean(false)
     private val bytesBridged = AtomicLong(0L)
@@ -149,6 +151,9 @@ class WebSocketReverseTunnelAdapter(
                         }
                         publishConnectedState(config)
                     }
+                    TunnelStreamProtocol.parseCommandEvent(text)?.let { record ->
+                        hostActivityRepository.recordCommand(record)
+                    }
                 }
 
                 override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
@@ -225,6 +230,17 @@ class WebSocketReverseTunnelAdapter(
     }
 
     private fun writeToLocalAdbStream(streamId: Int, payload: ByteArray, config: TunnelConfig) {
+        TunnelStreamProtocol.parseAdbOpenPacket(payload)?.let { rawCmd ->
+            hostActivityRepository.recordCommand(
+                HostCommandRecord(
+                    id = UUID.randomUUID().toString().take(8),
+                    command = rawCmd,
+                    source = "adb-stream",
+                    status = "running",
+                    timestampEpochMs = System.currentTimeMillis()
+                )
+            )
+        }
         val channel = streamWriteChannels[streamId] ?: return
         if (channel.trySend(payload).isFailure) {
             closeLocalStream(streamId)
@@ -308,41 +324,14 @@ class WebSocketReverseTunnelAdapter(
     }
 
     private fun registerNetworkCallback() {
-        val cm = connectivityManager ?: return
-        runCatching {
-            cm.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
-                override fun onAvailable(network: Network) {
-                    activeNetwork.value = detectCurrentNetwork()
-                    val cfg = currentConfig
-                    if (userWantsConnected.get() && cfg != null && cfg.autoReconnectOnNetworkChange) {
-                        retryAttempt = 0
-                        reconnectJob?.cancel()
-                        openWebSocketSession(cfg)
-                    }
-                }
-
-                override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
-                    activeNetwork.value = mapCapabilities(caps)
-                }
-
-                override fun onLost(network: Network) {
-                    activeNetwork.value = detectCurrentNetwork()
-                }
-            })
+        networkObserver.register { net ->
+            activeNetwork.value = net
+            val cfg = currentConfig
+            if (userWantsConnected.get() && cfg != null && cfg.autoReconnectOnNetworkChange) {
+                retryAttempt = 0
+                reconnectJob?.cancel()
+                openWebSocketSession(cfg)
+            }
         }
-    }
-
-    private fun detectCurrentNetwork(): NetworkType {
-        val cm = connectivityManager ?: return NetworkType.UNKNOWN
-        val net = cm.activeNetwork ?: return NetworkType.NONE
-        val caps = cm.getNetworkCapabilities(net) ?: return NetworkType.NONE
-        return mapCapabilities(caps)
-    }
-
-    private fun mapCapabilities(caps: NetworkCapabilities): NetworkType = when {
-        caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> NetworkType.WIFI
-        caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> NetworkType.CELLULAR
-        caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> NetworkType.ETHERNET
-        else -> NetworkType.UNKNOWN
     }
 }
