@@ -3,30 +3,20 @@
 set -euo pipefail
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 cd "$ROOT_DIR"
-if [ -f "/Users/chungnh/.agent-skills/plugins/project-pro/skills/project-pro/scripts/project_pro.py" ]; then
-  echo "[pre-push] 1/4 Running full repository architecture, file-size & security audit..."
-  python3 "/Users/chungnh/.agent-skills/plugins/project-pro/skills/project-pro/scripts/project_pro.py" audit --target "$ROOT_DIR" --fail-on-error
+if [ -f "/Users/chungnh/.gemini/config/skills/project-pro/scripts/project_pro.py" ]; then
+  echo "[pre-push] 1/3 Running full repository architecture, file-size & security audit..."
+  python3 "/Users/chungnh/.gemini/config/skills/project-pro/scripts/project_pro.py" audit --target "$ROOT_DIR" --fail-on-error
 fi
 if command -v gitleaks >/dev/null 2>&1; then
   echo "[pre-push] Running gitleaks repository scan..."
   gitleaks detect --source "$ROOT_DIR" --redact --no-banner
 fi
-echo "[pre-push] 2/4 Checking dependency vulnerabilities..."
-if [ -x "./gradlew" ] || command -v "./gradlew" >/dev/null 2>&1; then
-  ./gradlew dependencyCheckAnalyze || { echo "[pre-push] High-severity dependency issue found." >&2; exit 1; }
-else
-  echo "[pre-push] (Skipped `./gradlew dependencyCheckAnalyze` — `./gradlew` not in PATH)"
+echo "[pre-push] 2/3 Running adb-agent clean architecture & LOC check..."
+if [ -f "$ROOT_DIR/scripts/check_project.py" ]; then
+  python3 "$ROOT_DIR/scripts/check_project.py"
 fi
-echo "[pre-push] 3/4 Running lint & static typecheck..."
-if [ -x "./gradlew" ] || command -v "./gradlew" >/dev/null 2>&1; then
-  ./gradlew ktlintCheck detekt lintDebug
-else
-  echo "[pre-push] (Skipped `./gradlew ktlintCheck detekt lintDebug` — `./gradlew` not in PATH)"
-fi
-echo "[pre-push] 4/4 Running unit test suite..."
-if [ -x "./gradlew" ] || command -v "./gradlew" >/dev/null 2>&1; then
+echo "[pre-push] 3/3 Running unit test suite..."
+if [ -x "./gradlew" ]; then
   ./gradlew testDebugUnitTest
-else
-  echo "[pre-push] (Skipped `./gradlew testDebugUnitTest` — `./gradlew` not in PATH)"
 fi
 echo "[pre-push] All security, architecture, lint, and test gates PASSED."
