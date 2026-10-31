@@ -12,30 +12,50 @@
     --bg-base: #080c14;
     --bg-subtle: #0f172a;
     --card: #111a2e;
-    --card-hover: #17233d;
+    --card-hover: #16223b;
+    --card-border: rgba(255, 255, 255, 0.08);
+    --card-border-hover: rgba(56, 189, 248, 0.28);
     --border: #1e293b;
     --border-bright: #334155;
     --primary: #38bdf8;
+    --primary-hover: #0ea5e9;
     --primary-glow: rgba(56, 189, 248, 0.25);
     --accent: #22c55e;
+    --accent-hover: #16a34a;
     --accent-glow: rgba(34, 197, 94, 0.2);
+    --p2p: #8b5cf6;
+    --p2p-glow: rgba(139, 92, 246, 0.2);
     --text: #f8fafc;
     --text-muted: #94a3b8;
     --text-faint: #64748b;
     --danger: #ef4444;
+    --danger-hover: #dc2626;
     --warning: #f59e0b;
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-mono: 'JetBrains Mono', SFMono-Regular, Consolas, monospace;
+    --font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 18px;
+    --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--card-border);
+    --shadow-card-hover: 0 8px 30px -4px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--card-border-hover);
   }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  
   body {
     font-family: var(--font-sans);
     background: var(--bg-base);
+    background-image: 
+      radial-gradient(circle at 15% 10%, rgba(56, 189, 248, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 85% 20%, rgba(139, 92, 246, 0.04) 0%, transparent 40%);
+    background-attachment: fixed;
     color: var(--text);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
   }
   
   /* Layout: Full Widescreen */
@@ -43,7 +63,7 @@
     width: 100%;
     max-width: 1920px;
     margin: 0 auto;
-    padding: 18px 24px 60px;
+    padding: 16px 24px 60px;
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -58,46 +78,71 @@
     flex-wrap: wrap;
     gap: 16px;
     padding: 14px 20px;
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(15, 23, 42, 0.78);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
     position: sticky;
     top: 10px;
     z-index: 100;
   }
+  
   .brand-group {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
   }
+  
   .brand-logo {
-    width: 38px;
-    height: 38px;
-    background: linear-gradient(135deg, #0284c7, #38bdf8);
-    border-radius: 10px;
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 14px var(--primary-glow);
+    box-shadow: 0 0 16px var(--primary-glow);
+    flex-shrink: 0;
   }
-  .brand-logo svg { width: 22px; height: 22px; fill: #fff; }
+  .brand-logo svg { width: 24px; height: 24px; fill: #ffffff; }
+  
   .brand-text h1 {
-    font-size: 1.15rem;
+    font-size: 1.18rem;
     font-weight: 700;
     letter-spacing: -0.02em;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    line-height: 1.3;
   }
+  
   .brand-text p {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     color: var(--text-muted);
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
+  
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #4ade80;
+  }
+
   .status-dot-live {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: #22c55e;
     box-shadow: 0 0 8px #22c55e;
@@ -106,151 +151,235 @@
   }
   @keyframes pulseLive {
     0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.85); }
+    50% { opacity: 0.45; transform: scale(0.85); }
   }
 
   .nav-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
   }
+
+  /* Core Button Component */
   .btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 7px;
     padding: 8px 14px;
-    background: var(--card);
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    font-weight: 500;
     color: var(--text);
+    background: rgba(30, 41, 59, 0.85);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: 0.84rem;
-    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
     text-decoration: none;
+    white-space: nowrap;
     user-select: none;
   }
   .btn:hover {
-    background: var(--card-hover);
+    background: rgba(51, 65, 85, 0.9);
     border-color: var(--border-bright);
     color: #fff;
+    transform: translateY(-1px);
   }
+  .btn:active {
+    transform: translateY(0);
+  }
+  
   .btn-primary {
-    background: #0284c7;
-    color: #fff;
+    background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
     border-color: #38bdf8;
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 10px -2px var(--primary-glow);
   }
   .btn-primary:hover {
-    background: #0ea5e9;
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
     border-color: #7dd3fc;
+    box-shadow: 0 4px 14px -2px var(--primary-glow);
   }
+
+  .btn-accent {
+    background: rgba(34, 197, 94, 0.14);
+    border-color: rgba(34, 197, 94, 0.4);
+    color: #4ade80;
+    font-weight: 600;
+  }
+  .btn-accent:hover {
+    background: rgba(34, 197, 94, 0.22);
+    border-color: #4ade80;
+    color: #fff;
+  }
+
   .btn-danger {
     background: rgba(239, 68, 68, 0.12);
-    color: #fca5a5;
     border-color: rgba(239, 68, 68, 0.35);
+    color: #f87171;
   }
   .btn-danger:hover {
-    background: rgba(239, 68, 68, 0.25);
-    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.22);
+    border-color: #f87171;
+    color: #fff;
   }
-  .btn-sm { padding: 5px 10px; font-size: 0.78rem; border-radius: 6px; }
 
-  /* Main Navigation Tabs */
+  .btn-sm {
+    padding: 6px 11px;
+    font-size: 0.76rem;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Segmented Main Navigation Tabs */
   .main-nav-tabs {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: #0a0f1d;
-    padding: 5px;
+    display: inline-flex;
+    padding: 4px;
+    background: rgba(15, 23, 42, 0.85);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    width: fit-content;
+    border-radius: var(--radius-lg);
+    gap: 4px;
+    align-self: flex-start;
   }
   .main-tab-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 18px;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
     background: transparent;
     border: none;
-    border-radius: 8px;
     color: var(--text-muted);
-    font-size: 0.86rem;
-    font-weight: 600;
+    font-family: var(--font-sans);
+    font-size: 0.84rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s ease;
-    user-select: none;
+    transition: all 0.18s ease;
   }
-  .main-tab-btn:hover { color: #fff; }
+  .main-tab-btn:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.04);
+  }
   .main-tab-btn.active {
     background: var(--card);
-    color: var(--primary);
+    color: #fff;
+    font-weight: 600;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    border: 1px solid var(--border-bright);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
   .tab-badge {
-    background: #1e293b;
-    color: #94a3b8;
     padding: 2px 7px;
-    border-radius: 10px;
+    border-radius: 12px;
     font-size: 0.72rem;
-    font-family: var(--font-mono);
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
   }
   .main-tab-btn.active .tab-badge {
-    background: rgba(56, 189, 248, 0.2);
+    background: rgba(56, 189, 248, 0.18);
     color: var(--primary);
   }
 
-  .tab-pane { display: none; }
-  .tab-pane.active { display: flex; flex-direction: column; gap: 18px; }
+  /* Tab Panes */
+  .tab-pane { display: none; flex-direction: column; gap: 16px; }
+  .tab-pane.active { display: flex; }
 
-  /* Telemetry Metrics Ribbon */
+  /* Telemetry Metrics Ribbon (Bento KPIs) */
   .metrics-ribbon {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 14px;
   }
   .metric-card {
     background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 18px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
     display: flex;
     align-items: center;
     gap: 14px;
-    transition: border-color 0.15s;
+    box-shadow: var(--shadow-card);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
   }
-  .metric-card:hover { border-color: var(--border-bright); }
-  .metric-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: rgba(30, 41, 59, 0.6);
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.2s ease;
+  }
+  .metric-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--card-border-hover);
+    box-shadow: var(--shadow-card-hover);
+  }
+  .metric-card.card-blue::before { background: linear-gradient(90deg, #0284c7, #38bdf8); }
+  .metric-card.card-green::before { background: linear-gradient(90deg, #059669, #22c55e); }
+  .metric-card.card-purple::before { background: linear-gradient(90deg, #7c3aed, #a855f7); }
+  .metric-card.card-amber::before { background: linear-gradient(90deg, #d97706, #fbbf24); }
+
+  .metric-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
-  .metric-icon svg { width: 20px; height: 20px; }
-  .metric-info { display: flex; flex-direction: column; }
-  .metric-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; }
-  .metric-value { font-size: 1.35rem; font-weight: 700; color: #fff; font-family: var(--font-mono); }
-  .metric-sub { font-size: 0.72rem; color: var(--text-faint); margin-top: 1px; }
+  .icon-blue { background: rgba(56, 189, 248, 0.12); color: #38bdf8; }
+  .icon-green { background: rgba(34, 197, 94, 0.12); color: #4ade80; }
+  .icon-purple { background: rgba(168, 85, 247, 0.12); color: #c084fc; }
+  .icon-amber { background: rgba(251, 191, 36, 0.12); color: #fbbf24; }
 
-  /* Controls & Filter Deck */
+  .metric-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .metric-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+  .metric-value {
+    font-family: var(--font-mono);
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.15;
+  }
+  .metric-sub {
+    font-size: 0.74rem;
+    color: var(--text-faint);
+    margin-top: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Control Deck & Filter Toolbar */
   .controls-deck {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     flex-wrap: wrap;
-    gap: 14px;
-    background: var(--bg-subtle);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 18px;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
   }
+
   .filter-pills {
     display: flex;
     align-items: center;
@@ -258,158 +387,300 @@
     flex-wrap: wrap;
   }
   .filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 6px 12px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    font-size: 0.78rem;
-    font-weight: 600;
+    border-radius: var(--radius-md);
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid transparent;
     color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.16s ease;
   }
-  .filter-pill:hover, .filter-pill.active {
-    background: #1e293b;
-    color: var(--primary);
-    border-color: var(--primary);
+  .filter-pill:hover {
+    background: rgba(51, 65, 85, 0.7);
+    color: #fff;
   }
-  .search-wrap {
+  .filter-pill.active {
+    background: rgba(56, 189, 248, 0.16);
+    border-color: rgba(56, 189, 248, 0.4);
+    color: #7dd3fc;
+    font-weight: 600;
+  }
+  .filter-pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .deck-actions-right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex: 1;
-    max-width: 440px;
-    min-width: 240px;
+    justify-content: flex-end;
+    min-width: 280px;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    max-width: 380px;
+  }
+  .search-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-faint);
+    pointer-events: none;
   }
   .search-input {
     width: 100%;
-    padding: 8px 12px;
-    background: var(--bg-base);
+    padding: 7px 32px 7px 34px;
+    background: rgba(15, 23, 42, 0.8);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
+    border-radius: var(--radius-md);
+    color: #fff;
     font-family: var(--font-sans);
-    font-size: 0.84rem;
+    font-size: 0.8rem;
     outline: none;
-    transition: border-color 0.15s;
+    transition: all 0.18s ease;
   }
-  .search-input:focus { border-color: var(--primary); }
+  .search-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-glow);
+    background: rgba(15, 23, 42, 1);
+  }
+  .search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 2px 4px;
+    display: none;
+  }
+  .search-clear:hover { color: #fff; }
 
-  /* Device Grid (Widescreen Multi-Column) */
+  .quick-connect-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .quick-connect-input {
+    width: 170px;
+    padding: 7px 11px;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    outline: none;
+    transition: all 0.18s ease;
+  }
+  .quick-connect-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-glow);
+  }
+
+  /* Device Grid */
   .device-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
-    gap: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 16px;
   }
+
   .device-card {
     background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 18px 20px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-xl);
+    padding: 18px;
     display: flex;
     flex-direction: column;
     gap: 14px;
-    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: var(--shadow-card);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
-    overflow: hidden;
   }
   .device-card:hover {
-    border-color: #38bdf8;
+    border-color: var(--card-border-hover);
+    box-shadow: var(--shadow-card-hover);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   }
-  .device-card.offline { opacity: 0.65; }
+  .device-card.offline {
+    opacity: 0.72;
+    filter: grayscale(20%);
+  }
+  .device-card.offline:hover {
+    opacity: 0.95;
+    filter: grayscale(0%);
+  }
 
-  /* Card Header */
   .dev-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 12px;
   }
-  .dev-title-box { display: flex; align-items: center; gap: 10px; }
+  
+  .dev-title-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
   .dev-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    background: #1e293b;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
   .dev-avatar svg { width: 22px; height: 22px; }
+
   .dev-name {
-    font-size: 1.05rem;
+    font-size: 1.02rem;
     font-weight: 700;
     color: #fff;
-    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
   }
+  
   .dev-serial-row {
     display: flex;
     align-items: center;
     gap: 6px;
     margin-top: 3px;
-    flex-wrap: wrap;
   }
   .dev-serial {
     font-family: var(--font-mono);
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     color: var(--text-muted);
   }
+  
   .copy-chip {
-    background: #090d16;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    padding: 2px 7px;
-    border-radius: 5px;
-    font-size: 0.7rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.68rem;
+    color: var(--text-faint);
     cursor: pointer;
+    transition: all 0.15s ease;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    transition: all 0.15s;
-    user-select: none;
+    gap: 3px;
   }
-  .copy-chip:hover { border-color: var(--primary); color: var(--primary); }
-  .btn-copied { border-color: #10b981 !important; color: #34d399 !important; background: rgba(16, 185, 129, 0.15) !important; }
+  .copy-chip:hover {
+    background: rgba(56, 189, 248, 0.15);
+    color: var(--primary);
+    border-color: rgba(56, 189, 248, 0.3);
+  }
+
+  .dev-badges-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    flex-shrink: 0;
+  }
 
   .badge {
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    letter-spacing: 0.04em;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 14px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
   }
-  .badge-online { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
-  .badge-offline { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
-  .badge-unauth { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
-  .badge-tunnel { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
-  .badge-type { background: #1e293b; color: #94a3b8; }
+  .badge-online {
+    background: rgba(34, 197, 94, 0.14);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+  }
+  .badge-unauth {
+    background: rgba(245, 158, 11, 0.14);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+  }
+  .badge-offline {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+  }
+  .badge-p2p {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.18) 0%, rgba(56, 189, 248, 0.18) 100%);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.38);
+    font-weight: 700;
+  }
+  .badge-wifi {
+    background: rgba(16, 185, 129, 0.14);
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.35);
+  }
+  .badge-usb {
+    background: rgba(99, 102, 241, 0.14);
+    color: #a5b4fc;
+    border: 1px solid rgba(165, 180, 252, 0.35);
+  }
 
-  /* Hardware Specs Ribbon */
+  /* Specs Grid Bento */
   .dev-specs {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 8px;
-    background: #090d16;
     padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid rgba(30, 41, 59, 0.6);
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
   }
-  .spec-item { display: flex; flex-direction: column; }
-  .spec-label { font-size: 0.68rem; color: var(--text-faint); text-transform: uppercase; font-weight: 600; }
-  .spec-val { font-size: 0.8rem; font-weight: 600; color: #e2e8f0; font-family: var(--font-mono); margin-top: 1px; }
+  .spec-item {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .spec-label {
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 2px;
+  }
+  .spec-val {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tabular-mono { font-family: var(--font-mono); }
 
-  /* Live Process & Commands Host Feed */
+  /* Live Command Feed Box */
   .cmd-feed-box {
-    background: #080d1a;
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    background: rgba(10, 15, 26, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-md);
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
@@ -419,493 +690,335 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     font-weight: 600;
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
   .cmd-feed-indicator {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 5px;
-    color: var(--accent);
-    font-size: 0.72rem;
+    font-size: 0.68rem;
+    color: #34d399;
   }
   .cmd-list {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-height: 155px;
+    max-height: 140px;
     overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
   .cmd-item {
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid #1e293b;
-    border-radius: 6px;
-    padding: 6px 9px;
-    font-size: 0.76rem;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    padding: 5px 8px;
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
   }
   .cmd-item-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 6px;
   }
   .cmd-badge {
     padding: 1px 5px;
     border-radius: 4px;
-    font-size: 0.65rem;
-    font-family: var(--font-mono);
-    font-weight: 600;
+    font-size: 0.62rem;
+    font-weight: 700;
   }
-  .cmd-badge-probe { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
-  .cmd-badge-shell { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
-  .cmd-badge-screencap { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
-  .cmd-badge-connect { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+  .cmd-badge-shell { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; }
+  .cmd-badge-screencap { background: rgba(168, 85, 247, 0.18); color: #d8b4fe; }
+  .cmd-badge-probe { background: rgba(34, 197, 94, 0.18); color: #86efac; }
+  .cmd-badge-connect { background: rgba(251, 191, 36, 0.18); color: #fde047; }
   .cmd-str {
-    font-family: var(--font-mono);
-    color: #e2e8f0;
+    flex: 1;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
+    color: #cbd5e1;
   }
-  .cmd-meta {
-    font-size: 0.68rem;
-    color: var(--text-faint);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
+  .cmd-meta { color: var(--text-faint); font-size: 0.66rem; }
   .cmd-output-toggle {
     background: none;
     border: none;
     color: var(--primary);
-    font-size: 0.7rem;
     cursor: pointer;
-    padding: 0;
+    font-size: 0.66rem;
     text-decoration: underline;
   }
   .cmd-output-drawer {
     display: none;
     margin-top: 4px;
-    padding: 6px 8px;
-    background: #020617;
+    padding: 6px;
+    background: #000;
     border-radius: 4px;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: #a5f3fc;
+    color: #a7f3d0;
+    font-size: 0.7rem;
     white-space: pre-wrap;
     word-break: break-all;
     max-height: 120px;
     overflow-y: auto;
   }
 
+  /* Card Action Toolbar */
   .dev-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 7px;
+    gap: 6px;
     margin-top: auto;
-    padding-top: 10px;
-    border-top: 1px solid var(--border);
+  }
+  .dev-actions .btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 7px 10px;
+    font-size: 0.74rem;
   }
 
-  /* GROUPED HISTORY BY DEVICE (Tab 2) */
-  .history-groups-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-  }
-  .device-history-card {
+  /* Polished Empty State */
+  .empty-state-box {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 56px 24px;
     background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-xl);
     display: flex;
     flex-direction: column;
-    transition: border-color 0.15s ease;
-  }
-  .device-history-card:hover { border-color: var(--border-bright); }
-  .dh-header {
-    padding: 16px 20px;
-    background: rgba(15, 23, 42, 0.6);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
+    gap: 14px;
+    box-shadow: var(--shadow-card);
   }
-  .dh-title-box { display: flex; align-items: center; gap: 12px; }
-  .dh-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 9px;
-    background: #1e293b;
+  .empty-state-illustration {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--primary);
+    margin-bottom: 4px;
   }
-  .dh-avatar svg { width: 20px; height: 20px; fill: #38bdf8; }
-  .dh-stats-ribbon {
+  .empty-state-title {
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .empty-state-desc {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    max-width: 460px;
+    line-height: 1.5;
+  }
+  .empty-state-actions {
     display: flex;
     align-items: center;
     gap: 10px;
+    margin-top: 8px;
     flex-wrap: wrap;
+    justify-content: center;
   }
-  .dh-stat-pill {
-    background: #090d16;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 4px 10px;
-    font-size: 0.74rem;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .dh-stat-pill b { color: #fff; font-family: var(--font-mono); }
-  .dh-body {
-    padding: 18px 20px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-  }
-  .dh-section-title {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .dh-session-list, .dh-cmd-list {
+
+  /* History Groups */
+  .history-groups-grid {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    max-height: 240px;
-    overflow-y: auto;
+    gap: 12px;
   }
-  .dh-session-row {
-    background: #090d16;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 12px;
+  .history-group-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .history-group-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.78rem;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
   }
+  .history-group-header:hover { background: rgba(255, 255, 255, 0.03); }
+  .history-group-content {
+    display: none;
+    padding: 0 18px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .history-group-card.open .history-group-content { display: block; }
+  .history-group-card.open .chevron-icon { transform: rotate(180deg); }
+  .chevron-icon { transition: transform 0.2s ease; }
 
   /* Modals */
   .modal {
-    display: none;
     position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.82);
-    backdrop-filter: blur(6px);
-    z-index: 300;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(4, 7, 13, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: none;
     align-items: center;
     justify-content: center;
+    z-index: 1000;
     padding: 16px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
   }
-  .modal.active { display: flex; }
+  .modal.active {
+    display: flex;
+    opacity: 1;
+  }
   .modal-box {
-    background: var(--card);
-    border: 1px solid var(--border-bright);
-    border-radius: 14px;
-    max-width: 820px;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-xl);
     width: 100%;
-    max-height: 90vh;
+    max-width: 580px;
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7);
+    animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes modalPop {
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
   }
   .modal-head {
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(30, 41, 59, 0.4);
   }
-  .modal-body { padding: 18px; overflow-y: auto; flex: 1; }
+  .modal-title {
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .modal-close {
     background: none;
     border: none;
-    font-size: 1.5rem;
     color: var(--text-muted);
+    font-size: 1.25rem;
     cursor: pointer;
     line-height: 1;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .modal-close:hover { color: #fff; }
-
-  .term-output {
-    background: #020617;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px;
-    font-family: var(--font-mono);
-    font-size: 0.84rem;
-    color: #38bdf8;
-    white-space: pre-wrap;
-    word-break: break-all;
-    max-height: 440px;
+  .modal-close:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+  .modal-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: 80vh;
     overflow-y: auto;
   }
+  .modal-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    background: rgba(30, 41, 59, 0.3);
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-label {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .form-input {
+    width: 100%;
+    padding: 9px 12px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: #fff;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    outline: none;
+    transition: all 0.16s ease;
+  }
+  .form-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-glow);
+  }
+  .form-input.font-mono { font-family: var(--font-mono); }
+
+  .term-output {
+    background: #030712;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: #38bdf8;
+    max-height: 380px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
   .screen-img {
     max-width: 100%;
-    max-height: 72vh;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    display: block;
-    margin: 0 auto;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    background: #000;
+    align-self: center;
   }
 
-  .tabular-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-
-  /* Responsive Design for Tablet & Mobile */
-  @media (max-width: 1200px) {
-    .device-grid {
-      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    }
-  }
-
+  /* Responsive Breakpoints */
   @media (max-width: 1024px) {
-    .dh-body { grid-template-columns: 1fr; }
-    .dev-specs { grid-template-columns: 1fr 1fr; }
-    .device-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+    .metrics-ribbon { grid-template-columns: repeat(2, 1fr); }
+    .device-grid { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 768px) {
-    .app-shell {
-      padding: 10px 12px 40px;
-      gap: 12px;
-    }
-    header.top-bar {
-      padding: 10px 12px;
-      gap: 10px;
-      position: static;
-      border-radius: 10px;
-    }
-    .brand-group {
-      width: 100%;
-      justify-content: space-between;
-    }
-    .nav-actions {
-      width: 100%;
-      display: flex;
-      overflow-x: auto;
-      flex-wrap: nowrap;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      padding-bottom: 2px;
-      gap: 6px;
-    }
-    .nav-actions::-webkit-scrollbar { display: none; }
-    .nav-actions .btn {
-      flex-shrink: 0;
-      padding: 6px 10px;
-      font-size: 0.76rem;
-      white-space: nowrap;
-    }
-    .main-nav-tabs {
-      width: 100%;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-    }
-    .main-tab-btn {
-      justify-content: center;
-      padding: 8px 10px;
-      font-size: 0.78rem;
-    }
-    .metrics-ribbon {
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .metric-card {
-      padding: 10px 12px;
-      gap: 10px;
-    }
-    .metric-icon {
-      width: 34px;
-      height: 34px;
-    }
-    .metric-value {
-      font-size: 1.15rem;
-    }
-    .controls-deck {
-      padding: 10px 12px;
-      gap: 10px;
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .filter-pills {
-      width: 100%;
-      display: flex;
-      overflow-x: auto;
-      flex-wrap: nowrap;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      padding-bottom: 2px;
-      gap: 6px;
-    }
-    .filter-pills::-webkit-scrollbar { display: none; }
-    .filter-pill {
-      white-space: nowrap;
-      flex-shrink: 0;
-      padding: 5px 10px;
-      font-size: 0.74rem;
-    }
-    .search-wrap {
-      width: 100%;
-      max-width: 100%;
-      min-width: 100%;
-    }
-    .remote-connect-wrap {
-      width: 100%;
-      display: flex;
-      gap: 6px;
-    }
-    .remote-connect-wrap input {
-      flex: 1;
-      max-width: 100% !important;
-    }
-    .remote-connect-wrap button {
-      flex-shrink: 0;
-    }
-    .device-grid {
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-    .device-card {
-      padding: 14px 12px;
-      gap: 12px;
-      border-radius: 12px;
-    }
-    .dev-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-    }
-    .dev-title-box {
-      width: 100%;
-    }
-    .dev-specs {
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      padding: 8px 10px;
-    }
-    .dev-actions {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
-    }
-    .dev-actions .btn {
-      justify-content: center;
-      padding: 8px 6px;
-      font-size: 0.76rem;
-      min-height: 38px;
-    }
-    .modal {
-      padding: 8px;
-    }
-    .modal-box {
-      max-height: 94vh;
-      border-radius: 12px;
-    }
-    .modal-head {
-      padding: 10px 14px;
-    }
-    .modal-body {
-      padding: 12px;
-    }
-    .screen-img {
-      max-height: 65vh;
-    }
-    .term-output {
-      max-height: 280px;
-      font-size: 0.78rem;
-    }
-    .dh-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 12px 14px;
-    }
-    .dh-stats-ribbon {
-      width: 100%;
-      justify-content: flex-start;
-    }
-    .dh-body {
-      grid-template-columns: 1fr;
-      padding: 12px 14px;
-      gap: 14px;
-    }
-    .dh-session-row {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
-    }
+    .app-shell { padding: 12px 14px 40px; }
+    header.top-bar { padding: 12px 14px; gap: 12px; }
+    .metrics-ribbon { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .metric-card { padding: 12px 14px; }
+    .controls-deck { flex-direction: column; align-items: stretch; }
+    .deck-actions-right { width: 100%; justify-content: space-between; }
+    .search-wrap { max-width: 100%; }
+    .quick-connect-input { width: 100%; }
+    .quick-connect-wrap { flex: 1; }
+    .main-nav-tabs { width: 100%; }
+    .main-tab-btn { flex: 1; justify-content: center; }
   }
 
   @media (max-width: 480px) {
-    .app-shell {
-      padding: 6px 8px 30px;
-      gap: 10px;
-    }
-    .brand-logo {
-      width: 32px;
-      height: 32px;
-    }
-    .brand-logo svg {
-      width: 18px;
-      height: 18px;
-    }
-    .brand-text h1 {
-      font-size: 1rem;
-    }
-    .brand-text p {
-      font-size: 0.68rem;
-    }
-    .metrics-ribbon {
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-    .metric-card {
-      padding: 8px 10px;
-      gap: 8px;
-    }
-    .metric-icon {
-      width: 30px;
-      height: 30px;
-    }
-    .metric-icon svg {
-      width: 16px;
-      height: 16px;
-    }
-    .metric-label {
-      font-size: 0.64rem;
-    }
-    .metric-value {
-      font-size: 1.05rem;
-    }
-    .dev-name {
-      font-size: 0.95rem;
-    }
-    .dev-serial {
-      font-size: 0.72rem;
-    }
-    .dev-actions {
-      grid-template-columns: 1fr 1fr;
-    }
+    .metrics-ribbon { grid-template-columns: 1fr; }
+    .dev-specs { grid-template-columns: repeat(2, 1fr); }
+    .dev-actions .btn { min-width: calc(50% - 3px); }
   }
 </style>
 </head>
@@ -915,94 +1028,108 @@
   <!-- Top Command Bar -->
   <header class="top-bar">
     <div class="brand-group">
-      <div class="brand-logo">
+      <div class="brand-logo" title="ADB Device Manager Engine">
         <svg viewBox="0 0 24 24"><path d="M17.6 9.48l1.84-3.18a.5.5 0 0 0-.18-.68.5.5 0 0 0-.69.18l-1.87 3.23a11.4 11.4 0 0 0-4.7-.99c-1.68 0-3.28.36-4.7.99L5.43 5.8a.5.5 0 0 0-.69-.18.5.5 0 0 0-.18.68l1.84 3.18A9.3 9.3 0 0 0 3 17h18a9.3 9.3 0 0 0-3.4-7.52zM7 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm10 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
       </div>
       <div class="brand-text">
-        <h1>ADB Device Manager <span class="status-dot-live" title="Dịch vụ Go Hexagonal đang chạy trực tuyến"></span></h1>
-        <p>Quản lý & Giám sát tiến trình Android qua USB & Reverse Tunnel • adb.duinch.app</p>
+        <h1>
+          ADB Device Manager 
+          <span class="status-pill">
+            <span class="status-dot-live"></span>
+            P2P WebRTC Hub
+          </span>
+        </h1>
+        <p>Quản lý & Giám sát thiết bị Android qua USB, Wi-Fi Local & WebRTC DataChannel (Zero Port Forwarding)</p>
       </div>
     </div>
     
     <div class="nav-actions">
-      <a class="btn" href="/download/adb-agent.apk" style="border-color:#38bdf8; color:#38bdf8;">
-        <span>⬇ Tải App (.apk)</span>
+      <a class="btn" href="/download/adb-agent.apk" style="border-color:#38bdf8; color:#38bdf8;" title="Tải file cài đặt APK cho điện thoại Android">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Tải App (.apk)</span>
       </a>
-      <button class="btn btn-primary" onclick="loadDevices()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      
+      <button class="btn btn-primary" onclick="loadDevices()" title="Làm mới danh sách thiết bị và telemetry">
+        <svg id="refreshSpinIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         <span>Làm mới</span>
       </button>
-      <button class="btn" onclick="openConnectModal()" style="border-color:#34d399; color:#34d399;">
-        <span>📶 + Kết nối Wi-Fi</span>
+
+      <button class="btn btn-accent" onclick="openConnectModal()" title="Kết nối trực tiếp tới IP:Port Wireless Debugging">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+        <span>+ Nối Wi-Fi</span>
       </button>
-      <button class="btn" onclick="openPairModal()">
-        <span>+ Ghép đôi Wi-Fi</span>
+
+      <button class="btn" onclick="openPairModal()" title="Ghép đôi thiết bị không dây qua mã PIN 6 số">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>+ Ghép đôi</span>
       </button>
-      <button class="btn btn-danger" onclick="restartServer()">
+
+      <button class="btn btn-danger" onclick="restartServer()" title="Khởi động lại tiến trình adb server máy chủ">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
         <span>Restart ADB</span>
       </button>
     </div>
   </header>
 
-  <!-- Main View Tabs (Thiết Bị vs Lịch Sử) -->
+  <!-- Segmented View Tabs -->
   <nav class="main-nav-tabs">
     <button class="main-tab-btn active" id="tabBtnDevices" onclick="switchMainTab('devices')">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
       <span>Thiết Bị & Giám Sát</span>
       <span id="tabDeviceCountBadge" class="tab-badge">0</span>
     </button>
     <button class="main-tab-btn" id="tabBtnHistory" onclick="switchMainTab('history')">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      <span>Lịch Sử Hoạt Động (Nhóm theo thiết bị)</span>
+      <span>Lịch Sử Hoạt Động</span>
       <span id="tabHistoryCountBadge" class="tab-badge">0</span>
     </button>
   </nav>
 
   <!-- TAB 1: THIẾT BỊ & GIÁM SÁT -->
   <div id="tabContentDevices" class="tab-pane active">
-    <!-- Telemetry Metrics Ribbon -->
+    <!-- Telemetry Metrics Ribbon (Bento KPIs) -->
     <div class="metrics-ribbon">
-      <div class="metric-card">
-        <div class="metric-icon" style="color:#38bdf8;">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+      <div class="metric-card card-blue">
+        <div class="metric-icon-wrap icon-blue">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
         </div>
         <div class="metric-info">
           <span class="metric-label">Tổng Thiết Bị</span>
           <span class="metric-value" id="metricTotalDevices">0</span>
-          <span class="metric-sub" id="metricOnlineRatio">0 trực tuyến</span>
+          <span class="metric-sub" id="metricOnlineRatio">0 trực tuyến / 0 thiết bị</span>
         </div>
       </div>
 
-      <div class="metric-card">
-        <div class="metric-icon" style="color:#22c55e;">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+      <div class="metric-card card-green">
+        <div class="metric-icon-wrap icon-green">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
         <div class="metric-info">
-          <span class="metric-label">Reverse Tunnel</span>
+          <span class="metric-label">P2P WebRTC Hub</span>
           <span class="metric-value" id="metricActiveTunnels">0</span>
-          <span class="metric-sub" id="metricTunnelPorts">Cổng 15555+</span>
+          <span class="metric-sub" id="metricTunnelPorts">Cổng 15555+ • Zero NAT</span>
         </div>
       </div>
 
-      <div class="metric-card">
-        <div class="metric-icon" style="color:#c084fc;">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+      <div class="metric-card card-purple">
+        <div class="metric-icon-wrap icon-purple">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
         </div>
         <div class="metric-info">
-          <span class="metric-label">Lưu lượng Bridged</span>
-          <span class="metric-value" id="metricBridgedBytes">0 KB</span>
-          <span class="metric-sub">Multiplexed TCP/WS</span>
+          <span class="metric-label">Lưu Lượng Bridged</span>
+          <span class="metric-value" id="metricBridgedBytes">0 B</span>
+          <span class="metric-sub">DataChannel DTLS 1.3</span>
         </div>
       </div>
 
-      <div class="metric-card">
-        <div class="metric-icon" style="color:#fcd34d;">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm6 12H6v-1.4c0-2 4-3.1 6-3.1s6 1.1 6 3.1V18z"/></svg>
+      <div class="metric-card card-amber">
+        <div class="metric-icon-wrap icon-amber">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
         </div>
         <div class="metric-info">
           <span class="metric-label">Host Daemon</span>
           <span class="metric-value">Go 1.24</span>
-          <span class="metric-sub" id="metricServerRuntime">Port 8080 • ARM64</span>
+          <span class="metric-sub" id="metricServerRuntime">Port 8080 • ARM64 macOS</span>
         </div>
       </div>
     </div>
@@ -1010,28 +1137,55 @@
     <!-- Controls & Connect Deck -->
     <div class="controls-deck">
       <div class="filter-pills">
-        <button class="filter-pill active" onclick="setFilter('all', this)">Tất cả</button>
-        <button class="filter-pill" onclick="setFilter('online', this)">Trực tuyến</button>
-        <button class="filter-pill" onclick="setFilter('usb', this)">🔌 Cáp USB</button>
-        <button class="filter-pill" onclick="setFilter('wifi', this)">📶 Wi-Fi Local</button>
-        <button class="filter-pill" onclick="setFilter('tunnel', this)">⚡ P2P WebRTC</button>
-        <button class="filter-pill" onclick="setFilter('offline', this)">Ngoại tuyến</button>
+        <button class="filter-pill active" onclick="setFilter('all', this)">
+          <span>Tất cả</span>
+        </button>
+        <button class="filter-pill" onclick="setFilter('online', this)">
+          <span class="filter-pill-dot" style="background:#22c55e;"></span>
+          <span>Trực tuyến</span>
+        </button>
+        <button class="filter-pill" onclick="setFilter('usb', this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="8" rx="2"/><path d="M8 10v6a4 4 0 0 0 8 0v-6"/></svg>
+          <span>Cáp USB</span>
+        </button>
+        <button class="filter-pill" onclick="setFilter('wifi', this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/></svg>
+          <span>Wi-Fi Local</span>
+        </button>
+        <button class="filter-pill" onclick="setFilter('tunnel', this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>P2P WebRTC</span>
+        </button>
+        <button class="filter-pill" onclick="setFilter('offline', this)">
+          <span class="filter-pill-dot" style="background:#64748b;"></span>
+          <span>Ngoại tuyến</span>
+        </button>
       </div>
 
-      <div class="search-wrap">
-        <input type="text" id="searchInput" class="search-input" placeholder="Tìm theo tên máy, serial, IP hoặc model..." oninput="filterDeviceCards()">
-      </div>
+      <div class="deck-actions-right">
+        <div class="search-wrap">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" class="search-input" placeholder="Tìm tên máy, serial, IP, model... (/)" oninput="filterDeviceCards()">
+          <button id="searchClearBtn" class="search-clear" onclick="clearSearch()" title="Xóa tìm kiếm">&times;</button>
+        </div>
 
-      <div class="remote-connect-wrap" style="display:flex; align-items:center; gap:8px;">
-        <input type="text" id="remoteAddr" class="search-input" style="max-width:210px;" placeholder="192.168.1.50:5555">
-        <button class="btn btn-primary" onclick="connectRemote()">Nối TCP/IP</button>
+        <div class="quick-connect-wrap">
+          <input type="text" id="remoteAddr" class="quick-connect-input" placeholder="192.168.1.50:5555" title="Nhập IP:Port để nối ADB qua TCP/IP">
+          <button class="btn btn-primary" onclick="connectRemote()" title="Thực hiện adb connect tới địa chỉ trên">
+            <span>Nối TCP/IP</span>
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Device Grid -->
     <div id="deviceGrid" class="device-grid">
-      <div style="grid-column: 1/-1; text-align:center; padding:50px; color:var(--text-muted);">
-        Đang tải dữ liệu thiết bị...
+      <div class="empty-state-box">
+        <div class="empty-state-illustration">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <div class="empty-state-title">Đang đồng bộ thiết bị...</div>
+        <p class="empty-state-desc">Đang tải dữ liệu từ adb daemon và WebRTC Hub.</p>
       </div>
     </div>
   </div>
@@ -1040,154 +1194,181 @@
   <div id="tabContentHistory" class="tab-pane">
     <div class="controls-deck">
       <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:0.92rem; font-weight:700; color:#fff;">Lịch sử hoạt động theo từng thiết bị</span>
-        <span id="historyDeviceGroupsCount" class="badge badge-type">0 thiết bị</span>
+        <span style="font-size:0.9rem; font-weight:700; color:#fff;">Lịch sử hoạt động theo thiết bị</span>
+        <span id="historyDeviceGroupsCount" class="badge badge-online">0 thiết bị</span>
       </div>
-      <div class="search-wrap" style="max-width:400px;">
-        <input type="text" id="historySearchInput" class="search-input" placeholder="Lọc lịch sử theo tên máy, alias hoặc serial..." oninput="filterHistoryGroups()">
+      <div class="deck-actions-right">
+        <div class="search-wrap" style="max-width:320px;">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="historySearchInput" class="search-input" placeholder="Lọc theo tên, alias, serial..." oninput="filterHistoryGroups()">
+        </div>
+        <button class="btn btn-danger btn-sm" id="clearAllHistoryBtn" onclick="clearTunnelHistory()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          <span>Xóa phiên cũ</span>
+        </button>
       </div>
-      <button class="btn btn-danger btn-sm" id="clearAllHistoryBtn" onclick="clearTunnelHistory()">
-        <span>Xóa lịch sử cũ đã đóng</span>
-      </button>
     </div>
 
     <!-- Grouped History List -->
     <div id="historyGroupsContainer" class="history-groups-grid">
-      <div style="text-align:center; padding:50px; color:var(--text-muted);">
-        Đang tải lịch sử kết nối theo thiết bị...
+      <div class="empty-state-box">
+        <div class="empty-state-illustration">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="empty-state-title">Đang tải lịch sử...</div>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Modal: Screen Screenshot / Viewer -->
-<div class="modal" id="screenModal">
-  <div class="modal-box">
+<div class="modal" id="screenModal" onclick="handleBackdropClick(event, 'screenModal')">
+  <div class="modal-box" style="max-width:680px;">
     <div class="modal-head">
-      <div id="screenModalTitle" style="font-weight:600; font-size:1rem;">Màn hình thiết bị</div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <button class="btn btn-sm btn-primary" id="copyScreenBtn" onclick="copyCurrentScreenshot(this)" disabled>📋 Copy ảnh</button>
-        <button class="btn btn-sm" id="downloadScreenBtn" onclick="downloadCurrentScreenshot()" disabled>⬇ Tải PNG</button>
-        <button class="btn btn-sm" onclick="refreshCurrentScreenshot()">Chụp lại</button>
-        <button class="modal-close" onclick="closeModal('screenModal')">&times;</button>
+      <div id="screenModalTitle" class="modal-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        <span>Màn hình thiết bị</span>
       </div>
+      <button class="modal-close" onclick="closeModal('screenModal')">&times;</button>
     </div>
-    <div class="modal-body" style="text-align:center;">
-      <div id="screenLoading" style="color:var(--text-muted); margin-bottom:10px;">Đang chụp ảnh màn hình...</div>
-      <img id="screenImg" class="screen-img" style="display:none;" alt="Screenshot">
+    <div class="modal-body" style="align-items:center;">
+      <div id="screenLoading" style="padding:40px; color:var(--text-muted); font-size:0.85rem;">Đang chụp ảnh màn hình từ thiết bị...</div>
+      <img id="screenImage" class="screen-img" style="display:none;" alt="Device Screen">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sm" id="copyScreenBtn" onclick="copyCurrentScreenshot(this)">Copy ảnh</button>
+      <button class="btn btn-sm" onclick="downloadCurrentScreenshot()">Tải về</button>
+      <button class="btn btn-sm btn-primary" onclick="refreshCurrentScreenshot()">Chụp lại</button>
     </div>
   </div>
 </div>
 
-<!-- Modal: Shell Command / Logs -->
-<div class="modal" id="shellModal">
-  <div class="modal-box" style="max-width:840px;">
+<!-- Modal: ADB Shell Console -->
+<div class="modal" id="shellModal" onclick="handleBackdropClick(event, 'shellModal')">
+  <div class="modal-box" style="max-width:860px;">
     <div class="modal-head">
-      <div id="shellModalTitle" style="font-weight:600; font-size:1rem;">Chạy lệnh ADB Shell</div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <button class="btn btn-sm" onclick="copyShellOutput(this)">📋 Copy Output</button>
-        <button class="modal-close" onclick="closeModal('shellModal')">&times;</button>
+      <div id="shellModalTitle" class="modal-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        <span>Chạy lệnh ADB Shell</span>
       </div>
+      <button class="modal-close" onclick="closeModal('shellModal')">&times;</button>
     </div>
     <div class="modal-body">
-      <div style="display:flex; gap:8px; margin-bottom:14px;">
-        <input type="text" id="cmdInput" class="search-input" placeholder="Ví dụ: pm list packages -3, dumpsys battery, getprop" onkeydown="if(event.key==='Enter') executeShell()">
-        <button class="btn btn-primary" onclick="executeShell()">Chạy</button>
+      <div class="form-group">
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="shellCommandInput" class="form-input font-mono" placeholder="getprop ro.build.version.release" onkeydown="if(event.key==='Enter') executeShell()">
+          <button class="btn btn-primary" onclick="executeShell()">Chạy</button>
+        </div>
       </div>
-      <div class="term-output" id="termOutput">// Kết quả lệnh sẽ xuất hiện ở đây...</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="copy-chip" onclick="quickShell('getprop ro.build.version.release')">Android Version</button>
+        <button class="copy-chip" onclick="quickShell('dumpsys battery')">Battery Status</button>
+        <button class="copy-chip" onclick="quickShell('ip -f inet addr')">IP Addresses</button>
+        <button class="copy-chip" onclick="quickShell('wm size')">Screen Resolution</button>
+        <button class="copy-chip" onclick="quickShell('pm list packages -3')">3rd-Party Packages</button>
+      </div>
+      <pre id="shellOutput" class="term-output">Sẵn sàng thực thi lệnh shell...</pre>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sm" onclick="copyShellOutput(this)">Copy kết quả</button>
+      <button class="btn btn-sm btn-danger" onclick="closeModal('shellModal')">Đóng</button>
     </div>
   </div>
 </div>
 
 <!-- Modal: Logcat Viewer -->
-<div class="modal" id="logcatModal">
+<div class="modal" id="logcatModal" onclick="handleBackdropClick(event, 'logcatModal')">
   <div class="modal-box" style="max-width:960px;">
     <div class="modal-head">
-      <div id="logcatModalTitle" style="font-weight:600; font-size:1rem;">Nhật ký hệ thống (Logcat)</div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <button class="btn btn-sm btn-primary" onclick="copyLogcatText(this)">📋 Copy Logs</button>
-        <button class="btn btn-sm" onclick="downloadLogcatFile()">⬇ Tải .log</button>
-        <button class="modal-close" onclick="closeModal('logcatModal')">&times;</button>
+      <div id="logcatModalTitle" class="modal-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Nhật ký hệ thống (Logcat)</span>
       </div>
+      <button class="modal-close" onclick="closeModal('logcatModal')">&times;</button>
     </div>
     <div class="modal-body">
-      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px;">
-        <select id="logcatPriority" class="search-input" style="width:130px;" onchange="fetchLogcat()">
-          <option value="">Tất cả (V)</option>
-          <option value="*:D">Debug (D+)</option>
-          <option value="*:I" selected>Info (I+)</option>
-          <option value="*:W">Warning (W+)</option>
-          <option value="*:E">Error (E+)</option>
-          <option value="*:F">Fatal (F)</option>
-        </select>
-        <select id="logcatLines" class="search-input" style="width:120px;" onchange="fetchLogcat()">
-          <option value="100">100 dòng</option>
-          <option value="250" selected>250 dòng</option>
-          <option value="500">500 dòng</option>
-          <option value="1000">1000 dòng</option>
-        </select>
-        <input type="text" id="logcatFilterInput" class="search-input" style="flex:1; min-width:180px;" placeholder="Lọc từ khóa hoặc Tag..." oninput="applyLogcatFilter()">
-        <button class="btn btn-sm" onclick="fetchLogcat()">Làm mới</button>
-        <label style="display:flex; align-items:center; gap:4px; font-size:0.75rem; color:var(--text-muted); cursor:pointer;">
-          <input type="checkbox" id="logcatAutoRefresh" onchange="toggleLogcatAutoRefresh(this.checked)"> Auto (2s)
-        </label>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+        <div style="display:flex; gap:6px; align-items:center;">
+          <label class="form-label" style="margin:0;">Mức:</label>
+          <select id="logcatLevel" class="form-input" style="width:auto; padding:4px 8px; font-size:0.76rem;" onchange="applyLogcatFilter()">
+            <option value="all">Tất cả (V/D/I/W/E/F)</option>
+            <option value="I" selected>Info (I) trở lên</option>
+            <option value="W">Warning (W) trở lên</option>
+            <option value="E">Error (E) & Crash</option>
+          </select>
+        </div>
+        <div class="search-wrap" style="max-width:280px;">
+          <input type="text" id="logcatFilterText" class="search-input" style="padding-left:12px;" placeholder="Lọc từ khóa / Tag..." oninput="applyLogcatFilter()">
+        </div>
       </div>
-      <div class="term-output" id="logcatOutput" style="max-height:550px; overflow-y:auto; font-size:0.75rem; line-height:1.45; white-space:pre-wrap; word-break:break-all;">Đang tải nhật ký...</div>
+      <pre id="logcatOutput" class="term-output" style="max-height:420px; font-size:0.74rem;">Đang tải 300 dòng logcat mới nhất...</pre>
+    </div>
+    <div class="modal-foot">
+      <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.76rem; color:var(--text-muted); margin-right:auto; cursor:pointer;">
+        <input type="checkbox" id="logcatAutoRefresh" onchange="toggleLogcatAutoRefresh(this.checked)"> Tự làm mới (3s)
+      </label>
+      <button class="btn btn-sm" onclick="copyLogcatText(this)">Copy Log</button>
+      <button class="btn btn-sm" onclick="downloadLogcatFile()">Tải về .txt</button>
+      <button class="btn btn-sm btn-primary" onclick="fetchLogcat()">Làm mới</button>
     </div>
   </div>
 </div>
 
 <!-- Modal: Connect Wi-Fi Local -->
-<div class="modal" id="connectModal">
+<div class="modal" id="connectModal" onclick="handleBackdropClick(event, 'connectModal')">
   <div class="modal-box" style="max-width:480px;">
     <div class="modal-head">
-      <div style="font-weight:600; font-size:1rem;">Kết nối không dây nội bộ (Wi-Fi Local)</div>
+      <div class="modal-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+        <span>Kết nối không dây nội bộ (Wi-Fi)</span>
+      </div>
       <button class="modal-close" onclick="closeModal('connectModal')">&times;</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:0.84rem; color:var(--text-muted); margin-bottom:14px; line-height:1.5;">
-        Dùng khi điện thoại và Mac mini đang ở <b>cùng mạng Wi-Fi</b>. Kết nối trực tiếp qua IP nội bộ cho tốc độ phản hồi cực nhanh (ping &lt; 2ms) mà không tốn dung lượng đường hầm.
+      <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.4;">
+        Nhập địa chỉ IP và cổng Wireless Debugging của điện thoại (hiển thị trong menu Tùy chọn nhà phát triển).
       </p>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div>
-          <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px; font-weight:600;">Địa chỉ IP & Cổng (IP:Port):</label>
-          <input type="text" id="modalRemoteAddr" class="search-input" placeholder="Ví dụ: 192.168.1.15:5555">
-        </div>
-        <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Thiết bị mDNS phát hiện trên LAN:</span>
-            <button type="button" class="btn btn-sm" onclick="scanMdns()" style="font-size:0.7rem; padding:2px 8px;">Quét lại</button>
-          </div>
-          <div id="mdnsSuggestions" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
-        </div>
-        <button class="btn btn-primary" style="margin-top:6px; justify-content:center;" onclick="connectWirelessModal()">Kết nối ngay</button>
+      <div class="form-group">
+        <label class="form-label">Địa chỉ IP & Cổng (host:port)</label>
+        <input type="text" id="connectModalAddr" class="form-input font-mono" placeholder="192.168.1.50:5555" onkeydown="if(event.key==='Enter') connectWirelessModal()">
       </div>
+      <div id="mdnsScanArea" style="display:none; flex-direction:column; gap:6px;">
+        <span class="form-label">Thiết bị tìm thấy qua mDNS:</span>
+        <div id="mdnsList" style="display:flex; flex-direction:column; gap:4px;"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sm" onclick="scanMdns()">Quét mDNS</button>
+      <button class="btn btn-sm btn-primary" onclick="connectWirelessModal()">Kết nối ngay</button>
     </div>
   </div>
 </div>
 
-<!-- Modal: Pair Wi-Fi -->
-<div class="modal" id="pairModal">
+<!-- Modal: Wireless Pair -->
+<div class="modal" id="pairModal" onclick="handleBackdropClick(event, 'pairModal')">
   <div class="modal-box" style="max-width:480px;">
     <div class="modal-head">
-      <div style="font-weight:600; font-size:1rem;">Ghép đôi không dây (ADB Pair Wi-Fi)</div>
+      <div class="modal-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Ghép đôi không dây (ADB Pair)</span>
+      </div>
       <button class="modal-close" onclick="closeModal('pairModal')">&times;</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:0.84rem; color:var(--text-muted); margin-bottom:14px; line-height:1.5;">
-        Trên thiết bị Android: Vào <b>Cài đặt cho nhà phát triển &gt; Gỡ lỗi không dây &gt; Ghép nối bằng mã ghép nối</b>.
+      <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.4;">
+        Mở <b>Tùy chọn nhà phát triển &gt; Gỡ lỗi qua Wi-Fi &gt; Ghép nối thiết bị bằng mã ghép nối</b> để lấy mã 6 chữ số và cổng ngẫu nhiên.
       </p>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div>
-          <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px; font-weight:600;">Địa chỉ IP & Cổng (IP:Port):</label>
-          <input type="text" id="pairAddr" class="search-input" placeholder="192.168.1.50:37123">
-        </div>
-        <div>
-          <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px; font-weight:600;">Mã ghép nối (6 số):</label>
-          <input type="text" id="pairCode" class="search-input" placeholder="123456">
-        </div>
-        <button class="btn btn-primary" style="margin-top:6px; justify-content:center;" onclick="pairWireless()">Tiến hành ghép đôi</button>
+      <div class="form-group">
+        <label class="form-label">Địa chỉ IP & Cổng ghép đôi</label>
+        <input type="text" id="pairAddr" class="form-input font-mono" placeholder="192.168.1.50:37891">
       </div>
+      <div class="form-group">
+        <label class="form-label">Mã ghép nối (6 số)</label>
+        <input type="text" id="pairCode" class="form-input font-mono" placeholder="123456" maxlength="6" onkeydown="if(event.key==='Enter') pairWireless()">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sm btn-primary" onclick="pairWireless()">Tiến hành ghép đôi</button>
     </div>
   </div>
 </div>
@@ -1200,12 +1381,16 @@ let allDevicesCache = [];
 let allHistoryCache = [];
 let activeFilter = 'all';
 let currentMainTab = 'devices';
+let logcatTimer = null;
+let rawLogcatCache = '';
 
 function escapeHtml(str) {
-  if (!str) return '';
-  return String(str).replace(/[&<>"']/g, m => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  })[m]);
+  if (typeof str !== 'string') return String(str || '');
+  return str.replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
 }
 
 function flashCopied(btn, copiedLabel = '✓ Đã copy!') {
@@ -1213,28 +1398,30 @@ function flashCopied(btn, copiedLabel = '✓ Đã copy!') {
   const orig = btn.dataset.origLabel || btn.textContent;
   btn.dataset.origLabel = orig;
   btn.textContent = copiedLabel;
-  btn.classList.add('btn-copied');
-  clearTimeout(btn._copyTimer);
-  btn._copyTimer = setTimeout(() => {
+  btn.style.color = '#34d399';
+  btn.style.borderColor = '#34d399';
+  setTimeout(() => {
     btn.textContent = orig;
-    btn.classList.remove('btn-copied');
-  }, 1800);
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }, 1600);
 }
 
 async function copyText(text, btn) {
   try {
-    await navigator.clipboard.writeText(text);
-    flashCopied(btn, '✓ Đã copy');
-  } catch (e) {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    flashCopied(btn, '✓ Đã copy');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    flashCopied(btn);
+  } catch (err) {
+    console.error('Copy failed:', err);
   }
 }
 
@@ -1244,20 +1431,21 @@ function formatDurationSec(sec) {
   const m = Math.floor((s % 3600) / 60);
   const rem = s % 60;
   const pad = n => String(n).padStart(2, '0');
-  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(rem)}` : `${pad(m)}:${pad(rem)}`;
+  return h > 0 ? `${h}h ${pad(m)}m ${pad(rem)}s` : `${m}m ${pad(rem)}s`;
 }
 
 function formatBytesHuman(b) {
   const n = Number(b || 0);
-  if (n < 1024) return `${n} B`;
-  if (n < 1048576) return `${Math.round(n / 1024)} KB`;
-  return `${(n / 1048576).toFixed(1)} MB`;
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MB';
+  return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
 }
 
 function formatEpochTime(epochSec) {
   if (!epochSec) return '-';
   const d = new Date(epochSec * 1000);
-  return d.toLocaleTimeString('vi-VN', { hour12: false }) + ' ' + d.toLocaleDateString('vi-VN');
+  return d.toLocaleString('vi-VN', { hour12: false });
 }
 
 function switchMainTab(tab) {
@@ -1266,7 +1454,6 @@ function switchMainTab(tab) {
   document.getElementById('tabBtnHistory').classList.toggle('active', tab === 'history');
   document.getElementById('tabContentDevices').classList.toggle('active', tab === 'devices');
   document.getElementById('tabContentHistory').classList.toggle('active', tab === 'history');
-
   if (tab === 'history') {
     renderGroupedHistory();
   }
@@ -1281,6 +1468,7 @@ function tickLiveTimers() {
     }
   });
 }
+setInterval(tickLiveTimers, 1000);
 
 function setFilter(type, btn) {
   activeFilter = type;
@@ -1289,15 +1477,25 @@ function setFilter(type, btn) {
   filterDeviceCards();
 }
 
+function clearSearch() {
+  const inp = document.getElementById('searchInput');
+  inp.value = '';
+  document.getElementById('searchClearBtn').style.display = 'none';
+  filterDeviceCards();
+}
+
 function filterDeviceCards() {
-  const query = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  const searchInput = document.getElementById('searchInput');
+  const query = (searchInput.value || '').toLowerCase().trim();
+  document.getElementById('searchClearBtn').style.display = query ? 'block' : 'none';
+
   const filtered = allDevicesCache.filter(dev => {
     const isOnline = dev.state === 'device';
     if (activeFilter === 'online' && !isOnline) return false;
+    if (activeFilter === 'offline' && isOnline) return false;
     if (activeFilter === 'tunnel' && !dev.is_tunnel) return false;
     if (activeFilter === 'wifi' && (dev.is_tunnel || !dev.is_remote)) return false;
     if (activeFilter === 'usb' && (dev.is_tunnel || dev.is_remote)) return false;
-    if (activeFilter === 'offline' && isOnline) return false;
 
     if (!query) return true;
     const searchTarget = [
@@ -1312,9 +1510,17 @@ function renderDevices(devices) {
   const grid = document.getElementById('deviceGrid');
   if (!devices || devices.length === 0) {
     grid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align:center; padding:50px 20px; background:var(--card); border:1px dashed var(--border); border-radius:14px;">
-        <h3 style="font-size:1.1rem; color:#fff; margin-bottom:6px;">Không tìm thấy thiết bị phù hợp</h3>
-        <p style="color:var(--text-muted); font-size:0.85rem;">Thử thay đổi bộ lọc hoặc kiểm tra kết nối thiết bị.</p>
+      <div class="empty-state-box">
+        <div class="empty-state-illustration">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        </div>
+        <div class="empty-state-title">Không tìm thấy thiết bị phù hợp</div>
+        <p class="empty-state-desc">Thử cắm cáp USB, ghép đôi qua Wi-Fi hoặc mở ứng dụng ADB Agent trên thiết bị Android của bạn.</p>
+        <div class="empty-state-actions">
+          <button class="btn btn-accent btn-sm" onclick="openConnectModal()">+ Kết nối Wi-Fi</button>
+          <button class="btn btn-sm" onclick="openPairModal()">+ Ghép đôi PIN 6 số</button>
+          <a class="btn btn-sm" href="/download/adb-agent.apk">Tải APK Android</a>
+        </div>
       </div>
     `;
     return;
@@ -1324,34 +1530,36 @@ function renderDevices(devices) {
     const isOnline = dev.state === 'device';
     const isTunnel = Boolean(dev.is_tunnel || dev.serial.startsWith('127.0.0.1:') || dev.serial.startsWith('localhost:'));
     const badgeClass = isOnline ? 'badge-online' : (dev.state === 'unauthorized' || dev.state === 'tunnel_only' ? 'badge-unauth' : 'badge-offline');
-    const badgeText = isOnline ? 'ONLINE' : (dev.state === 'tunnel_only' ? 'TUNNEL NỐI (CHỜ ADB)' : dev.state.toUpperCase());
+    const badgeText = isOnline ? 'ONLINE' : (dev.state === 'tunnel_only' ? 'P2P NỐI (CHỜ ADB)' : dev.state.toUpperCase());
+    
     const typeBadge = isTunnel
-      ? '<span class="badge badge-tunnel">⚡ P2P WEBRTC DIRECT</span>'
+      ? '<span class="badge badge-p2p"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> P2P WEBRTC DIRECT</span>'
       : (dev.is_remote
-          ? '<span class="badge" style="background:#064e3b; color:#34d399; border:1px solid rgba(52,211,153,0.3);">📶 WI-FI LOCAL</span>'
-          : '<span class="badge" style="background:#1e1b4b; color:#a5b4fc; border:1px solid rgba(165,180,252,0.3);">🔌 CÁP USB DIRECT</span>');
+          ? '<span class="badge badge-wifi"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/></svg> WI-FI LOCAL</span>'
+          : '<span class="badge badge-usb"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="2" width="16" height="8" rx="2"/><path d="M8 10v6a4 4 0 0 0 8 0v-6"/></svg> CÁP USB DIRECT</span>');
+          
     const fallbackName = isTunnel ? (dev.tunnel_alias || 'P2P Device') : 'Android Device';
     const name = (dev.brand ? dev.brand.toUpperCase() + ' ' : '') + (dev.model || dev.device || fallbackName);
 
     const batText = dev.battery ? `${dev.battery.level}% ${dev.battery.charging ? '⚡' : ''}` : 'N/A';
     const osText = dev.android_version ? `Android ${dev.android_version}` : 'N/A';
-    const ipText = dev.wifi_ip || (isTunnel ? (dev.tunnel_local_port ? `:${dev.tunnel_local_port}` : 'Tunnel') : (dev.is_remote ? dev.serial.split(':')[0] : 'USB'));
+    const ipText = dev.wifi_ip || (isTunnel ? (dev.tunnel_local_port ? `:${dev.tunnel_local_port}` : 'P2P') : (dev.is_remote ? dev.serial.split(':')[0] : 'USB'));
     const serialDisplay = isTunnel && dev.tunnel_alias ? `${dev.serial} · ${dev.tunnel_alias}` : dev.serial;
 
     // Recent Commands Feed
     const commands = Array.isArray(dev.recent_commands) ? dev.recent_commands : [];
     const commandsHtml = commands.length > 0
-      ? commands.slice(0, 6).map(cmd => {
-          const badgeClass = cmd.source === 'screencap' ? 'cmd-badge-screencap' : (cmd.source === 'shell' ? 'cmd-badge-shell' : (cmd.source === 'probe' ? 'cmd-badge-probe' : 'cmd-badge-connect'));
-          const statusColor = cmd.status === 'success' ? '#34d399' : (cmd.status === 'running' ? '#38bdf8' : '#f87171');
+      ? commands.slice(0, 5).map(cmd => {
+          const bClass = cmd.source === 'screencap' ? 'cmd-badge-screencap' : (cmd.source === 'shell' ? 'cmd-badge-shell' : (cmd.source === 'probe' ? 'cmd-badge-probe' : 'cmd-badge-connect'));
+          const sColor = cmd.status === 'success' ? '#34d399' : (cmd.status === 'running' ? '#38bdf8' : '#f87171');
           const timeStr = new Date(cmd.start_time).toLocaleTimeString('vi-VN', { hour12: false });
           const hasOutput = Boolean(cmd.output || cmd.error);
           return `
             <div class="cmd-item">
               <div class="cmd-item-row">
-                <span class="cmd-badge ${badgeClass}">${escapeHtml((cmd.source || 'CMD').toUpperCase())}</span>
+                <span class="cmd-badge ${bClass}">${escapeHtml((cmd.source || 'CMD').toUpperCase())}</span>
                 <span class="cmd-str" title="${escapeHtml(cmd.command)}">${escapeHtml(cmd.command)}</span>
-                <span style="font-size:0.68rem; color:${statusColor}; font-weight:600;">${cmd.status === 'running' ? 'Đang chạy' : (cmd.duration_ms + 'ms')}</span>
+                <span style="font-size:0.68rem; color:${sColor}; font-weight:600;">${cmd.status === 'running' ? 'Đang chạy' : (cmd.duration_ms + 'ms')}</span>
               </div>
               <div class="cmd-item-row" style="margin-top:2px;">
                 <span class="cmd-meta">${timeStr}</span>
@@ -1361,16 +1569,16 @@ function renderDevices(devices) {
             </div>
           `;
         }).join('')
-      : `<div style="color:var(--text-faint); font-size:0.75rem; padding:6px 0;">Chưa ghi nhận lệnh nào gần đây.</div>`;
+      : `<div style="color:var(--text-faint); font-size:0.75rem; padding:4px 0;">Chưa ghi nhận lệnh nào gần đây.</div>`;
 
     return `
       <div class="device-card ${isOnline ? '' : 'offline'}">
         <div class="dev-header">
           <div class="dev-title-box">
             <div class="dev-avatar">
-              <svg viewBox="0 0 24 24" fill="${isOnline ? '#38bdf8' : '#94a3b8'}"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="${isOnline ? '#38bdf8' : '#94a3b8'}" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
             </div>
-            <div>
+            <div style="min-width:0;">
               <div class="dev-name">${escapeHtml(name)}</div>
               <div class="dev-serial-row">
                 <span class="dev-serial">${escapeHtml(serialDisplay)}</span>
@@ -1378,7 +1586,7 @@ function renderDevices(devices) {
               </div>
             </div>
           </div>
-          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+          <div class="dev-badges-stack">
             <span class="badge ${badgeClass}">${badgeText}</span>
             ${typeBadge}
           </div>
@@ -1390,12 +1598,12 @@ function renderDevices(devices) {
             <span class="spec-val">${osText}</span>
           </div>
           <div class="spec-item">
-            <span class="spec-label">Pin (Battery)</span>
+            <span class="spec-label">Pin</span>
             <span class="spec-val">${batText}</span>
           </div>
           <div class="spec-item">
-            <span class="spec-label">Wi-Fi IP</span>
-            <span class="spec-val">${ipText}</span>
+            <span class="spec-label">Địa chỉ IP</span>
+            <span class="spec-val tabular-mono">${ipText}</span>
           </div>
           <div class="spec-item">
             <span class="spec-label">${dev.is_tunnel ? 'Thời gian nối' : 'Model ID'}</span>
@@ -1422,46 +1630,49 @@ function renderDevices(devices) {
         <div class="dev-actions">
           ${isOnline ? `
             <button class="btn btn-sm btn-primary" onclick="openScreenModal('${dev.serial}', '${escapeHtml(name)}')">
-              📸 Chụp màn hình
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>Màn hình</span>
             </button>
             <button class="btn btn-sm" onclick="openLogcatModal('${dev.serial}', '${escapeHtml(name)}')">
-              📜 Xem Logcat
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+              <span>Logcat</span>
             </button>
             <button class="btn btn-sm" onclick="openShellModal('${dev.serial}', '${escapeHtml(name)}')">
-              💻 ADB Shell
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              <span>Shell</span>
             </button>
             <button class="btn btn-sm" onclick="enableTcpip('${dev.serial}')">
-              📶 TCP/IP 5555
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/></svg>
+              <span>TCP 5555</span>
             </button>
             ${!dev.is_remote && !isTunnel ? `
-              <button class="btn btn-sm" style="border-color:#34d399; color:#34d399;" onclick="switchToWifi('${dev.serial}')" title="Bật TCP/IP 5555 và tự động kết nối Wi-Fi để bạn rút cáp ra dùng không dây">
-                📶 Sang Wi-Fi (5555)
+              <button class="btn btn-sm" style="border-color:#34d399; color:#34d399;" onclick="switchToWifi('${dev.serial}')" title="Bật TCP/IP 5555 và tự động kết nối Wi-Fi">
+                <span>Sang Wi-Fi</span>
               </button>
             ` : ''}
             <button class="btn btn-sm" onclick="rebootDevice('${dev.serial}')">
-              🔄 Reboot
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              <span>Reboot</span>
             </button>
             ${dev.is_remote || isTunnel ? `
               <button class="btn btn-sm btn-danger" onclick="disconnectDevice('${dev.serial}')">Ngắt nối</button>
             ` : ''}
           ` : `
             ${dev.is_remote || isTunnel ? `
-              <button class="btn btn-sm btn-primary" onclick="connectDevice('${dev.serial}')">⚡ Nối lại</button>
+              <button class="btn btn-sm btn-primary" onclick="connectDevice('${dev.serial}')">Nối lại</button>
             ` : ''}
             <button class="btn btn-sm" onclick="openScreenModal('${dev.serial}', '${escapeHtml(name)}')">
-              📸 Chụp màn hình
+              <span>Màn hình</span>
             </button>
             <button class="btn btn-sm" onclick="openLogcatModal('${dev.serial}', '${escapeHtml(name)}')">
-              📜 Xem Logcat
+              <span>Logcat</span>
             </button>
             <button class="btn btn-sm" onclick="openShellModal('${dev.serial}', '${escapeHtml(name)}')">
-              💻 ADB Shell
+              <span>Shell</span>
             </button>
             ${dev.is_remote || isTunnel ? `
               <button class="btn btn-sm btn-danger" onclick="disconnectDevice('${dev.serial}')">Xóa</button>
-            ` : `
-              <span style="font-size:0.75rem; color:var(--text-faint);">Vui lòng kiểm tra cáp USB hoặc gỡ lỗi ADB</span>
-            `}
+            ` : ''}
           `}
         </div>
       </div>
@@ -1469,54 +1680,77 @@ function renderDevices(devices) {
   }).join('');
 }
 
-// GROUPED HISTORY BY DEVICE
 function buildDeviceHistoryGroups() {
-  const groups = {}; // key: deviceKey -> { key, name, serial, isLive, brand, sessions: [], commands: [] }
+  const groups = new Map();
+  const getOrCreate = (key, initial) => {
+    if (!groups.has(key)) groups.set(key, initial);
+    return groups.get(key);
+  };
 
-  // 1. Ingest all devices known from devices list
   allDevicesCache.forEach(dev => {
+    const isTunnel = Boolean(dev.is_tunnel || dev.serial.startsWith('127.0.0.1:') || dev.serial.startsWith('localhost:'));
+    if (!isTunnel && !dev.is_remote) return;
     const key = dev.tunnel_alias || dev.serial;
-    if (!groups[key]) {
-      groups[key] = {
-        key: key,
-        name: (dev.brand ? dev.brand.toUpperCase() + ' ' : '') + (dev.model || dev.device || dev.tunnel_alias || 'Android Device'),
-        serial: dev.serial,
-        alias: dev.tunnel_alias || '',
-        isLive: dev.state === 'device',
-        sessions: [],
-        commands: dev.recent_commands || []
+    const g = getOrCreate(key, {
+      key,
+      name: (dev.brand ? dev.brand.toUpperCase() + ' ' : '') + (dev.model || dev.device || dev.tunnel_alias || 'Android Device'),
+      alias: dev.tunnel_alias || '',
+      brand: dev.brand || '',
+      model: dev.model || '',
+      serial: dev.serial,
+      activeSession: null,
+      sessions: []
+    });
+    if (dev.is_tunnel) {
+      g.activeSession = {
+        session_id: 'live-' + dev.serial,
+        alias: dev.tunnel_alias,
+        local_adb_port: dev.tunnel_local_port || 5555,
+        mapped_addr: dev.serial,
+        connected_at: dev.tunnel_connected_at || Math.floor(Date.now() / 1000),
+        bytes_bridged: dev.tunnel_bytes || 0,
+        is_live: true
       };
     }
   });
 
-  // 2. Ingest history entries
-  const nowSec = Math.floor(Date.now() / 1000);
-  allHistoryCache.forEach(item => {
-    const key = item.alias || item.mapped_addr || 'unknown';
-    if (!groups[key]) {
-      groups[key] = {
-        key: key,
-        name: item.alias || 'Android Device',
-        serial: item.mapped_addr,
-        alias: item.alias || '',
-        isLive: item.active,
-        sessions: [],
-        commands: []
-      };
-    }
-    groups[key].sessions.push(item);
+  allHistoryCache.forEach(entry => {
+    const key = entry.alias || entry.mapped_addr || 'unknown';
+    const g = getOrCreate(key, {
+      key,
+      name: entry.alias || 'Android Device',
+      alias: entry.alias || '',
+      brand: '',
+      model: '',
+      serial: entry.mapped_addr || '',
+      activeSession: null,
+      sessions: []
+    });
+    g.sessions.push(entry);
   });
 
-  return Object.values(groups);
+  groups.forEach(g => {
+    g.totalBytes = (g.activeSession ? (g.activeSession.bytes_bridged || 0) : 0) +
+      g.sessions.reduce((acc, s) => acc + (s.bytes_bridged || 0), 0);
+    g.totalSessions = (g.activeSession ? 1 : 0) + g.sessions.length;
+    g.lastSeen = g.activeSession
+      ? g.activeSession.connected_at
+      : (g.sessions.length > 0 ? (g.sessions[0].disconnected_at || g.sessions[0].connected_at) : 0);
+  });
+
+  return Array.from(groups.values()).sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
 }
 
 function filterHistoryGroups() {
-  const q = (document.getElementById('historySearchInput').value || '').toLowerCase().trim();
+  const query = (document.getElementById('historySearchInput').value || '').toLowerCase().trim();
   const allGroups = buildDeviceHistoryGroups();
+  if (!query) {
+    renderGroupedHistoryCards(allGroups);
+    return;
+  }
   const filtered = allGroups.filter(g => {
-    if (!q) return true;
-    const target = [g.key, g.name, g.serial, g.alias].filter(Boolean).join(' ').toLowerCase();
-    return target.includes(q);
+    const target = [g.name, g.alias, g.serial, g.brand, g.model].filter(Boolean).join(' ').toLowerCase();
+    return target.includes(query);
   });
   renderGroupedHistoryCards(filtered);
 }
@@ -1527,122 +1761,75 @@ function renderGroupedHistory() {
 
 function renderGroupedHistoryCards(groups) {
   const container = document.getElementById('historyGroupsContainer');
-  const countBadge = document.getElementById('historyDeviceGroupsCount');
-  countBadge.textContent = `${groups.length} thiết bị`;
+  document.getElementById('historyDeviceGroupsCount').textContent = `${groups.length} thiết bị`;
 
-  if (groups.length === 0) {
+  if (!groups || groups.length === 0) {
     container.innerHTML = `
-      <div style="text-align:center; padding:50px 20px; background:var(--card); border:1px dashed var(--border); border-radius:14px;">
-        <h3 style="font-size:1.1rem; color:#fff; margin-bottom:6px;">Chưa có lịch sử hoạt động nào</h3>
-        <p style="color:var(--text-muted); font-size:0.85rem;">Các phiên kết nối đường hầm và lệnh máy tính gửi sang sẽ được tự động lưu trữ và gom nhóm tại đây.</p>
+      <div class="empty-state-box">
+        <div class="empty-state-illustration">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="empty-state-title">Chưa có lịch sử kết nối</div>
+        <p class="empty-state-desc">Khi các thiết bị Android nối qua P2P WebRTC hoặc Wi-Fi ngắt phiên, chi tiết sẽ được ghi nhận tại đây.</p>
       </div>
     `;
     return;
   }
 
-  const nowSec = Math.floor(Date.now() / 1000);
-  container.innerHTML = groups.map(g => {
-    let totalBytes = 0;
-    let totalDurationSec = 0;
-    g.sessions.forEach(s => {
-      totalBytes += Number(s.bytes_bridged || 0);
-      const end = s.ended_at || nowSec;
-      totalDurationSec += Math.max(0, end - (s.connected_at || nowSec));
-    });
-
-    const sessionsHtml = g.sessions.length > 0
-      ? g.sessions.map(s => {
-          const durSec = (s.ended_at || nowSec) - (s.connected_at || nowSec);
-          return `
-            <div class="dh-session-row">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span style="width:7px; height:7px; border-radius:50%; background:${s.active ? '#22c55e' : '#64748b'};"></span>
-                <div>
-                  <div style="font-weight:600; color:#fff;">
-                    Port :${s.local_adb_port} ➔ ${escapeHtml(s.mapped_addr || '')}
-                  </div>
-                  <div style="font-size:0.7rem; color:var(--text-faint);">
-                    ${escapeHtml(formatEpochTime(s.connected_at))} • ${escapeHtml(s.reason || '')}
-                  </div>
-                </div>
-              </div>
-              <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
-                <span class="badge ${s.active ? 'badge-online' : 'badge-type'} tabular-mono">${formatDurationSec(durSec)}</span>
-                <span class="tabular-mono" style="font-size:0.72rem; color:var(--text-muted);">${formatBytesHuman(s.bytes_bridged)}</span>
-              </div>
-            </div>
-          `;
-        }).join('')
-      : `<div style="color:var(--text-faint); font-size:0.75rem; padding:8px 0;">Chưa có phiên kết nối đường hầm đã ghi nhận.</div>`;
-
-    const cmdsHtml = g.commands.length > 0
-      ? g.commands.map(c => {
-          const badgeClass = c.source === 'screencap' ? 'cmd-badge-screencap' : (c.source === 'shell' ? 'cmd-badge-shell' : (c.source === 'probe' ? 'cmd-badge-probe' : 'cmd-badge-connect'));
-          const statusColor = c.status === 'success' ? '#34d399' : (c.status === 'running' ? '#38bdf8' : '#f87171');
-          const timeStr = new Date(c.start_time).toLocaleTimeString('vi-VN', { hour12: false });
-          const hasOut = Boolean(c.output || c.error);
-          return `
-            <div class="cmd-item">
-              <div class="cmd-item-row">
-                <span class="cmd-badge ${badgeClass}">${escapeHtml((c.source || 'CMD').toUpperCase())}</span>
-                <span class="cmd-str" title="${escapeHtml(c.command)}">${escapeHtml(c.command)}</span>
-                <span style="font-size:0.68rem; color:${statusColor}; font-weight:600;">${c.status === 'running' ? 'Đang chạy' : (c.duration_ms + 'ms')}</span>
-              </div>
-              <div class="cmd-item-row">
-                <span class="cmd-meta">${timeStr}</span>
-                ${hasOut ? `<button class="cmd-output-toggle" onclick="toggleCmdOutput('hist-${c.id}')">Xem kết quả</button>` : ''}
-              </div>
-              ${hasOut ? `<div class="cmd-output-drawer" id="cmd-out-hist-${c.id}">${escapeHtml(c.output || c.error)}</div>` : ''}
-            </div>
-          `;
-        }).join('')
-      : `<div style="color:var(--text-faint); font-size:0.75rem; padding:8px 0;">Chưa ghi nhận lệnh host nào trên thiết bị này.</div>`;
-
-    return `
-      <div class="device-history-card">
-        <div class="dh-header">
-          <div class="dh-title-box">
-            <div class="dh-avatar">
-              <svg viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-            </div>
-            <div>
-              <div style="font-weight:700; color:#fff; font-size:1rem; display:flex; align-items:center; gap:8px;">
-                <span>${escapeHtml(g.name)}</span>
-                ${g.isLive ? '<span class="badge badge-online">Đang kết nối</span>' : '<span class="badge badge-type">Đã ngắt</span>'}
-              </div>
-              <div style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono); margin-top:2px;">
-                Serial: ${escapeHtml(g.serial || g.key)}
-              </div>
-            </div>
+  container.innerHTML = groups.map((g, idx) => {
+    const hasLive = Boolean(g.activeSession);
+    const sessionsHtml = g.sessions.map(s => {
+      const durSec = (s.disconnected_at && s.connected_at) ? Math.max(0, s.disconnected_at - s.connected_at) : 0;
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.04); border-radius:8px; font-size:0.76rem; font-family:var(--font-mono); margin-top:6px;">
+          <div>
+            <span style="color:#94a3b8;">${formatEpochTime(s.connected_at)}</span>
+            <span style="color:var(--text-faint); margin:0 6px;">→</span>
+            <span style="color:#94a3b8;">${formatEpochTime(s.disconnected_at)}</span>
           </div>
-
-          <div class="dh-stats-ribbon">
-            <div class="dh-stat-pill">Phiên: <b>${g.sessions.length}</b></div>
-            <div class="dh-stat-pill">Thời gian nối: <b class="tabular-mono">${formatDurationSec(totalDurationSec)}</b></div>
-            <div class="dh-stat-pill">Lưu lượng: <b class="tabular-mono">${formatBytesHuman(totalBytes)}</b></div>
-            <div class="dh-stat-pill">Lệnh host: <b>${g.commands.length}</b></div>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <span style="color:#38bdf8;">${formatBytesHuman(s.bytes_bridged)}</span>
+            <span style="color:#34d399;">${formatDurationSec(durSec)}</span>
+            <span style="color:var(--text-faint); font-size:0.7rem;">${escapeHtml(s.disconnect_reason || 'Đóng bình thường')}</span>
           </div>
         </div>
+      `;
+    }).join('');
 
-        <div class="dh-body">
-          <div>
-            <div class="dh-section-title">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
-              <span>Lịch sử các phiên Tunnel (${g.sessions.length})</span>
+    return `
+      <div class="history-group-card ${idx === 0 ? 'open' : ''}" id="hist-card-${idx}">
+        <div class="history-group-header" onclick="this.parentElement.classList.toggle('open')">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div class="dev-avatar" style="width:36px; height:36px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="${hasLive ? '#22c55e' : '#94a3b8'}" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
             </div>
-            <div class="dh-session-list">
-              ${sessionsHtml}
+            <div>
+              <div style="font-weight:700; font-size:0.92rem; color:#fff;">${escapeHtml(g.name)}</div>
+              <div style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono);">${escapeHtml(g.serial)}</div>
             </div>
           </div>
-
-          <div>
-            <div class="dh-section-title">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"/></svg>
-              <span>Nhật ký Lệnh & Tiến trình Host (${g.commands.length})</span>
-            </div>
-            <div class="dh-cmd-list">
-              ${cmdsHtml}
-            </div>
+          <div style="display:flex; align-items:center; gap:16px;">
+            <span class="badge ${hasLive ? 'badge-online' : 'badge-offline'}">${hasLive ? 'ĐANG KẾT NỐI' : 'ĐÃ ĐÓNG'}</span>
+            <span style="font-family:var(--font-mono); font-size:0.78rem; color:#38bdf8;">${formatBytesHuman(g.totalBytes)}</span>
+            <span style="font-size:0.76rem; color:var(--text-muted);">${g.totalSessions} phiên</span>
+            <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="history-group-content">
+          <div style="padding-top:10px;">
+            ${hasLive ? `
+              <div style="padding:10px 14px; background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.25); border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:0.78rem; font-family:var(--font-mono); margin-bottom:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="status-dot-live"></span>
+                  <span style="color:#4ade80; font-weight:600;">Phiên P2P WebRTC đang hoạt động</span>
+                </div>
+                <div>
+                  <span style="color:#38bdf8; margin-right:12px;">Đã truyền: ${formatBytesHuman(g.activeSession.bytes_bridged)}</span>
+                  <span style="color:#4ade80;" data-connected-at="${g.activeSession.connected_at}">--</span>
+                </div>
+              </div>
+            ` : ''}
+            ${sessionsHtml || '<div style="color:var(--text-faint); font-size:0.76rem; padding:8px 0;">Không có phiên cũ nào đã đóng.</div>'}
           </div>
         </div>
       </div>
@@ -1652,273 +1839,287 @@ function renderGroupedHistoryCards(groups) {
 
 function toggleCmdOutput(id) {
   const el = document.getElementById('cmd-out-' + id);
-  if (!el) return;
-  el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+  if (el) {
+    el.style.display = el.style.display === 'block' ? 'none' : 'block';
+  }
 }
 
 async function loadDevices() {
+  const spinIcon = document.getElementById('refreshSpinIcon');
+  if (spinIcon) spinIcon.style.animation = 'pulseLive 0.8s infinite';
+
   try {
     const res = await fetch('/api/devices');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    allDevicesCache = Array.isArray(data.devices) ? data.devices : [];
-    allHistoryCache = Array.isArray(data.history) ? data.history : [];
-    
-    // Telemetry updates
+    allDevicesCache = data.devices || [];
+
+    // Calculate metrics
     const total = allDevicesCache.length;
     const online = allDevicesCache.filter(d => d.state === 'device').length;
-    const tunnels = allDevicesCache.filter(d => d.is_tunnel && d.state === 'device').length;
-    let totalBytes = 0;
-    allDevicesCache.forEach(d => { if (d.tunnel_bytes) totalBytes += Number(d.tunnel_bytes); });
+    const tunnels = allDevicesCache.filter(d => d.is_tunnel).length;
+    const totalBytes = allDevicesCache.reduce((acc, d) => acc + (d.tunnel_bytes || 0), 0);
 
-    document.getElementById('metricTotalDevices').textContent = String(total);
+    document.getElementById('metricTotalDevices').textContent = total;
     document.getElementById('metricOnlineRatio').textContent = `${online} trực tuyến / ${total} thiết bị`;
-    document.getElementById('metricActiveTunnels').textContent = String(tunnels);
+    document.getElementById('metricActiveTunnels').textContent = tunnels;
     document.getElementById('metricBridgedBytes').textContent = formatBytesHuman(totalBytes);
-
-    // Tab badges
-    document.getElementById('tabDeviceCountBadge').textContent = String(total);
-    document.getElementById('tabHistoryCountBadge').textContent = String(allHistoryCache.length);
+    document.getElementById('tabDeviceCountBadge').textContent = total;
 
     filterDeviceCards();
-    if (currentMainTab === 'history') {
-      renderGroupedHistory();
+  } catch (err) {
+    console.error('Failed to load devices:', err);
+  } finally {
+    if (spinIcon) spinIcon.style.animation = '';
+  }
+
+  // Also load history in background
+  try {
+    const hRes = await fetch('/api/tunnel/history');
+    if (hRes.ok) {
+      const hData = await hRes.json();
+      allHistoryCache = hData.history || [];
+      document.getElementById('tabHistoryCountBadge').textContent = allHistoryCache.length;
+      if (currentMainTab === 'history') {
+        renderGroupedHistory();
+      }
     }
-  } catch (e) {
-    console.error('loadDevices failed:', e);
+  } catch (err) {
+    console.warn('Failed to load history:', err);
   }
 }
 
-// Remote Connect & Actions
 async function connectRemote() {
-  const addr = document.getElementById('remoteAddr').value.trim();
-  if (!addr) return alert('Vui lòng nhập IP:Port!');
-  try {
-    const res = await fetch('/api/connect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ addr })
-    });
-    const data = await res.json();
-    if (!data.success) alert('Kết nối thất bại: ' + (data.message || data.stderr || 'Lỗi không xác định'));
-    document.getElementById('remoteAddr').value = '';
-    loadDevices();
-  } catch (e) {
-    alert('Lỗi: ' + e);
+  const addr = (document.getElementById('remoteAddr').value || '').trim();
+  if (!addr) {
+    alert('Vui lòng nhập địa chỉ IP:Port (ví dụ: 192.168.1.50:5555)');
+    return;
   }
+  await connectDevice(addr);
 }
 
 async function connectDevice(addr) {
-  await fetch('/api/connect', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ addr })
-  });
-  loadDevices();
+  try {
+    const res = await fetch('/api/devices/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: addr })
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Lỗi kết nối');
+    loadDevices();
+  } catch (err) {
+    alert('Lỗi: ' + err.message);
+  }
 }
 
 async function disconnectDevice(addr) {
-  if (!confirm(`Ngắt kết nối thiết bị ${addr}?`)) return;
-  await fetch('/api/disconnect', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ addr })
-  });
-  loadDevices();
+  if (!confirm(`Bạn có chắc muốn ngắt kết nối với thiết bị: ${addr}?`)) return;
+  try {
+    const res = await fetch('/api/devices/disconnect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: addr })
+    });
+    loadDevices();
+  } catch (err) {
+    alert('Lỗi: ' + err.message);
+  }
 }
 
 async function enableTcpip(serial) {
-  const res = await fetch('/api/tcpip', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ serial, port: 5555 })
-  });
-  const data = await res.json();
-  alert(data.success ? 'Đã bật cổng ADB TCP/IP 5555 trên thiết bị!' : 'Lỗi: ' + (data.stderr || data.message));
-  loadDevices();
+  try {
+    const res = await fetch('/api/devices/tcpip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ serial, port: 5555 })
+    });
+    const d = await res.json();
+    alert(d.message || 'Đã kích hoạt cổng TCP/IP 5555 thành công!');
+    loadDevices();
+  } catch (err) {
+    alert('Lỗi kích hoạt TCP/IP: ' + err.message);
+  }
 }
 
 async function rebootDevice(serial) {
-  if (!confirm(`Khởi động lại thiết bị ${serial}?`)) return;
-  await fetch('/api/reboot', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ serial })
-  });
-  loadDevices();
+  if (!confirm(`Khởi động lại (reboot) thiết bị: ${serial}?`)) return;
+  try {
+    await fetch('/api/devices/reboot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ serial })
+    });
+    alert('Đã gửi lệnh reboot tới thiết bị.');
+  } catch (err) {
+    alert('Lỗi: ' + err.message);
+  }
 }
 
 async function restartServer() {
-  if (!confirm('Khởi động lại ADB Server trên Mac mini? (Các kết nối sẽ tạm thời gián đoạn)')) return;
+  if (!confirm('Khởi động lại máy chủ ADB Device Manager?')) return;
   try {
-    await fetch('/api/restart-server', { method: 'POST' });
-    setTimeout(loadDevices, 1500);
-  } catch (e) {
-    alert('Lỗi: ' + e);
+    await fetch('/api/server/restart', { method: 'POST' });
+    alert('Đang khởi động lại ADB Server. Trang sẽ tự tải lại sau 3 giây...');
+    setTimeout(() => window.location.reload(), 3000);
+  } catch (err) {
+    setTimeout(() => window.location.reload(), 2000);
   }
 }
 
 async function clearTunnelHistory() {
-  if (!confirm('Xóa tất cả các phiên lịch sử Tunnel đã đóng?')) return;
-  await fetch('/api/clear-history', { method: 'POST' });
-  loadDevices();
+  if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử các phiên kết nối đã đóng?')) return;
+  try {
+    const res = await fetch('/api/tunnel/history', { method: 'DELETE' });
+    if (res.ok) {
+      allHistoryCache = [];
+      renderGroupedHistory();
+    }
+  } catch (err) {
+    alert('Lỗi: ' + err.message);
+  }
 }
 
-// Connect Wi-Fi Local Modal
 function openConnectModal() {
   document.getElementById('connectModal').classList.add('active');
-  scanMdns();
+  setTimeout(() => document.getElementById('connectModalAddr').focus(), 100);
 }
 
 async function scanMdns() {
-  const listEl = document.getElementById('mdnsSuggestions');
-  listEl.innerHTML = '<span style="color:var(--text-muted); font-size:0.75rem;">Đang quét mDNS trên LAN...</span>';
+  const list = document.getElementById('mdnsList');
+  const area = document.getElementById('mdnsScanArea');
+  area.style.display = 'flex';
+  list.innerHTML = '<span style="font-size:0.75rem; color:var(--text-muted);">Đang quét các dịch vụ ADB mDNS trên mạng nội bộ...</span>';
   try {
-    const res = await fetch('/api/mdns-scan');
+    const res = await fetch('/api/discovery/mdns');
     const data = await res.json();
-    if (data.services && data.services.length > 0) {
-      listEl.innerHTML = data.services.map(s => {
-        const parts = s.split(/\s+/);
-        const addr = parts[parts.length - 1];
-        return `<button type="button" class="btn btn-sm" style="font-size:0.72rem; padding:2px 8px;" onclick="document.getElementById('modalRemoteAddr').value='${escapeHtml(addr)}'">${escapeHtml(s)}</button>`;
-      }).join('');
-    } else {
-      listEl.innerHTML = '<span style="color:var(--text-faint); font-size:0.75rem;">Chưa phát hiện mDNS tự động. Hãy nhập IP:Port bên trên.</span>';
+    if (!data.services || data.services.length === 0) {
+      list.innerHTML = '<span style="font-size:0.75rem; color:var(--text-faint);">Không tìm thấy thiết bị nào quảng bá mDNS trên mạng.</span>';
+      return;
     }
-  } catch (e) {
-    listEl.innerHTML = '<span style="color:var(--text-faint); font-size:0.75rem;">Không thể quét mDNS.</span>';
+    list.innerHTML = data.services.map(s => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(30,41,59,0.7); border-radius:6px; font-size:0.76rem;">
+        <span>${escapeHtml(s.name || s.host)}:<b>${s.port}</b></span>
+        <button class="btn btn-sm btn-primary" onclick="document.getElementById('connectModalAddr').value='${s.host}:${s.port}'; connectWirelessModal();">Nối</button>
+      </div>
+    `).join('');
+  } catch (err) {
+    list.innerHTML = `<span style="font-size:0.75rem; color:#f87171;">Lỗi quét: ${escapeHtml(err.message)}</span>`;
   }
 }
 
 async function connectWirelessModal() {
-  const addr = document.getElementById('modalRemoteAddr').value.trim();
-  if (!addr) return alert('Vui lòng nhập IP:Port!');
-  try {
-    const res = await fetch('/api/connect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ addr })
-    });
-    const data = await res.json();
-    if (data.success) {
-      alert('Kết nối Wi-Fi thành công: ' + data.stdout);
-      closeModal('connectModal');
-      loadDevices();
-    } else {
-      alert('Kết nối thất bại: ' + (data.stderr || data.message));
-    }
-  } catch (e) {
-    alert('Lỗi: ' + e);
-  }
+  const addr = (document.getElementById('connectModalAddr').value || '').trim();
+  if (!addr) return;
+  closeModal('connectModal');
+  await connectDevice(addr);
 }
 
 async function switchToWifi(serial) {
   try {
-    const res = await fetch('/api/tcpip', {
+    const res = await fetch('/api/devices/tcpip', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ serial, port: 5555, auto_connect: true })
+      body: JSON.stringify({ serial, port: 5555 })
     });
-    const data = await res.json();
-    if (data.success) {
-      alert('Chuyển sang Wi-Fi thành công: ' + data.stdout + '\n\nBây giờ bạn có thể rút dây cáp USB và máy vẫn hoạt động qua Wi-Fi!');
-      loadDevices();
-    } else {
-      alert('Không thể chuyển sang Wi-Fi: ' + (data.stderr || data.message));
-    }
-  } catch (e) {
-    alert('Lỗi: ' + e);
+    if (!res.ok) throw new Error('Không thể bật TCP/IP');
+    alert('Đã bật cổng 5555! Vui lòng kiểm tra địa chỉ Wi-Fi IP của máy và kết nối.');
+    loadDevices();
+  } catch (err) {
+    alert('Lỗi: ' + err.message);
   }
 }
 
-// Pair Modal
-function openPairModal() { document.getElementById('pairModal').classList.add('active'); }
-async function pairWireless() {
-  const addr = document.getElementById('pairAddr').value.trim();
-  const code = document.getElementById('pairCode').value.trim();
-  if (!addr || !code) return alert('Vui lòng nhập đầy đủ IP:Port và Mã ghép nối!');
-  const res = await fetch('/api/pair', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ addr, code })
-  });
-  const data = await res.json();
-  alert(data.success ? 'Ghép đôi thành công: ' + data.stdout : 'Ghép đôi thất bại: ' + (data.stderr || data.message));
-  closeModal('pairModal');
-  loadDevices();
+function openPairModal() {
+  document.getElementById('pairModal').classList.add('active');
+  setTimeout(() => document.getElementById('pairAddr').focus(), 100);
 }
 
-// Shell Modal
+async function pairWireless() {
+  const addr = (document.getElementById('pairAddr').value || '').trim();
+  const code = (document.getElementById('pairCode').value || '').trim();
+  if (!addr || !code) {
+    alert('Vui lòng nhập đầy đủ địa chỉ host:port và mã ghép đôi 6 số.');
+    return;
+  }
+  try {
+    const res = await fetch('/api/devices/pair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: addr, code })
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Ghép đôi thất bại');
+    alert(d.message || 'Ghép đôi không dây thành công! Giờ bạn có thể kết nối.');
+    closeModal('pairModal');
+    loadDevices();
+  } catch (err) {
+    alert('Lỗi ghép đôi: ' + err.message);
+  }
+}
+
 function openShellModal(serial, name) {
   currentSerial = serial;
-  document.getElementById('shellModalTitle').textContent = `ADB Shell: ${name} (${serial})`;
-  document.getElementById('termOutput').textContent = '// Nhập lệnh và nhấn Enter hoặc nút Chạy...';
-  document.getElementById('cmdInput').value = '';
+  document.getElementById('shellModalTitle').querySelector('span').textContent = `ADB Shell: ${name}`;
+  document.getElementById('shellOutput').textContent = 'Sẵn sàng. Nhập lệnh và nhấn Enter hoặc chọn lệnh nhanh bên dưới...';
   document.getElementById('shellModal').classList.add('active');
-  setTimeout(() => document.getElementById('cmdInput').focus(), 100);
+  setTimeout(() => document.getElementById('shellCommandInput').focus(), 100);
+}
+
+function quickShell(cmd) {
+  document.getElementById('shellCommandInput').value = cmd;
+  executeShell();
 }
 
 async function executeShell() {
-  const cmd = document.getElementById('cmdInput').value.trim();
-  if (!cmd) return;
-  const out = document.getElementById('termOutput');
-  out.textContent = `> ${cmd}\nĐang thực thi...\n`;
+  const cmd = (document.getElementById('shellCommandInput').value || '').trim();
+  if (!cmd || !currentSerial) return;
+  const out = document.getElementById('shellOutput');
+  out.textContent = `$ ${cmd}\nĐang thực thi...\n`;
   try {
-    const res = await fetch('/api/shell', {
+    const res = await fetch('/api/devices/shell', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ serial: currentSerial, command: cmd })
     });
-    const data = await res.json();
-    out.textContent = `> ${cmd}\n${data.stdout || ''}${data.stderr ? '\n[STDERR]: ' + data.stderr : ''}`;
-    loadDevices();
-  } catch (e) {
-    out.textContent += '\n[Lỗi kết nối]: ' + e;
+    const d = await res.json();
+    out.textContent = `$ ${cmd}\n` + (d.output || d.error || '(Không có phản hồi)');
+  } catch (err) {
+    out.textContent = `$ ${cmd}\nLỗi thực thi: ${err.message}`;
   }
 }
 
 function copyShellOutput(btn) {
-  const text = document.getElementById('termOutput').textContent;
-  copyText(text, btn);
+  copyText(document.getElementById('shellOutput').textContent, btn);
 }
 
-// Screenshot Modal
 function openScreenModal(serial, name) {
   currentSerial = serial;
-  document.getElementById('screenModalTitle').textContent = `Màn hình: ${name} (${serial})`;
+  document.getElementById('screenModalTitle').querySelector('span').textContent = `Màn hình: ${name}`;
   document.getElementById('screenModal').classList.add('active');
   refreshCurrentScreenshot();
 }
 
 async function refreshCurrentScreenshot() {
-  const loading = document.getElementById('screenLoading');
-  const img = document.getElementById('screenImg');
-  const copyBtn = document.getElementById('copyScreenBtn');
-  const downBtn = document.getElementById('downloadScreenBtn');
-
-  loading.style.display = 'block';
-  loading.textContent = 'Đang chụp ảnh màn hình từ thiết bị...';
-  img.style.display = 'none';
-  copyBtn.disabled = true;
-  downBtn.disabled = true;
+  if (!currentSerial) return;
+  const loadEl = document.getElementById('screenLoading');
+  const imgEl = document.getElementById('screenImage');
+  loadEl.style.display = 'block';
+  imgEl.style.display = 'none';
 
   try {
-    const res = await fetch(`/api/screenshot?serial=${encodeURIComponent(currentSerial)}&t=${Date.now()}`);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      loading.textContent = 'Chụp ảnh thất bại: ' + (err.message || res.statusText);
-      return;
-    }
-    const blob = await res.blob();
-    currentScreenBlob = blob;
+    const res = await fetch(`/api/devices/screencap?serial=${encodeURIComponent(currentSerial)}&t=${Date.now()}`);
+    if (!res.ok) throw new Error('Chụp màn hình thất bại');
+    currentScreenBlob = await res.blob();
     if (currentScreenObjectUrl) URL.revokeObjectURL(currentScreenObjectUrl);
-    currentScreenObjectUrl = URL.createObjectURL(blob);
-    img.src = currentScreenObjectUrl;
-    img.style.display = 'block';
-    loading.style.display = 'none';
-    copyBtn.disabled = false;
-    downBtn.disabled = false;
-  } catch (e) {
-    loading.textContent = 'Lỗi chụp màn hình: ' + e;
+    currentScreenObjectUrl = URL.createObjectURL(currentScreenBlob);
+    imgEl.src = currentScreenObjectUrl;
+    imgEl.onload = () => {
+      loadEl.style.display = 'none';
+      imgEl.style.display = 'block';
+    };
+  } catch (err) {
+    loadEl.textContent = 'Lỗi chụp màn hình: ' + err.message;
   }
 }
 
@@ -1926,11 +2127,11 @@ async function copyCurrentScreenshot(btn) {
   if (!currentScreenBlob) return;
   try {
     await navigator.clipboard.write([
-      new ClipboardItem({ 'image/png': currentScreenBlob })
+      new ClipboardItem({ [currentScreenBlob.type || 'image/png']: currentScreenBlob })
     ]);
     flashCopied(btn, '✓ Đã copy ảnh!');
-  } catch (e) {
-    alert('Trình duyệt không hỗ trợ copy ảnh trực tiếp: ' + e);
+  } catch (err) {
+    alert('Trình duyệt không cho phép copy ảnh trực tiếp: ' + err.message);
   }
 }
 
@@ -1938,140 +2139,122 @@ function downloadCurrentScreenshot() {
   if (!currentScreenObjectUrl) return;
   const a = document.createElement('a');
   a.href = currentScreenObjectUrl;
-  const cleanSerial = (currentSerial || 'device').replace(/[^a-zA-Z0-9_-]/g, '_');
-  a.download = `screenshot_${cleanSerial}_${Date.now()}.png`;
-  document.body.appendChild(a);
+  a.download = `screencap-${currentSerial || 'android'}-${Date.now()}.png`;
   a.click();
-  document.body.removeChild(a);
 }
 
-// Logcat Modal Management
-let currentLogcatSerial = '';
-let currentLogcatRaw = '';
-let logcatAutoTimer = null;
-
 function openLogcatModal(serial, name) {
-  currentLogcatSerial = serial;
-  document.getElementById('logcatModalTitle').textContent = `Nhật ký hệ thống (Logcat): ${name} (${serial})`;
+  currentSerial = serial;
+  document.getElementById('logcatModalTitle').querySelector('span').textContent = `Logcat: ${name}`;
   document.getElementById('logcatModal').classList.add('active');
   fetchLogcat();
 }
 
 async function fetchLogcat() {
+  if (!currentSerial) return;
   const out = document.getElementById('logcatOutput');
-  const prio = document.getElementById('logcatPriority').value;
-  const lines = document.getElementById('logcatLines').value;
-  let url = `/api/logcat?serial=${encodeURIComponent(currentLogcatSerial)}&lines=${lines}`;
-  if (prio) url += `&filter=${encodeURIComponent(prio)}`;
-
-  out.textContent = 'Đang tải logcat từ thiết bị...';
-
   try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      out.textContent = `Lỗi tải Logcat: ${err.message || res.statusText}`;
-      return;
-    }
-    const data = await res.json();
-    currentLogcatRaw = data.logs || '(Không có nhật ký)';
+    const res = await fetch(`/api/devices/logcat?serial=${encodeURIComponent(currentSerial)}&lines=350`);
+    if (!res.ok) throw new Error('Không đọc được logcat');
+    const text = await res.text();
+    rawLogcatCache = text;
     applyLogcatFilter();
-  } catch (e) {
-    out.textContent = `Lỗi mạng khi tải Logcat: ${e}`;
+  } catch (err) {
+    out.textContent = 'Lỗi đọc logcat: ' + err.message;
   }
 }
 
 function applyLogcatFilter() {
+  const level = document.getElementById('logcatLevel').value;
+  const filterText = (document.getElementById('logcatFilterText').value || '').toLowerCase().trim();
   const out = document.getElementById('logcatOutput');
-  const kw = (document.getElementById('logcatFilterInput').value || '').trim().toLowerCase();
-  if (!kw) {
-    renderColoredLogcat(currentLogcatRaw);
-    return;
-  }
-  const lines = currentLogcatRaw.split('\n');
-  const filtered = lines.filter(l => l.toLowerCase().includes(kw));
-  renderColoredLogcat(filtered.join('\n'));
-}
 
-function renderColoredLogcat(text) {
-  const out = document.getElementById('logcatOutput');
-  if (!text) {
-    out.textContent = '(Trống)';
-    return;
-  }
-  const lines = text.split('\n');
-  const html = lines.map(line => {
-    let color = '#cbd5e1';
-    if (line.includes(' E ') || line.includes(' F ') || line.startsWith('E/') || line.startsWith('F/')) {
-      color = '#f87171'; // red
-    } else if (line.includes(' W ') || line.startsWith('W/')) {
-      color = '#fbbf24'; // amber
-    } else if (line.includes(' I ') || line.startsWith('I/')) {
-      color = '#38bdf8'; // sky blue
-    } else if (line.includes(' D ') || line.startsWith('D/')) {
-      color = '#94a3b8'; // gray
-    }
-    return `<div style="color:${color};">${escapeHtml(line)}</div>`;
-  }).join('');
-  out.innerHTML = html;
+  if (!rawLogcatCache) return;
+  const lines = rawLogcatCache.split('\n');
+  const filtered = lines.filter(line => {
+    if (filterText && !line.toLowerCase().includes(filterText)) return false;
+    if (level === 'all') return true;
+    if (level === 'I') return line.includes(' I ') || line.includes(' W ') || line.includes(' E ') || line.includes(' F ');
+    if (level === 'W') return line.includes(' W ') || line.includes(' E ') || line.includes(' F ');
+    if (level === 'E') return line.includes(' E ') || line.includes(' F ');
+    return true;
+  });
+
+  out.innerHTML = renderColoredLogcat(filtered.join('\n'));
   out.scrollTop = out.scrollHeight;
 }
 
+function renderColoredLogcat(text) {
+  if (!text) return '(Không có dòng log nào phù hợp bộ lọc)';
+  return escapeHtml(text).replace(/^.*$/gm, line => {
+    if (line.includes(' E ') || line.includes(' F ') || line.includes('FATAL')) {
+      return `<span style="color:#f87171;">${line}</span>`;
+    }
+    if (line.includes(' W ')) {
+      return `<span style="color:#fbbf24;">${line}</span>`;
+    }
+    if (line.includes(' I ')) {
+      return `<span style="color:#38bdf8;">${line}</span>`;
+    }
+    if (line.includes(' D ')) {
+      return `<span style="color:#a5b4fc;">${line}</span>`;
+    }
+    return `<span style="color:#94a3b8;">${line}</span>`;
+  });
+}
+
 function copyLogcatText(btn) {
-  const text = document.getElementById('logcatOutput').innerText;
-  copyText(text, btn);
+  copyText(document.getElementById('logcatOutput').textContent, btn);
 }
 
 function downloadLogcatFile() {
-  if (!currentLogcatRaw) return;
-  const blob = new Blob([currentLogcatRaw], { type: 'text/plain;charset=utf-8' });
+  const blob = new Blob([document.getElementById('logcatOutput').textContent], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  const cleanSerial = (currentLogcatSerial || 'device').replace(/[^a-zA-Z0-9_-]/g, '_');
-  a.download = `logcat_${cleanSerial}_${Date.now()}.log`;
-  document.body.appendChild(a);
+  a.download = `logcat-${currentSerial || 'android'}-${Date.now()}.txt`;
   a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function toggleLogcatAutoRefresh(enabled) {
-  if (logcatAutoTimer) {
-    clearInterval(logcatAutoTimer);
-    logcatAutoTimer = null;
-  }
+  if (logcatTimer) clearInterval(logcatTimer);
+  logcatTimer = null;
   if (enabled) {
-    logcatAutoTimer = setInterval(() => {
-      const modal = document.getElementById('logcatModal');
-      if (modal && modal.classList.contains('active')) {
-        fetchLogcat();
-      } else {
-        toggleLogcatAutoRefresh(false);
-      }
-    }, 2000);
+    logcatTimer = setInterval(fetchLogcat, 3000);
   }
 }
 
 function closeModal(id) {
-  document.getElementById(id).classList.remove('active');
-  if (id === 'screenModal' && currentScreenObjectUrl) {
-    URL.revokeObjectURL(currentScreenObjectUrl);
-    currentScreenObjectUrl = null;
-    currentScreenBlob = null;
-  }
-  if (id === 'logcatModal') {
-    toggleLogcatAutoRefresh(false);
-    const cb = document.getElementById('logcatAutoRefresh');
-    if (cb) cb.checked = false;
+  const m = document.getElementById(id);
+  if (m) m.classList.remove('active');
+  if (id === 'logcatModal' && logcatTimer) {
+    clearInterval(logcatTimer);
+    logcatTimer = null;
+    document.getElementById('logcatAutoRefresh').checked = false;
   }
 }
 
-// Auto-refresh & timers
+function handleBackdropClick(event, id) {
+  if (event.target && event.target.id === id) {
+    closeModal(id);
+  }
+}
+
+// Global Keyboard Shortcut: '/' to search, 'Escape' to close modals
+window.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal.active').forEach(m => closeModal(m.id));
+  }
+});
+
+// Initial boot
 loadDevices();
 setInterval(loadDevices, 6000);
-setInterval(tickLiveTimers, 1000);
 </script>
-
 </body>
 </html>
