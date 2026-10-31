@@ -28,6 +28,14 @@ class DashboardViewModel(
     private val _effects = MutableSharedFlow<DashboardUiEffect>(extraBufferCapacity = 8)
     val effects: SharedFlow<DashboardUiEffect> = _effects.asSharedFlow()
 
+    private val pairingController = DashboardPairingController(
+        container = container,
+        scope = viewModelScope,
+        uiState = _uiState,
+        effects = _effects,
+        onSaveConfig = { saveCurrentConfig(silent = true) }
+    )
+
     init {
         viewModelScope.launch { container.ensureTermuxBootstrap() }
         container.adbDiscoveryGateway.startDiscovery()
@@ -158,76 +166,7 @@ class DashboardViewModel(
     }
 
     private fun handlePairingIntent(intent: PairingUiIntent) {
-        when (intent) {
-            is PairingUiIntent.UpdatePairingPort -> _uiState.update { cur ->
-                cur.copy(pairing = cur.pairing.copy(pairingPortInput = intent.value.filter(Char::isDigit).take(5)))
-            }
-            is PairingUiIntent.UpdateConnectPort -> _uiState.update { cur ->
-                cur.copy(pairing = cur.pairing.copy(connectPortInput = intent.value.filter(Char::isDigit).take(5)))
-            }
-            is PairingUiIntent.UpdatePairingCode -> _uiState.update { cur ->
-                cur.copy(pairing = cur.pairing.copy(pairingCodeInput = intent.value.filter(Char::isDigit).take(6)))
-            }
-            PairingUiIntent.StartNotificationPairing -> {
-                container.pairingNotificationGateway.startInteractivePairing()
-                _effects.tryEmit(DashboardUiEffect.LaunchDeveloperSettings)
-            }
-            PairingUiIntent.ActivateTcpip5555 -> activateTcpipMode()
-            PairingUiIntent.SubmitPair -> submitPairing()
-        }
-    }
-
-    private fun activateTcpipMode() {
-        val port = _uiState.value.pairing.effectiveConnectPort ?: return
-        _uiState.update { it.copy(pairing = it.pairing.copy(pairingState = AdbPairingState.PairingInProgress)) }
-        viewModelScope.launch {
-            container.activateTcpipMode(port).fold(
-                onSuccess = { paired ->
-                    _uiState.update { cur ->
-                        cur.copy(
-                            localAdbPortInput = paired.connectPort.toString(),
-                            pairing = cur.pairing.copy(pairingState = paired)
-                        )
-                    }
-                    saveCurrentConfig(silent = true)
-                    _effects.emit(DashboardUiEffect.ShowMessage("Đã bật lại ADB thành công!"))
-                },
-                onFailure = { err ->
-                    _uiState.update { cur ->
-                        cur.copy(pairing = cur.pairing.copy(pairingState = AdbPairingState.Failed(err.message ?: "Lỗi")))
-                    }
-                    _effects.emit(DashboardUiEffect.ShowMessage(err.message ?: "Không thể bật lại ADB"))
-                }
-            )
-        }
-    }
-
-    private fun submitPairing() {
-        val snap = _uiState.value.pairing
-        val pairPort = snap.pairingPortInput.toIntOrNull() ?: snap.discoveredPairingPort ?: return
-        val connectPort = snap.effectiveConnectPort
-
-        _uiState.update { it.copy(pairing = it.pairing.copy(pairingState = AdbPairingState.PairingInProgress)) }
-        viewModelScope.launch {
-            container.pairLocalAdb(pairPort, snap.pairingCodeInput, connectPort).fold(
-                onSuccess = { paired ->
-                    _uiState.update { cur ->
-                        cur.copy(
-                            localAdbPortInput = paired.connectPort.toString(),
-                            pairing = cur.pairing.copy(pairingCodeInput = "", pairingState = paired)
-                        )
-                    }
-                    saveCurrentConfig(silent = true)
-                    _effects.emit(DashboardUiEffect.ShowMessage("Ghép nối ADB thành công!"))
-                },
-                onFailure = { err ->
-                    _uiState.update { cur ->
-                        cur.copy(pairing = cur.pairing.copy(pairingState = AdbPairingState.Failed(err.message ?: "Lỗi")))
-                    }
-                    _effects.emit(DashboardUiEffect.ShowMessage(err.message ?: "Ghép nối thất bại"))
-                }
-            )
-        }
+        pairingController.handleIntent(intent)
     }
 
     private fun handleTermuxIntent(intent: TermuxUiIntent) {

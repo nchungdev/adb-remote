@@ -1,20 +1,17 @@
-# Active Plan: Purge 100% Cloudflare & WebSocketReverseTunnelAdapter -> Pure WebRTC P2P
+# Active Plan: Tool Dashboard UI + Enforce 300-Line Limit
 
 ## Objective
-Remove all remaining Cloudflare-related components and legacy WebSocketReverseTunnelAdapter from the Android application, making WebRtcReverseTunnelAdapter the sole tunnel implementation for P2P connection.
+1. Redesign Web Management UI into a modern developer tool dashboard (Linear / Docker Desktop / Raycast inspired sidebar layout).
+2. Modularize Web UI (`index.html`, `layout.css`, `components.css`, `app.js`, `modals.js`) so every file is <= 300 lines.
+3. Refactor all remaining files > 300 LOC in Android & Go server down to <= 300 LOC.
+4. Update `scripts/check_project.py` with `MAX_LINES = 300` and include `.go`, `.html`, `.js`, `.css` extensions.
+5. Rebuild Go server and restart launch agent.
 
-## Scope of Changes
-1. **Remove `WebSocketReverseTunnelAdapter.kt`**:
-   - Delete `app/src/main/kotlin/app/duinch/adbagent/features/tunnel/data/WebSocketReverseTunnelAdapter.kt`.
-2. **Simplify `DynamicReverseTunnelGateway.kt` / `AppContainer.kt`**:
-   - `WebRtcReverseTunnelAdapter` implements `ReverseTunnelGateway`.
-   - Update `DynamicReverseTunnelGateway.kt` or remove it, wiring `WebRtcReverseTunnelAdapter` directly to `AppContainer.kt`.
-3. **Clean Domain / Config Models (`TunnelModels.kt`, `SharedPrefsTunnelConfigRepository.kt`)**:
-   - Remove `MODE_WEBSOCKET` and any legacy Cloudflare / WebSocket specific properties or validations.
-   - Support `http://`, `https://`, `ws://`, `wss://` for signaling server URL.
-4. **Clean Presentation & UI**:
-   - Check `TunnelSettingsDetailSheets.kt`, `TunnelSettingsTab.kt`, `TunnelHomeTab.kt`, `TunnelHomeComponents.kt`, `DashboardScreen.kt`, `DashboardContract.kt`, `DashboardViewModel.kt` for any remnants of Cloudflare or WebSocket mode switches.
-   - Remove any residual dialogs or unused imports.
-5. **Update Documentation & Tests**:
-   - Run tests: `./app/gradlew testDebugUnitTest`.
-   - Update `docs/` and `README.md` if any references to Cloudflare tunnel remain.
+## Steps
+- [x] 1. Modularize Web UI into `server/internal/controller/http/ui/` (`index.html`, `layout.css`, `components.css`, `app.js`, `modals.js`).
+- [x] 2. Update `server/internal/controller/http/ui/embed.go` & `router.go` to serve static assets (`/ui/*`).
+- [x] 3. Refactor `hub.go` (336 -> 292) and `device_service.go` (335 -> 274).
+- [x] 4. Refactor Kotlin files: `DashboardViewModel.kt` (310 -> 249), `TunnelHomeTab.kt` (322 -> 180), `TunnelHistoryTab.kt` (342 -> 235), `WebRtcReverseTunnelAdapter.kt` (325 -> 296).
+- [x] 5. Update `scripts/check_project.py` with `MAX_LINES = 300` and multi-extension scan (`.kt`, `.py`, `.go`, `.html`, `.js`, `.css`).
+- [x] 6. Run `./gradlew testDebugUnitTest`, `go test ./...`, and `python3 scripts/check_project.py` (All GREEN).
+- [x] 7. Build and restart Go server daemon (`com.duinch.adb-manager` LaunchAgent).

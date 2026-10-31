@@ -18,7 +18,7 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-MAX_LINES = 350
+MAX_LINES = 300
 
 REQUIRED_FILES = [
     "AGENTS.md",
@@ -57,10 +57,10 @@ def check_required_files(errors: list[str]) -> None:
 
 def iter_source_files() -> list[pathlib.Path]:
     results: list[pathlib.Path] = []
-    for ext in ("*.kt", "*.py"):
+    for ext in ("*.kt", "*.py", "*.go", "*.html", "*.js", "*.css"):
         for path in ROOT.rglob(ext):
             parts = set(path.relative_to(ROOT).parts)
-            if parts & {".gradle", "build", ".git", ".idea", ".kotlin"}:
+            if parts & {".gradle", "build", ".git", ".idea", ".kotlin", "vendor", "node_modules", "dist"}:
                 continue
             results.append(path)
     return sorted(results)
@@ -130,7 +130,7 @@ def main() -> int:
             print(f"  - {err}")
         return 1
 
-    print("check_project.py PASSED: Clean Architecture + Feature-First + MVI boundaries & <=350 line limits verified.")
+    print(f"check_project.py PASSED: Clean Architecture + Feature-First + MVI boundaries & <={MAX_LINES} line limits verified.")
     return 0
 
 

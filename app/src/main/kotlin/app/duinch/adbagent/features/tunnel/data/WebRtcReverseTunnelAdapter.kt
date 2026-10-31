@@ -104,7 +104,7 @@ class WebRtcReverseTunnelAdapter(
         closeActiveSession()
         connectionState.value = TunnelConnectionState.Connecting(config.serverUrl)
 
-        val signalUrl = resolveSignalEndpoint(config.serverUrl)
+        val signalUrl = resolveWebRtcSignalEndpoint(config.serverUrl)
         val room = "default"
         val peer = config.deviceAlias.ifBlank { "android-client" }
 
@@ -116,7 +116,7 @@ class WebRtcReverseTunnelAdapter(
             continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
         }
 
-        val pc = factory.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
+        val pc = factory.createPeerConnection(rtcConfig, object : SimplePeerConnectionObserver() {
             override fun onIceCandidate(candidate: IceCandidate) {
                 scope.launch {
                     val candObj = JSONObject().apply {
@@ -140,15 +140,6 @@ class WebRtcReverseTunnelAdapter(
                     handleConnectionLoss("Kết nối P2P thất bại")
                 }
             }
-
-            override fun onSignalingChange(state: PeerConnection.SignalingState) {}
-            override fun onIceConnectionReceivingChange(receiving: Boolean) {}
-            override fun onIceGatheringChange(state: PeerConnection.IceGatheringState) {}
-            override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>) {}
-            override fun onAddStream(stream: org.webrtc.MediaStream) {}
-            override fun onRemoveStream(stream: org.webrtc.MediaStream) {}
-            override fun onDataChannel(dc: DataChannel) {}
-            override fun onRenegotiationNeeded() {}
         }) ?: run {
             connectionState.value = TunnelConnectionState.Error("Không thể khởi tạo WebRTC")
             return
@@ -202,23 +193,18 @@ class WebRtcReverseTunnelAdapter(
             }
         })
 
-        pc.createOffer(object : SdpObserver {
-            override fun onCreateSuccess(desc: SessionDescription) {
-                pc.setLocalDescription(object : SdpObserver {
-                    override fun onCreateSuccess(p0: SessionDescription?) {}
+        pc.createOffer(object : SimpleSdpObserver() {
+            override fun onCreateSuccess(desc: SessionDescription?) {
+                if (desc == null) return
+                pc.setLocalDescription(object : SimpleSdpObserver() {
                     override fun onSetSuccess() {
                         scope.launch {
                             val offerObj = JSONObject().apply { put("sdp", desc.description) }
                             signalingClient.sendSignal(signalUrl, room, peer, "offer", offerObj)
                         }
                     }
-                    override fun onCreateFailure(err: String?) {}
-                    override fun onSetFailure(err: String?) {}
                 }, desc)
             }
-            override fun onSetSuccess() {}
-            override fun onCreateFailure(err: String?) {}
-            override fun onSetFailure(err: String?) {}
         }, MediaConstraints())
 
         startSignalPolling(signalUrl, room, peer, pc)
@@ -236,12 +222,7 @@ class WebRtcReverseTunnelAdapter(
                         "answer" -> {
                             val sdp = payload?.optString("sdp").orEmpty()
                             if (sdp.isNotBlank()) {
-                                pc.setRemoteDescription(object : SdpObserver {
-                                    override fun onCreateSuccess(p0: SessionDescription?) {}
-                                    override fun onSetSuccess() {}
-                                    override fun onCreateFailure(p0: String?) {}
-                                    override fun onSetFailure(p0: String?) {}
-                                }, SessionDescription(SessionDescription.Type.ANSWER, sdp))
+                                pc.setRemoteDescription(SimpleSdpObserver(), SessionDescription(SessionDescription.Type.ANSWER, sdp))
                             }
                         }
                         "candidate" -> {
@@ -312,14 +293,5 @@ class WebRtcReverseTunnelAdapter(
         dataChannel = null
         runCatching { peerConnection?.close() }
         peerConnection = null
-    }
-
-    private fun resolveSignalEndpoint(serverUrl: String): String {
-        var base = serverUrl.trim()
-        if (base.startsWith("wss://")) base = "https://" + base.removePrefix("wss://")
-        if (base.startsWith("ws://")) base = "http://" + base.removePrefix("ws://")
-        if (!base.startsWith("http://") && !base.startsWith("https://")) base = "https://$base"
-        val clean = base.substringBefore("/api/tunnel").trimEnd('/')
-        return "$clean/api/webrtc/signal"
     }
 }

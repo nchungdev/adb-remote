@@ -133,159 +133,17 @@ fun TunnelHomeTab(
             )
         } else {
             // Bước 2: Bảng điều khiển kết nối 1-chạm (Single-Layer Switchboard Card)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(
-                    1.dp,
-                    if (connected != null) ext.statusConnected else ext.cardBorder
-                ),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 22.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(68.dp)
-                            .background(animatedContainer, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = AppIcons.ShieldBolt,
-                            contentDescription = null,
-                            tint = animatedTint,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Surface(color = animatedContainer, shape = CircleShape) {
-                        Text(
-                            text = badgeLabel,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = animatedTint,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        val mappedAddr = connected?.mappedServerPort?.let { "127.0.0.1:$it" }
-                        if (mappedAddr != null) {
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Surface(
-                                color = ext.surfaceElevated,
-                                shape = CircleShape,
-                                modifier = Modifier.clickable(role = Role.Button) {
-                                    clipboard.setText(AnnotatedString(mappedAddr))
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = AppIcons.Copy,
-                                    contentDescription = "Sao chép $mappedAddr",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .padding(5.dp)
-                                        .size(13.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    val uptimeText = if (connected != null) {
-                        formatDurationVi((nowEpochMs - connected.connectedAtEpochMs).coerceAtLeast(0L))
-                    } else {
-                        "--:--"
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 4 mục Telemetry tích hợp bên trong Card kết nối
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            TelemetryTile(
-                                label = "Thời gian",
-                                value = uptimeText,
-                                monospace = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                            TelemetryTile(
-                                label = "Mạng",
-                                value = state.activeNetwork.label,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            TelemetryTile(
-                                label = "Cổng ADB",
-                                value = state.localAdbPortInput.ifBlank { "5555" },
-                                monospace = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                            TelemetryTile(
-                                label = "Lưu lượng",
-                                value = formatBytesVi(connected?.bytesBridged ?: 0L),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    // Nút kết nối 1-chạm Master
-                    Button(
-                        onClick = { onIntent(DashboardUiIntent.ToggleTunnel) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 52.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = if (state.isTunnelActive) {
-                            ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError
-                            )
-                        } else {
-                            ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    ) {
-                        Text(
-                            text = if (state.isTunnelActive) "Ngắt kết nối" else "Bật kết nối Mac mini",
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
+            TunnelSwitchboardCard(
+                state = state,
+                connected = connected,
+                animatedContainer = animatedContainer,
+                animatedTint = animatedTint,
+                badgeLabel = badgeLabel,
+                subtitle = subtitle,
+                nowEpochMs = nowEpochMs,
+                onIntent = onIntent,
+                onCopyMappedAddr = { clipboard.setText(AnnotatedString(it)) }
+            )
 
             // Thẻ đường truyền kích hoạt phẳng đơn lớp
             ActiveConnectionModeCard(
