@@ -14,6 +14,7 @@ sealed interface UpdateStatus {
     data class UpToDate(val versionName: String) : UpdateStatus
     data class Available(val release: AppReleaseInfo) : UpdateStatus
     data class Downloading(val release: AppReleaseInfo, val progressPercent: Int) : UpdateStatus
+    data class Installing(val release: AppReleaseInfo) : UpdateStatus
     data class ReadyToInstall(
         val release: AppReleaseInfo,
         val localFilePath: String,

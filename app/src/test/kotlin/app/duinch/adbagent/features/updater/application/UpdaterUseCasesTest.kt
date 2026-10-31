@@ -21,9 +21,11 @@ class UpdaterUseCasesTest {
             changelog = "GitHub Releases OTA update"
         ),
         var allowInstalls: Boolean = true,
+        var silentInstallSupported: Boolean = false,
         var currentToken: String = ""
     ) : AppUpdateGateway {
         var triggeredPath: String? = null
+        var silentInstallCalled: Boolean = false
 
         override fun getGitHubToken(): String = currentToken
 
@@ -49,6 +51,11 @@ class UpdaterUseCasesTest {
         override fun triggerPackageInstall(localFilePath: String): Result<Unit> {
             triggeredPath = localFilePath
             return Result.success(Unit)
+        }
+
+        override suspend fun installPackageSilently(localFilePath: String, adbPort: Int): Result<Unit> {
+            silentInstallCalled = true
+            return if (silentInstallSupported) Result.success(Unit) else Result.failure(IllegalStateException("No ADB"))
         }
     }
 
@@ -85,5 +92,17 @@ class UpdaterUseCasesTest {
         assertEquals(listOf(50, 100), progressSeen)
         assertEquals(false, ready.needsInstallPermission)
         assertEquals("/cache/updates/adb-agent-v0.3.0.apk", gateway.triggeredPath)
+    }
+
+    @Test
+    fun `installs silently via adb when supported without prompting system package installer`() = runTest {
+        val gateway = FakeAppUpdateGateway(silentInstallSupported = true)
+        val download = DownloadAndInstallUpdateUseCase(gateway)
+
+        val status = download(gateway.remoteRelease) { }
+
+        assertEquals(UpdateStatus.UpToDate("0.3.0"), status)
+        assertEquals(true, gateway.silentInstallCalled)
+        assertEquals(null, gateway.triggeredPath)
     }
 }

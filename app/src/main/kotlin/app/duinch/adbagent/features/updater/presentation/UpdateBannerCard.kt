@@ -34,6 +34,7 @@ fun CompactUpdateAlertBanner(
 ) {
     val active = state.status is UpdateStatus.Available ||
         state.status is UpdateStatus.Downloading ||
+        state.status is UpdateStatus.Installing ||
         state.status is UpdateStatus.ReadyToInstall
     if (!active) return
 
@@ -46,7 +47,9 @@ fun UpdateBannerCard(
     onIntent: (UpdaterUiIntent) -> Unit
 ) {
     val ext = AdbTheme.colors
-    val isHighlight = state.status is UpdateStatus.Available || state.status is UpdateStatus.ReadyToInstall
+    val isHighlight = state.status is UpdateStatus.Available ||
+        state.status is UpdateStatus.ReadyToInstall ||
+        state.status is UpdateStatus.Installing
     val borderColor = if (isHighlight) ext.statusConnected else ext.cardBorder
 
     Card(
@@ -96,6 +99,7 @@ fun UpdateBannerCard(
                         is UpdateStatus.UpToDate -> "Đang ở phiên bản mới nhất"
                         is UpdateStatus.Available -> "Có bản mới v${s.release.versionName}: ${s.release.changelog}"
                         is UpdateStatus.Downloading -> "Đang tải gói cài đặt... ${s.progressPercent}%"
+                        is UpdateStatus.Installing -> "Đang tự động cài đặt ngầm qua ADB..."
                         is UpdateStatus.ReadyToInstall ->
                             if (s.needsInstallPermission) "Cần cấp quyền cài đặt APK để hoàn tất"
                             else "Đã tải xong v${s.release.versionName} — sẵn sàng cài đặt"
@@ -116,6 +120,7 @@ fun UpdateBannerCard(
 
             if (state.status !is UpdateStatus.Available &&
                 state.status !is UpdateStatus.Downloading &&
+                state.status !is UpdateStatus.Installing &&
                 state.status !is UpdateStatus.ReadyToInstall
             ) {
                 Spacer(modifier = Modifier.height(14.dp))
@@ -154,6 +159,14 @@ fun UpdateBannerCard(
                     Spacer(modifier = Modifier.height(12.dp))
                     LinearProgressIndicator(
                         progress = { s.progressPercent / 100f },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                    )
+                }
+                is UpdateStatus.Installing -> {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    LinearProgressIndicator(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(6.dp)

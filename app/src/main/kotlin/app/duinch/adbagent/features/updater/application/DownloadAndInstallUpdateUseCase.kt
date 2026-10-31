@@ -18,6 +18,11 @@ class DownloadAndInstallUpdateUseCase(
 
         return downloadRes.fold(
             onSuccess = { localPath ->
+                val silentRes = updateGateway.installPackageSilently(localPath)
+                if (silentRes.isSuccess) {
+                    return@fold UpdateStatus.UpToDate(release.versionName)
+                }
+
                 val canInstall = updateGateway.canRequestPackageInstalls()
                 if (canInstall) {
                     updateGateway.triggerPackageInstall(localPath)

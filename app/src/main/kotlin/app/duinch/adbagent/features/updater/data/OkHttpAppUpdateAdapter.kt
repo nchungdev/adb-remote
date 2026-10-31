@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
 import app.duinch.adbagent.BuildConfig
+import app.duinch.adbagent.features.termux.domain.TermuxRuntimeGateway
 import app.duinch.adbagent.features.updater.domain.AppReleaseInfo
 import app.duinch.adbagent.features.updater.domain.AppUpdateGateway
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +18,8 @@ import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 class OkHttpAppUpdateAdapter(
-    context: Context
+    context: Context,
+    private val termuxRuntime: TermuxRuntimeGateway? = null
 ) : AppUpdateGateway {
 
     private val appContext = context.applicationContext
@@ -202,6 +204,22 @@ class OkHttpAppUpdateAdapter(
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         appContext.startActivity(installIntent)
+    }
+
+    override suspend fun installPackageSilently(localFilePath: String, adbPort: Int): Result<Unit> {
+        val termux = termuxRuntime ?: return Result.failure(IllegalStateException("Không có Termux runtime"))
+        return runCatching {
+            termux.ensureBootstrapReady().getOrThrow()
+            val adbBin = termux.getPrefixPaths().adbBinaryPath
+            val installCmd = "\"$adbBin\" -s 127.0.0.1:$adbPort install -r -d \"$localFilePath\""
+            val res = termux.executeCommand(installCmd, timeoutSeconds = 60L).getOrThrow()
+            val combined = "${res.stdout}\n${res.stderr}".trim()
+            if (!res.isSuccess || !combined.contains("Success", ignoreCase = true)) {
+                error(combined.ifBlank { "Lệnh cài đặt âm thầm qua ADB thất bại" })
+            }
+            val restartCmd = "\"$adbBin\" -s 127.0.0.1:$adbPort shell am start -n app.duinch.adbagent/.MainActivity"
+            termux.executeCommand(restartCmd, timeoutSeconds = 5L)
+        }
     }
 
     companion object {
