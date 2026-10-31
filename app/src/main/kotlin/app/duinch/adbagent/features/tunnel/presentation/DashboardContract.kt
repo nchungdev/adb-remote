@@ -27,6 +27,7 @@ data class DashboardUiState(
     val activeNetwork: NetworkType = NetworkType.UNKNOWN,
     val localWifiIp: String = "",
     val isUsbConnected: Boolean = false,
+    val forceShowPairing: Boolean = false,
     val connectionState: TunnelConnectionState = TunnelConnectionState.Disconnected,
     val history: List<TunnelHistoryEntry> = emptyList(),
     val showAllHistory: Boolean = false,
@@ -63,6 +64,7 @@ sealed interface DashboardUiIntent {
     data object ClearHistory : DashboardUiIntent
     data object ToggleHostCommandsExpand : DashboardUiIntent
     data object ClearHostCommands : DashboardUiIntent
+    data class SetForceShowPairing(val force: Boolean) : DashboardUiIntent
     data class OnPairingIntent(val intent: PairingUiIntent) : DashboardUiIntent
     data class OnTermuxIntent(val intent: TermuxUiIntent) : DashboardUiIntent
 }

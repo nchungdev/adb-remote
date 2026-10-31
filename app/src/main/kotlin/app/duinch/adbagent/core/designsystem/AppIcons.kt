@@ -215,4 +215,12 @@ object AppIcons {
             verticalLineTo(6f)
         }
     }
+
+    val MoreVertical: ImageVector by lazy {
+        strokeIcon("MoreVertical") {
+            moveTo(12f, 5f); horizontalLineTo(12.05f)
+            moveTo(12f, 12f); horizontalLineTo(12.05f)
+            moveTo(12f, 19f); horizontalLineTo(12.05f)
+        }
+    }
 }

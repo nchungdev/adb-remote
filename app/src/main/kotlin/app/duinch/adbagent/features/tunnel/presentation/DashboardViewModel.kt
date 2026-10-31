@@ -96,6 +96,8 @@ class DashboardViewModel(
                 container.hostActivityRepository.clearCommands()
                 _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã xóa danh sách lệnh máy tính"))
             }
+            is DashboardUiIntent.SetForceShowPairing ->
+                _uiState.update { it.copy(selectedTab = AppTab.CONNECT, forceShowPairing = intent.force) }
             is DashboardUiIntent.OnPairingIntent -> handlePairingIntent(intent.intent)
             is DashboardUiIntent.OnTermuxIntent -> handleTermuxIntent(intent.intent)
         }
