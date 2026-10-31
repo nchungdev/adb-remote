@@ -33,32 +33,75 @@ class OkHttpAppUpdateAdapter(
     override val installedVersionName: String = BuildConfig.VERSION_NAME
 
     override suspend fun fetchLatestRelease(
-        originHttpsUrl: String
+        repository: String
     ): Result<AppReleaseInfo> = withContext(Dispatchers.IO) {
         runCatching {
-            val base = originHttpsUrl.trimEnd('/')
-            val req = Request.Builder().url("$base/api/app-version").build()
+            val targetRepo = repository.trim().ifBlank { AppUpdateGateway.DEFAULT_REPOSITORY }
+            val url = "https://api.github.com/repos/$targetRepo/releases/latest"
+            val req = Request.Builder()
+                .url(url)
+                .header("Accept", "application/vnd.github+json")
+                .header("User-Agent", "ADB-Agent/$installedVersionName")
+                .build()
+
             httpClient.newCall(req).execute().use { resp ->
+                if (resp.code == 404) {
+                    error("Không tìm thấy bản phát hành trên GitHub (hoặc repository '$targetRepo' đang ở chế độ Private).")
+                }
                 if (!resp.isSuccessful) {
-                    error("Máy chủ trả về mã lỗi HTTP ${resp.code}")
+                    error("GitHub API trả về lỗi HTTP ${resp.code}")
                 }
                 val rawBody = resp.body?.string().orEmpty()
                 val obj = JSONObject(rawBody)
-                val downloadPath = obj.optString("downloadUrl", "/download/adb-agent.apk")
-                val resolvedUrl = if (downloadPath.startsWith("http")) {
-                    downloadPath
-                } else {
-                    "$base/${downloadPath.trimStart('/')}"
+                val tagName = obj.getString("tag_name")
+                val versionName = tagName.removePrefix("v").trim()
+
+                val assets = obj.optJSONArray("assets")
+                var apkUrl: String? = null
+                if (assets != null) {
+                    for (i in 0 until assets.length()) {
+                        val asset = assets.getJSONObject(i)
+                        val name = asset.optString("name", "")
+                        if (name.endsWith(".apk", ignoreCase = true)) {
+                            apkUrl = asset.getString("browser_download_url")
+                            break
+                        }
+                    }
                 }
+                if (apkUrl.isNullOrBlank()) {
+                    error("Bản phát hành $tagName trên GitHub không có tệp APK đính kèm")
+                }
+
+                val changelog = obj.optString("body", "Bản cập nhật $tagName từ GitHub Releases.")
+                val derivedVersionCode = parseDerivedVersionCode(versionName, changelog)
+
                 AppReleaseInfo(
-                    versionCode = obj.getInt("versionCode"),
-                    versionName = obj.getString("versionName"),
-                    downloadUrl = resolvedUrl,
-                    sha256 = obj.optString("sha256", "").lowercase(),
-                    changelog = obj.optString("changelog", "Bản cập nhật cải tiến hiệu năng & kết nối.")
+                    versionCode = derivedVersionCode,
+                    versionName = versionName,
+                    downloadUrl = apkUrl,
+                    sha256 = extractSha256(changelog),
+                    changelog = changelog
                 )
             }
         }
+    }
+
+    private fun parseDerivedVersionCode(versionName: String, changelog: String): Int {
+        val codeMatch = Regex("versionCode:\\s*(\\d+)", RegexOption.IGNORE_CASE).find(changelog)
+        if (codeMatch != null) {
+            val code = codeMatch.groupValues[1].toIntOrNull()
+            if (code != null) return code
+        }
+        val parts = versionName.split('.').mapNotNull { it.filter(Char::isDigit).toIntOrNull() }
+        val major = parts.getOrElse(0) { 0 }
+        val minor = parts.getOrElse(1) { 0 }
+        val patch = parts.getOrElse(2) { 0 }
+        return major * 10000 + minor * 100 + patch
+    }
+
+    private fun extractSha256(text: String): String {
+        val regex = Regex("\\b[a-fA-F0-9]{64}\\b")
+        return regex.find(text)?.value?.lowercase().orEmpty()
     }
 
     override suspend fun downloadReleaseApk(
@@ -66,7 +109,11 @@ class OkHttpAppUpdateAdapter(
         onProgress: (Int) -> Unit
     ): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
-            val req = Request.Builder().url(release.downloadUrl).build()
+            val req = Request.Builder()
+                .url(release.downloadUrl)
+                .header("User-Agent", "ADB-Agent/$installedVersionName")
+                .header("Accept", "application/octet-stream")
+                .build()
             val updatesDir = File(appContext.cacheDir, "updates").apply { mkdirs() }
             updatesDir.listFiles()?.forEach { runCatching { it.delete() } }
             val outFile = File(updatesDir, "adb-agent-v${release.versionName}.apk")

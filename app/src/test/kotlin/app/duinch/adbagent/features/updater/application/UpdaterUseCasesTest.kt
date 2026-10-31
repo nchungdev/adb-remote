@@ -1,7 +1,5 @@
 package app.duinch.adbagent.features.updater.application
 
-import app.duinch.adbagent.features.tunnel.domain.TunnelConfig
-import app.duinch.adbagent.features.tunnel.domain.TunnelConfigRepository
 import app.duinch.adbagent.features.updater.domain.AppReleaseInfo
 import app.duinch.adbagent.features.updater.domain.AppUpdateGateway
 import app.duinch.adbagent.features.updater.domain.UpdateStatus
@@ -12,30 +10,22 @@ import kotlin.test.assertIs
 
 class UpdaterUseCasesTest {
 
-    private class FakeTunnelConfigRepo : TunnelConfigRepository {
-        private var stored = TunnelConfig()
-        override fun getConfig(): TunnelConfig = stored
-        override fun saveConfig(config: TunnelConfig) {
-            stored = config
-        }
-    }
-
     private class FakeAppUpdateGateway(
         override val installedVersionCode: Int = 2,
         override val installedVersionName: String = "0.2.0",
         var remoteRelease: AppReleaseInfo = AppReleaseInfo(
             versionCode = 3,
             versionName = "0.3.0",
-            downloadUrl = "https://adb.duinch.app/download/adb-agent.apk",
+            downloadUrl = "https://github.com/nchungdev/adb-agent/releases/download/v0.3.0/app-debug.apk",
             sha256 = "abc123",
-            changelog = "In-app OTA update"
+            changelog = "GitHub Releases OTA update"
         ),
         var allowInstalls: Boolean = true
     ) : AppUpdateGateway {
         var triggeredPath: String? = null
 
         override suspend fun fetchLatestRelease(
-            originHttpsUrl: String
+            repository: String
         ): Result<AppReleaseInfo> = Result.success(remoteRelease)
 
         override suspend fun downloadReleaseApk(
@@ -58,7 +48,7 @@ class UpdaterUseCasesTest {
     @Test
     fun `detects available update when remote versionCode exceeds installed`() = runTest {
         val gateway = FakeAppUpdateGateway(installedVersionCode = 2)
-        val check = CheckAppUpdateUseCase(gateway, FakeTunnelConfigRepo())
+        val check = CheckAppUpdateUseCase(gateway)
 
         val status = check()
 
@@ -69,7 +59,7 @@ class UpdaterUseCasesTest {
     @Test
     fun `reports up to date when remote versionCode matches installed`() = runTest {
         val gateway = FakeAppUpdateGateway(installedVersionCode = 3, installedVersionName = "0.3.0")
-        val check = CheckAppUpdateUseCase(gateway, FakeTunnelConfigRepo())
+        val check = CheckAppUpdateUseCase(gateway)
 
         val status = check()
 

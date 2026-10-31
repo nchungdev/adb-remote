@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish built APK + SHA-256 OTA manifest to local ADB Device Manager (`adb.duinch.app`)."""
+"""Publish built APK to GitHub Releases (`nchungdev/adb-agent`)."""
 
 from __future__ import annotations
 
@@ -7,10 +7,11 @@ import hashlib
 import json
 import pathlib
 import shutil
+import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-DEFAULT_DEST = pathlib.Path.home() / ".local/share/adb-device-manager/downloads"
+DEFAULT_LOCAL_DEST = pathlib.Path.home() / ".local/share/adb-device-manager/downloads"
 
 
 def read_version_props() -> tuple[int, str]:
@@ -58,22 +59,42 @@ def main() -> int:
         return 1
 
     version_code, version_name = read_version_props()
-    DEFAULT_DEST.mkdir(parents=True, exist_ok=True)
-    apk_dst = DEFAULT_DEST / "adb-agent.apk"
-    shutil.copy2(apk_src, apk_dst)
+    tag = f"v{version_name}"
+    title = f"ADB Agent {tag}"
+    sha = sha256_file(apk_src)
+    release_notes = f"{changelog}\n\nSHA-256: `{sha}`\n(versionCode: {version_code})"
 
-    manifest = {
-        "versionCode": version_code,
-        "versionName": version_name,
-        "downloadUrl": "/download/adb-agent.apk",
-        "sha256": sha256_file(apk_dst),
-        "changelog": changelog,
-    }
-    (DEFAULT_DEST / "version.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    print(f"Published OTA v{version_name} (code={version_code}) -> {apk_dst}")
+    cmd = [
+        "gh", "release", "create", tag,
+        str(apk_src),
+        "--title", title,
+        "--notes", release_notes,
+    ]
+    print(f"Publishing GitHub Release {tag}...")
+    res = subprocess.run(cmd)
+    if res.returncode != 0:
+        print(f"Note: Release {tag} may already exist, uploading asset with clobber...")
+        subprocess.run(["gh", "release", "upload", tag, str(apk_src), "--clobber"])
+
+    try:
+        DEFAULT_LOCAL_DEST.mkdir(parents=True, exist_ok=True)
+        apk_dst = DEFAULT_LOCAL_DEST / "adb-agent.apk"
+        shutil.copy2(apk_src, apk_dst)
+        manifest = {
+            "versionCode": version_code,
+            "versionName": version_name,
+            "downloadUrl": f"https://github.com/nchungdev/adb-agent/releases/download/{tag}/{apk_src.name}",
+            "sha256": sha,
+            "changelog": changelog,
+        }
+        (DEFAULT_LOCAL_DEST / "version.json").write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except Exception as e:
+        print(f"Warning: Could not sync local cache: {e}", file=sys.stderr)
+
+    print(f"Published Release {tag} (code={version_code}) to GitHub Releases!")
     return 0
 
 

@@ -5,7 +5,7 @@ interface AppUpdateGateway {
     val installedVersionName: String
 
     suspend fun fetchLatestRelease(
-        originHttpsUrl: String
+        repository: String = DEFAULT_REPOSITORY
     ): Result<AppReleaseInfo>
 
     suspend fun downloadReleaseApk(
@@ -16,4 +16,8 @@ interface AppUpdateGateway {
     fun canRequestPackageInstalls(): Boolean
 
     fun triggerPackageInstall(localFilePath: String): Result<Unit>
+
+    companion object {
+        const val DEFAULT_REPOSITORY = "nchungdev/adb-agent"
+    }
 }
