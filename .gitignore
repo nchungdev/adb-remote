@@ -2,6 +2,8 @@
 .gradle/
 build/
 **/build/
+dist/
+**/dist/
 local.properties
 .kotlin/
 app/src/main/jniLibs/

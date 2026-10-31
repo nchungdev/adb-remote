@@ -91,7 +91,7 @@ fun UpdateBannerCard(
                         )
                     }
                     val subtitle = when (val s = state.status) {
-                        UpdateStatus.Idle -> "Cập nhật trực tiếp qua Cloudflare OTA"
+                        UpdateStatus.Idle -> "Cập nhật trực tiếp qua OTA"
                         UpdateStatus.Checking -> "Đang kiểm tra bản phát hành mới..."
                         is UpdateStatus.UpToDate -> "Đang ở phiên bản mới nhất"
                         is UpdateStatus.Available -> "Có bản mới v${s.release.versionName}: ${s.release.changelog}"
@@ -99,7 +99,6 @@ fun UpdateBannerCard(
                         is UpdateStatus.ReadyToInstall ->
                             if (s.needsInstallPermission) "Cần cấp quyền cài đặt APK để hoàn tất"
                             else "Đã tải xong v${s.release.versionName} — sẵn sàng cài đặt"
-                        UpdateStatus.AuthRequired -> "Đăng nhập Cloudflare trước khi kiểm tra OTA"
                         is UpdateStatus.Failed -> s.reason
                     }
                     Spacer(modifier = Modifier.height(4.dp))

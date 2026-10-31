@@ -7,18 +7,11 @@ data class TunnelConfig(
     val deviceAlias: String = "Android-Device",
     val localAdbPort: Int = 5555,
     val tunnelMode: String = MODE_WEBRTC,
-    val cfAccessClientId: String = "",
-    val cfAccessClientSecret: String = "",
-    val cfAuthCookie: String = "",
     val autoReconnectOnNetworkChange: Boolean = true,
     val trustedHomeSsid: String = "",
     val autoSwitchOnHomeWifi: Boolean = true,
     val runInBackground: Boolean = true
 ) {
-    val hasCloudflareAuth: Boolean
-        get() = cfAuthCookie.contains("CF_Authorization=") ||
-            (cfAccessClientId.isNotBlank() && cfAccessClientSecret.isNotBlank())
-
     fun validate(): Result<TunnelConfig> {
         val url = serverUrl.trim()
         val isValidProtocol = url.startsWith("wss://") || url.startsWith("https://")
@@ -40,10 +33,7 @@ data class TunnelConfig(
         return Result.success(
             copy(
                 serverUrl = url,
-                deviceAlias = deviceAlias.trim(),
-                cfAccessClientId = cfAccessClientId.trim(),
-                cfAccessClientSecret = cfAccessClientSecret.trim(),
-                cfAuthCookie = cfAuthCookie.trim()
+                deviceAlias = deviceAlias.trim()
             )
         )
     }

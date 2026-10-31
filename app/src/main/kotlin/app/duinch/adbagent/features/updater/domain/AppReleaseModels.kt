@@ -8,10 +8,6 @@ data class AppReleaseInfo(
     val changelog: String
 )
 
-class CloudflareAuthRequiredException(
-    message: String = "Cần xác thực Cloudflare Access trước khi kiểm tra bản cập nhật"
-) : IllegalStateException(message)
-
 sealed interface UpdateStatus {
     data object Idle : UpdateStatus
     data object Checking : UpdateStatus
@@ -23,6 +19,5 @@ sealed interface UpdateStatus {
         val localFilePath: String,
         val needsInstallPermission: Boolean
     ) : UpdateStatus
-    data object AuthRequired : UpdateStatus
     data class Failed(val reason: String) : UpdateStatus
 }

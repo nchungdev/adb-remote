@@ -42,14 +42,14 @@ fun TunnelSettingsTab(
     onUpdaterIntent: (UpdaterUiIntent) -> Unit
 ) {
     val ext = AdbTheme.colors
-    var showCloudflareSheet by rememberSaveable { mutableStateOf(false) }
+    var showP2PSheet by rememberSaveable { mutableStateOf(false) }
     var showHomeWifiSheet by rememberSaveable { mutableStateOf(false) }
 
-    if (showCloudflareSheet) {
-        CloudflareConfigSheet(
+    if (showP2PSheet) {
+        P2PConfigSheet(
             state = state,
             onIntent = onIntent,
-            onDismiss = { showCloudflareSheet = false }
+            onDismiss = { showP2PSheet = false }
         )
     }
 
@@ -79,10 +79,9 @@ fun TunnelSettingsTab(
                 Column {
                     SettingsNavigationRow(
                         icon = AppIcons.CloudLock,
-                        title = "Cloudflare Reverse Tunnel",
-                        subtitle = if (state.hasCloudflareAuth) "Đã liên kết Cloudflare Access • Cổng ${state.localAdbPortInput}"
-                        else "Chưa đăng nhập Access • Chạm để cấu hình",
-                        onClick = { showCloudflareSheet = true }
+                        title = "Kết nối Máy tính (P2P WebRTC)",
+                        subtitle = "${state.serverUrlInput.ifBlank { "Chưa đặt URL" }} • Cổng ${state.localAdbPortInput}",
+                        onClick = { showP2PSheet = true }
                     )
 
                     HorizontalDivider(color = ext.cardBorder, thickness = 0.5.dp)
@@ -93,7 +92,7 @@ fun TunnelSettingsTab(
                         subtitle = if (state.autoSwitchOnHomeWifi) {
                             if (state.trustedHomeSsidInput.isNotBlank()) "SSID: ${state.trustedHomeSsidInput}"
                             else "Đang bật • Chưa đặt SSID"
-                        } else "Tắt (luôn duy trì Cloudflare Tunnel)",
+                        } else "Tắt (luôn duy trì P2P WebRTC)",
                         onClick = { showHomeWifiSheet = true }
                     )
                 }

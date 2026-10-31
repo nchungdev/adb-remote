@@ -121,14 +121,6 @@ class WebSocketReverseTunnelAdapter(
             .addHeader("X-Device-Alias", config.deviceAlias)
             .addHeader("X-Local-Adb-Port", config.localAdbPort.toString())
 
-        if (config.cfAuthCookie.isNotEmpty()) {
-            requestBuilder.addHeader("Cookie", config.cfAuthCookie)
-        }
-        if (config.cfAccessClientId.isNotEmpty() && config.cfAccessClientSecret.isNotEmpty()) {
-            requestBuilder.addHeader("CF-Access-Client-Id", config.cfAccessClientId)
-            requestBuilder.addHeader("CF-Access-Client-Secret", config.cfAccessClientSecret)
-        }
-
         activeWebSocket = httpClient.newWebSocket(
             requestBuilder.build(),
             object : WebSocketListener() {
@@ -179,9 +171,9 @@ class WebSocketReverseTunnelAdapter(
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     val code = response?.code
-                    if (code in listOf(302, 401, 403)) {
+                    if (code in listOf(401, 403)) {
                         handleSessionDropped(
-                            "Cần xác thực Cloudflare Access — bấm nút 'Đăng nhập Cloudflare' bên dưới",
+                            "Máy chủ từ chối kết nối (Mã lỗi $code)",
                             authBlocked = true
                         )
                     } else {

@@ -93,5 +93,5 @@ class AppContainer(context: Context) {
         tunnelGateway = reverseTunnelGateway
     )
     val checkAppUpdate = CheckAppUpdateUseCase(appUpdateGateway, tunnelConfigRepository)
-    val downloadAndInstallUpdate = DownloadAndInstallUpdateUseCase(appUpdateGateway, tunnelConfigRepository)
+    val downloadAndInstallUpdate = DownloadAndInstallUpdateUseCase(appUpdateGateway)
 }

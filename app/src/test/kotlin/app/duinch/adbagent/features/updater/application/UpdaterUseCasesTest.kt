@@ -13,7 +13,7 @@ import kotlin.test.assertIs
 class UpdaterUseCasesTest {
 
     private class FakeTunnelConfigRepo : TunnelConfigRepository {
-        private var stored = TunnelConfig(cfAuthCookie = "CF_Authorization=jwt")
+        private var stored = TunnelConfig()
         override fun getConfig(): TunnelConfig = stored
         override fun saveConfig(config: TunnelConfig) {
             stored = config
@@ -35,17 +35,11 @@ class UpdaterUseCasesTest {
         var triggeredPath: String? = null
 
         override suspend fun fetchLatestRelease(
-            originHttpsUrl: String,
-            cfAuthCookie: String,
-            cfClientId: String,
-            cfClientSecret: String
+            originHttpsUrl: String
         ): Result<AppReleaseInfo> = Result.success(remoteRelease)
 
         override suspend fun downloadReleaseApk(
             release: AppReleaseInfo,
-            cfAuthCookie: String,
-            cfClientId: String,
-            cfClientSecret: String,
             onProgress: (Int) -> Unit
         ): Result<String> {
             onProgress(50)
@@ -85,7 +79,7 @@ class UpdaterUseCasesTest {
     @Test
     fun `downloads apk with progress and triggers installer automatically when permitted`() = runTest {
         val gateway = FakeAppUpdateGateway(allowInstalls = true)
-        val download = DownloadAndInstallUpdateUseCase(gateway, FakeTunnelConfigRepo())
+        val download = DownloadAndInstallUpdateUseCase(gateway)
         val progressSeen = mutableListOf<Int>()
 
         val status = download(gateway.remoteRelease) { progressSeen += it }

@@ -30,9 +30,7 @@ class UpdaterViewModel(
     val effects: SharedFlow<UpdaterUiEffect> = _effects.asSharedFlow()
 
     init {
-        if (container.tunnelConfigRepository.getConfig().hasCloudflareAuth) {
-            checkUpdate(userInitiated = false)
-        }
+        checkUpdate(userInitiated = false)
     }
 
     fun onIntent(intent: UpdaterUiIntent) {
@@ -57,8 +55,6 @@ class UpdaterViewModel(
                 when (result) {
                     is UpdateStatus.UpToDate ->
                         _effects.emit(UpdaterUiEffect.ShowMessage("Bạn đang dùng bản mới nhất (${result.versionName})"))
-                    is UpdateStatus.AuthRequired ->
-                        _effects.emit(UpdaterUiEffect.RequestCloudflareLogin)
                     is UpdateStatus.Failed ->
                         _effects.emit(UpdaterUiEffect.ShowMessage(result.reason))
                     else -> Unit

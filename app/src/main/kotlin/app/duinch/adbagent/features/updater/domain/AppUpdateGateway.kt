@@ -5,17 +5,11 @@ interface AppUpdateGateway {
     val installedVersionName: String
 
     suspend fun fetchLatestRelease(
-        originHttpsUrl: String,
-        cfAuthCookie: String,
-        cfClientId: String,
-        cfClientSecret: String
+        originHttpsUrl: String
     ): Result<AppReleaseInfo>
 
     suspend fun downloadReleaseApk(
         release: AppReleaseInfo,
-        cfAuthCookie: String,
-        cfClientId: String,
-        cfClientSecret: String,
         onProgress: (Int) -> Unit
     ): Result<String>
 

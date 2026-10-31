@@ -126,7 +126,7 @@ internal fun ActiveConnectionModeCard(
                             isUsbConnected -> "Đang nhận cáp USB trực tiếp"
                             isAtHomeWifi -> "Ưu tiên Wi-Fi nội bộ (${homeSsid.ifBlank { "Nhà" }})"
                             hasWifi -> "Mạng Wi-Fi: $wifiIp"
-                            else -> "Cloudflare Zero-Trust Tunnel"
+                            else -> "P2P WebRTC Direct Tunnel"
                         },
                         style = MaterialTheme.typography.titleSmall,
                         maxLines = 1,
@@ -137,7 +137,7 @@ internal fun ActiveConnectionModeCard(
                             isUsbConnected -> "Máy tính nhận diện trực tiếp qua USB"
                             isAtHomeWifi -> "Đang ở Wi-Fi nhà • Ping < 2ms, 0 tốn data"
                             hasWifi -> "Có thể kết nối qua IP cùng mạng nội bộ"
-                            else -> "Đường hầm từ xa bảo mật qua Cloudflare Edge"
+                            else -> "Đường hầm P2P trực tiếp qua WebRTC DataChannel"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

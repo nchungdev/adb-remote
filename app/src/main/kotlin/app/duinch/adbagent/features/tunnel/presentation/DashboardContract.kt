@@ -19,16 +19,11 @@ data class DashboardUiState(
     val serverUrlInput: String = "",
     val deviceAliasInput: String = "",
     val localAdbPortInput: String = "5555",
-    val cfClientIdInput: String = "",
-    val cfClientSecretInput: String = "",
-    val cfAuthCookie: String = "",
     val autoReconnect: Boolean = true,
     val runInBackground: Boolean = true,
     val trustedHomeSsidInput: String = "",
     val autoSwitchOnHomeWifi: Boolean = true,
     val currentWifiSsid: String = "",
-    val showAdvancedAuth: Boolean = false,
-    val showCloudflareLoginDialog: Boolean = false,
     val activeNetwork: NetworkType = NetworkType.UNKNOWN,
     val localWifiIp: String = "",
     val isUsbConnected: Boolean = false,
@@ -45,10 +40,6 @@ data class DashboardUiState(
             connectionState is TunnelConnectionState.Connecting ||
             connectionState is TunnelConnectionState.Reconnecting
 
-    val hasCloudflareAuth: Boolean
-        get() = cfAuthCookie.contains("CF_Authorization=") ||
-            (cfClientIdInput.isNotBlank() && cfClientSecretInput.isNotBlank())
-
     val isAtHomeWifi: Boolean
         get() = autoSwitchOnHomeWifi &&
             activeNetwork == NetworkType.WIFI &&
@@ -61,17 +52,11 @@ sealed interface DashboardUiIntent {
     data class UpdateServerUrl(val value: String) : DashboardUiIntent
     data class UpdateDeviceAlias(val value: String) : DashboardUiIntent
     data class UpdateLocalAdbPort(val value: String) : DashboardUiIntent
-    data class UpdateCfClientId(val value: String) : DashboardUiIntent
-    data class UpdateCfClientSecret(val value: String) : DashboardUiIntent
     data class ToggleAutoReconnect(val enabled: Boolean) : DashboardUiIntent
     data class ToggleRunInBackground(val enabled: Boolean) : DashboardUiIntent
     data class UpdateTrustedHomeSsid(val value: String) : DashboardUiIntent
     data class ToggleAutoSwitchHomeWifi(val enabled: Boolean) : DashboardUiIntent
     data object UseCurrentWifiAsHome : DashboardUiIntent
-    data object ToggleAdvancedAuth : DashboardUiIntent
-    data object OpenCloudflareLogin : DashboardUiIntent
-    data object CloseCloudflareLogin : DashboardUiIntent
-    data class OnCloudflareCookieCaptured(val cookieHeader: String) : DashboardUiIntent
     data object SaveConfig : DashboardUiIntent
     data object ToggleTunnel : DashboardUiIntent
     data object ToggleHistoryExpand : DashboardUiIntent

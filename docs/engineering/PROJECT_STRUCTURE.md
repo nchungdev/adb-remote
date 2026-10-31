@@ -7,7 +7,6 @@ adb-agent/
 ├── CONTRIBUTING.md                  # Hướng dẫn đóng góp & PR
 ├── LICENSE                          # Giấy phép MIT
 ├── README.md                        # Tổng quan dự án & lệnh chạy nhanh
-├── version.properties               # Quản lý phiên bản SemVer tập trung
 ├── scripts/
 │   └── check_project.py             # Cổng kiểm tra kiến trúc & giới hạn <= 350 dòng
 ├── docs/
@@ -15,8 +14,19 @@ adb-agent/
 │   ├── product/                     # Đặc tả sản phẩm, UX, Roadmap
 │   ├── engineering/                 # Kiến trúc, quy tắc code, quy ước, kiểm thử, CI/CD
 │   └── adr/                         # Hồ sơ quyết định kiến trúc (ADR)
-└── app/
+├── server/                          # Máy chủ Go Server & Cross-Platform Packaging
+│   ├── cmd/api/main.go              # Điểm khởi chạy daemon server
+│   ├── internal/                    # Core domain, WebRTC Hub, ADB controller, Web UI
+│   ├── packaging/                   # LaunchAgent (macOS), Systemd (Linux), VBS (Windows)
+│   ├── scripts/package.sh           # Script đóng gói phân phối đa nền tảng
+│   ├── dist/                        # Gói cài đặt phân phối (.tar.gz, .zip)
+│   └── go.mod / go.sum
+└── app/                             # Ứng dụng Android Client độc lập
     ├── build.gradle.kts
+    ├── settings.gradle.kts
+    ├── version.properties           # Quản lý phiên bản SemVer tập trung
+    ├── gradlew / gradlew.bat
+    ├── gradle/
     └── src/
         ├── main/
         │   ├── AndroidManifest.xml

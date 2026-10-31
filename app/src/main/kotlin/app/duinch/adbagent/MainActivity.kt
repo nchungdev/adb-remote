@@ -76,11 +76,6 @@ class MainActivity : ComponentActivity() {
                     dashboardVm.onIntent(DashboardUiIntent.SelectTab(AppTab.CONNECT))
                 }
 
-                LaunchedEffect(uiState.cfAuthCookie) {
-                    if (uiState.cfAuthCookie.contains("CF_Authorization=")) {
-                        updaterVm.onIntent(UpdaterUiIntent.CheckForUpdate)
-                    }
-                }
 
                 LaunchedEffect(dashboardVm) {
                     dashboardVm.effects.collect { effect ->
@@ -100,8 +95,6 @@ class MainActivity : ComponentActivity() {
                                 snackbarHostState.showSnackbar(effect.text)
                             UpdaterUiEffect.OpenInstallUnknownAppsSettings ->
                                 openInstallUnknownAppsSettings()
-                            UpdaterUiEffect.RequestCloudflareLogin ->
-                                dashboardVm.onIntent(DashboardUiIntent.OpenCloudflareLogin)
                         }
                     }
                 }

@@ -6,7 +6,6 @@ import androidx.core.content.FileProvider
 import app.duinch.adbagent.BuildConfig
 import app.duinch.adbagent.features.updater.domain.AppReleaseInfo
 import app.duinch.adbagent.features.updater.domain.AppUpdateGateway
-import app.duinch.adbagent.features.updater.domain.CloudflareAuthRequiredException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -24,8 +23,8 @@ class OkHttpAppUpdateAdapter(
     private val appContext = context.applicationContext
 
     private val httpClient = OkHttpClient.Builder()
-        .followRedirects(false)
-        .followSslRedirects(false)
+        .followRedirects(true)
+        .followSslRedirects(true)
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
@@ -34,30 +33,16 @@ class OkHttpAppUpdateAdapter(
     override val installedVersionName: String = BuildConfig.VERSION_NAME
 
     override suspend fun fetchLatestRelease(
-        originHttpsUrl: String,
-        cfAuthCookie: String,
-        cfClientId: String,
-        cfClientSecret: String
+        originHttpsUrl: String
     ): Result<AppReleaseInfo> = withContext(Dispatchers.IO) {
         runCatching {
             val base = originHttpsUrl.trimEnd('/')
-            val req = buildAuthRequest(
-                url = "$base/api/app-version",
-                cfAuthCookie = cfAuthCookie,
-                cfClientId = cfClientId,
-                cfClientSecret = cfClientSecret
-            )
+            val req = Request.Builder().url("$base/api/app-version").build()
             httpClient.newCall(req).execute().use { resp ->
-                if (resp.code in listOf(302, 401, 403)) {
-                    throw CloudflareAuthRequiredException()
-                }
                 if (!resp.isSuccessful) {
                     error("Máy chủ trả về mã lỗi HTTP ${resp.code}")
                 }
                 val rawBody = resp.body?.string().orEmpty()
-                if (rawBody.trimStart().startsWith("<")) {
-                    throw CloudflareAuthRequiredException()
-                }
                 val obj = JSONObject(rawBody)
                 val downloadPath = obj.optString("downloadUrl", "/download/adb-agent.apk")
                 val resolvedUrl = if (downloadPath.startsWith("http")) {
@@ -78,26 +63,15 @@ class OkHttpAppUpdateAdapter(
 
     override suspend fun downloadReleaseApk(
         release: AppReleaseInfo,
-        cfAuthCookie: String,
-        cfClientId: String,
-        cfClientSecret: String,
         onProgress: (Int) -> Unit
     ): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
-            val req = buildAuthRequest(
-                url = release.downloadUrl,
-                cfAuthCookie = cfAuthCookie,
-                cfClientId = cfClientId,
-                cfClientSecret = cfClientSecret
-            )
+            val req = Request.Builder().url(release.downloadUrl).build()
             val updatesDir = File(appContext.cacheDir, "updates").apply { mkdirs() }
             updatesDir.listFiles()?.forEach { runCatching { it.delete() } }
             val outFile = File(updatesDir, "adb-agent-v${release.versionName}.apk")
 
             httpClient.newCall(req).execute().use { resp ->
-                if (resp.code in listOf(302, 401, 403)) {
-                    throw CloudflareAuthRequiredException()
-                }
                 if (!resp.isSuccessful) {
                     error("Tải APK lỗi HTTP ${resp.code}")
                 }
@@ -129,7 +103,7 @@ class OkHttpAppUpdateAdapter(
 
                 if (release.sha256.isNotEmpty()) {
                     val actualHex = digest.digest().joinToString("") { "%02x".format(it) }
-                    if (actualHex != release.sha256) {
+                    if (!actualHex.equals(release.sha256, ignoreCase = true)) {
                         outFile.delete()
                         error("Sai mã kiểm tra SHA-256 của gói APK")
                     }
@@ -156,22 +130,5 @@ class OkHttpAppUpdateAdapter(
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         appContext.startActivity(installIntent)
-    }
-
-    private fun buildAuthRequest(
-        url: String,
-        cfAuthCookie: String,
-        cfClientId: String,
-        cfClientSecret: String
-    ): Request {
-        val builder = Request.Builder().url(url)
-        if (cfAuthCookie.isNotBlank()) {
-            builder.addHeader("Cookie", cfAuthCookie.trim())
-        }
-        if (cfClientId.isNotBlank() && cfClientSecret.isNotBlank()) {
-            builder.addHeader("CF-Access-Client-Id", cfClientId.trim())
-            builder.addHeader("CF-Access-Client-Secret", cfClientSecret.trim())
-        }
-        return builder.build()
     }
 }

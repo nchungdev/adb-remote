@@ -40,13 +40,12 @@ import app.duinch.adbagent.core.designsystem.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CloudflareConfigSheet(
+fun P2PConfigSheet(
     state: DashboardUiState,
     onIntent: (DashboardUiIntent) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val ext = AdbTheme.colors
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -61,35 +60,22 @@ fun CloudflareConfigSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                text = "Cấu hình Cloudflare Reverse Tunnel",
+                text = "Cấu hình Máy chủ P2P WebRTC",
                 style = MaterialTheme.typography.titleLarge
             )
 
-            OutlinedButton(
-                onClick = { onIntent(DashboardUiIntent.OpenCloudflareLogin) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-            ) {
-                Icon(
-                    imageVector = if (state.hasCloudflareAuth) AppIcons.CheckCircle else AppIcons.CloudLock,
-                    contentDescription = null,
-                    tint = if (state.hasCloudflareAuth) ext.statusConnected else MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    if (state.hasCloudflareAuth) "Đã đăng nhập Cloudflare Access (Chạm làm mới)"
-                    else "Đăng nhập Cloudflare Access (1 chạm)"
-                )
-            }
+            Text(
+                text = "Kết nối trực tiếp hai chiều qua WebRTC DataChannel (Zero Port Forwarding), mã hóa DTLS 1.3.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             OutlinedTextField(
                 value = state.serverUrlInput,
                 onValueChange = { onIntent(DashboardUiIntent.UpdateServerUrl(it)) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Cloudflare Tunnel WSS Endpoint") },
-                placeholder = { Text("wss://adb.duinch.app/api/tunnel") },
+                label = { Text("Địa chỉ Máy chủ / Signaling Endpoint") },
+                placeholder = { Text("https://adb.duinch.app") },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Uri,
                     imeAction = ImeAction.Next
@@ -119,54 +105,6 @@ fun CloudflareConfigSheet(
                 ),
                 singleLine = true
             )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 44.dp)
-                    .clickable(role = Role.Button) { onIntent(DashboardUiIntent.ToggleAdvancedAuth) },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Service Token nâng cao (Tuỳ chọn)",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Icon(
-                    imageVector = AppIcons.ChevronDown,
-                    contentDescription = if (state.showAdvancedAuth) "Thu gọn" else "Mở rộng",
-                    modifier = Modifier
-                        .size(20.dp)
-                        .rotate(if (state.showAdvancedAuth) 180f else 0f),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            AnimatedVisibility(visible = state.showAdvancedAuth) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = state.cfClientIdInput,
-                        onValueChange = { onIntent(DashboardUiIntent.UpdateCfClientId(it)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("CF-Access-Client-Id") },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = state.cfClientSecretInput,
-                        onValueChange = { onIntent(DashboardUiIntent.UpdateCfClientSecret(it)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("CF-Access-Client-Secret") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done
-                        ),
-                        singleLine = true
-                    )
-                }
-            }
 
             Spacer(modifier = Modifier.height(6.dp))
 

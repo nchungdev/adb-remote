@@ -1,12 +1,12 @@
 import java.util.Properties
 
 plugins {
-    id("com.android.application")
-    kotlin("android")
-    kotlin("plugin.compose")
+    id("com.android.application") version "8.10.1"
+    kotlin("android") version "2.2.20"
+    kotlin("plugin.compose") version "2.2.20"
 }
 
-val versionPropsFile = rootProject.file("version.properties")
+val versionPropsFile = file("version.properties")
 val versionProps = Properties().apply {
     if (versionPropsFile.exists()) {
         versionPropsFile.inputStream().use { load(it) }

@@ -44,10 +44,6 @@ class DashboardViewModel(
                 _uiState.update { it.copy(deviceAliasInput = intent.value) }
             is DashboardUiIntent.UpdateLocalAdbPort ->
                 _uiState.update { it.copy(localAdbPortInput = intent.value.filter(Char::isDigit).take(5)) }
-            is DashboardUiIntent.UpdateCfClientId ->
-                _uiState.update { it.copy(cfClientIdInput = intent.value) }
-            is DashboardUiIntent.UpdateCfClientSecret ->
-                _uiState.update { it.copy(cfClientSecretInput = intent.value) }
             is DashboardUiIntent.ToggleAutoReconnect ->
                 _uiState.update { it.copy(autoReconnect = intent.enabled) }
             is DashboardUiIntent.ToggleRunInBackground -> {
@@ -78,13 +74,6 @@ class DashboardViewModel(
                     _effects.tryEmit(DashboardUiEffect.ShowMessage("Chưa phát hiện tên Wi-Fi hiện tại"))
                 }
             }
-            DashboardUiIntent.ToggleAdvancedAuth ->
-                _uiState.update { it.copy(showAdvancedAuth = !it.showAdvancedAuth) }
-            DashboardUiIntent.OpenCloudflareLogin ->
-                _uiState.update { it.copy(showCloudflareLoginDialog = true) }
-            DashboardUiIntent.CloseCloudflareLogin ->
-                _uiState.update { it.copy(showCloudflareLoginDialog = false) }
-            is DashboardUiIntent.OnCloudflareCookieCaptured -> handleCookieCaptured(intent.cookieHeader)
             DashboardUiIntent.SaveConfig -> saveCurrentConfig()
             DashboardUiIntent.ToggleTunnel -> toggleTunnel()
             DashboardUiIntent.ToggleHistoryExpand ->
@@ -166,13 +155,6 @@ class DashboardViewModel(
                 _uiState.update { cur -> cur.copy(termux = cur.termux.copy(logs = logs)) }
             }
         }
-    }
-
-    private fun handleCookieCaptured(cookieHeader: String) {
-        if (!_uiState.value.showCloudflareLoginDialog) return
-        _uiState.update { it.copy(cfAuthCookie = cookieHeader, showCloudflareLoginDialog = false) }
-        saveCurrentConfig(silent = true)
-        _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã xác thực Cloudflare Access thành công!"))
     }
 
     private fun handlePairingIntent(intent: PairingUiIntent) {
@@ -291,9 +273,6 @@ class DashboardViewModel(
             serverUrlInput = saved.serverUrl,
             deviceAliasInput = saved.deviceAlias,
             localAdbPortInput = saved.localAdbPort.toString(),
-            cfClientIdInput = saved.cfAccessClientId,
-            cfClientSecretInput = saved.cfAccessClientSecret,
-            cfAuthCookie = saved.cfAuthCookie,
             autoReconnect = saved.autoReconnectOnNetworkChange,
             runInBackground = saved.runInBackground,
             trustedHomeSsidInput = saved.trustedHomeSsid,
@@ -308,9 +287,6 @@ class DashboardViewModel(
         serverUrl = state.serverUrlInput,
         deviceAlias = state.deviceAliasInput,
         localAdbPort = state.localAdbPortInput.toIntOrNull() ?: 5555,
-        cfAccessClientId = state.cfClientIdInput,
-        cfAccessClientSecret = state.cfClientSecretInput,
-        cfAuthCookie = state.cfAuthCookie,
         autoReconnectOnNetworkChange = state.autoReconnect,
         runInBackground = state.runInBackground,
         trustedHomeSsid = state.trustedHomeSsidInput,

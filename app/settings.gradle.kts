@@ -15,4 +15,3 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "adb-agent"
-include(":app")

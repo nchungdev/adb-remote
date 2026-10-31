@@ -15,8 +15,13 @@ echo "[pre-push] 2/3 Running adb-agent clean architecture & LOC check..."
 if [ -f "$ROOT_DIR/scripts/check_project.py" ]; then
   python3 "$ROOT_DIR/scripts/check_project.py"
 fi
-echo "[pre-push] 3/3 Running unit test suite..."
-if [ -x "./gradlew" ]; then
+echo "[pre-push] 3/3 Running unit test suite (Android app & Go server)..."
+if [ -x "./app/gradlew" ]; then
+  (cd app && ./gradlew testDebugUnitTest)
+elif [ -x "./gradlew" ]; then
   ./gradlew testDebugUnitTest
+fi
+if [ -d "./server" ] && command -v go >/dev/null 2>&1; then
+  (cd server && go test -v -race ./...)
 fi
 echo "[pre-push] All security, architecture, lint, and test gates PASSED."

@@ -18,5 +18,4 @@ sealed interface UpdaterUiIntent {
 sealed interface UpdaterUiEffect {
     data class ShowMessage(val text: String) : UpdaterUiEffect
     data object OpenInstallUnknownAppsSettings : UpdaterUiEffect
-    data object RequestCloudflareLogin : UpdaterUiEffect
 }

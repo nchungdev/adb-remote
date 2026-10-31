@@ -19,9 +19,6 @@ class SharedPrefsTunnelConfigRepository(
             deviceAlias = prefs.getString(KEY_DEVICE_ALIAS, defaultAlias) ?: defaultAlias,
             localAdbPort = prefs.getInt(KEY_LOCAL_PORT, 5555),
             tunnelMode = prefs.getString(KEY_TUNNEL_MODE, TunnelConfig.MODE_WEBRTC) ?: TunnelConfig.MODE_WEBRTC,
-            cfAccessClientId = prefs.getString(KEY_CF_CLIENT_ID, "") ?: "",
-            cfAccessClientSecret = prefs.getString(KEY_CF_CLIENT_SECRET, "") ?: "",
-            cfAuthCookie = prefs.getString(KEY_CF_AUTH_COOKIE, "") ?: "",
             autoReconnectOnNetworkChange = prefs.getBoolean(KEY_AUTO_RECONNECT, true),
             trustedHomeSsid = prefs.getString(KEY_TRUSTED_HOME_SSID, "") ?: "",
             autoSwitchOnHomeWifi = prefs.getBoolean(KEY_AUTO_SWITCH_HOME_WIFI, true),
@@ -35,9 +32,6 @@ class SharedPrefsTunnelConfigRepository(
             .putString(KEY_DEVICE_ALIAS, config.deviceAlias)
             .putInt(KEY_LOCAL_PORT, config.localAdbPort)
             .putString(KEY_TUNNEL_MODE, config.tunnelMode)
-            .putString(KEY_CF_CLIENT_ID, config.cfAccessClientId)
-            .putString(KEY_CF_CLIENT_SECRET, config.cfAccessClientSecret)
-            .putString(KEY_CF_AUTH_COOKIE, config.cfAuthCookie)
             .putBoolean(KEY_AUTO_RECONNECT, config.autoReconnectOnNetworkChange)
             .putString(KEY_TRUSTED_HOME_SSID, config.trustedHomeSsid)
             .putBoolean(KEY_AUTO_SWITCH_HOME_WIFI, config.autoSwitchOnHomeWifi)
@@ -51,9 +45,6 @@ class SharedPrefsTunnelConfigRepository(
         private const val KEY_DEVICE_ALIAS = "device_alias"
         private const val KEY_LOCAL_PORT = "local_adb_port"
         private const val KEY_TUNNEL_MODE = "tunnel_mode"
-        private const val KEY_CF_CLIENT_ID = "cf_access_client_id"
-        private const val KEY_CF_CLIENT_SECRET = "cf_access_client_secret"
-        private const val KEY_CF_AUTH_COOKIE = "cf_auth_cookie"
         private const val KEY_AUTO_RECONNECT = "auto_reconnect"
         private const val KEY_TRUSTED_HOME_SSID = "trusted_home_ssid"
         private const val KEY_AUTO_SWITCH_HOME_WIFI = "auto_switch_home_wifi"

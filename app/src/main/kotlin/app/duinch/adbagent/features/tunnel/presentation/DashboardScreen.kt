@@ -206,11 +206,4 @@ fun DashboardScreen(
         state = state.termux,
         onIntent = { onIntent(DashboardUiIntent.OnTermuxIntent(it)) }
     )
-
-    CloudflareAuthDialog(
-        visible = state.showCloudflareLoginDialog,
-        wssUrl = state.serverUrlInput,
-        onCookieCaptured = { onIntent(DashboardUiIntent.OnCloudflareCookieCaptured(it)) },
-        onDismiss = { onIntent(DashboardUiIntent.CloseCloudflareLogin) }
-    )
 }

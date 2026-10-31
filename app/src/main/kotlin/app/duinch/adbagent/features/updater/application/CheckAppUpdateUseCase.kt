@@ -2,7 +2,6 @@ package app.duinch.adbagent.features.updater.application
 
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfigRepository
 import app.duinch.adbagent.features.updater.domain.AppUpdateGateway
-import app.duinch.adbagent.features.updater.domain.CloudflareAuthRequiredException
 import app.duinch.adbagent.features.updater.domain.UpdateStatus
 
 class CheckAppUpdateUseCase(
@@ -17,10 +16,7 @@ class CheckAppUpdateUseCase(
             .ifBlank { "https://adb.duinch.app" }
 
         return updateGateway.fetchLatestRelease(
-            originHttpsUrl = httpsOrigin,
-            cfAuthCookie = cfg.cfAuthCookie,
-            cfClientId = cfg.cfAccessClientId,
-            cfClientSecret = cfg.cfAccessClientSecret
+            originHttpsUrl = httpsOrigin
         ).fold(
             onSuccess = { release ->
                 if (release.versionCode > updateGateway.installedVersionCode) {
@@ -30,11 +26,7 @@ class CheckAppUpdateUseCase(
                 }
             },
             onFailure = { err ->
-                if (err is CloudflareAuthRequiredException) {
-                    UpdateStatus.AuthRequired
-                } else {
-                    UpdateStatus.Failed(err.message ?: "Không thể kiểm tra cập nhật")
-                }
+                UpdateStatus.Failed(err.message ?: "Không thể kiểm tra cập nhật")
             }
         )
     }
