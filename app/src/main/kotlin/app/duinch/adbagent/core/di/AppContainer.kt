@@ -13,13 +13,17 @@ import app.duinch.adbagent.features.termux.application.EnsureTermuxBootstrapUseC
 import app.duinch.adbagent.features.termux.application.RunTermuxCommandUseCase
 import app.duinch.adbagent.features.termux.data.LocalTermuxRuntimeAdapter
 import app.duinch.adbagent.features.termux.domain.TermuxRuntimeGateway
+import app.duinch.adbagent.features.tunnel.application.ClearTunnelHistoryUseCase
 import app.duinch.adbagent.features.tunnel.application.ComputeReconnectBackoffUseCase
+import app.duinch.adbagent.features.tunnel.application.ObserveTunnelHistoryUseCase
 import app.duinch.adbagent.features.tunnel.application.SaveTunnelConfigUseCase
 import app.duinch.adbagent.features.tunnel.application.ToggleReverseTunnelUseCase
 import app.duinch.adbagent.features.tunnel.data.SharedPrefsTunnelConfigRepository
+import app.duinch.adbagent.features.tunnel.data.SharedPrefsTunnelHistoryRepository
 import app.duinch.adbagent.features.tunnel.data.WebSocketReverseTunnelAdapter
 import app.duinch.adbagent.features.tunnel.domain.ReverseTunnelGateway
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfigRepository
+import app.duinch.adbagent.features.tunnel.domain.TunnelHistoryRepository
 import app.duinch.adbagent.features.updater.application.CheckAppUpdateUseCase
 import app.duinch.adbagent.features.updater.application.DownloadAndInstallUpdateUseCase
 import app.duinch.adbagent.features.updater.data.OkHttpAppUpdateAdapter
@@ -44,19 +48,24 @@ class AppContainer(context: Context) {
     val tunnelConfigRepository: TunnelConfigRepository =
         SharedPrefsTunnelConfigRepository(appContext)
 
+    val tunnelHistoryRepository: TunnelHistoryRepository =
+        SharedPrefsTunnelHistoryRepository(appContext)
+
     val appUpdateGateway: AppUpdateGateway =
         OkHttpAppUpdateAdapter(appContext)
 
     private val computeReconnectBackoff = ComputeReconnectBackoffUseCase()
 
     val reverseTunnelGateway: ReverseTunnelGateway =
-        WebSocketReverseTunnelAdapter(appContext, computeReconnectBackoff)
+        WebSocketReverseTunnelAdapter(appContext, computeReconnectBackoff, tunnelHistoryRepository)
 
     val ensureTermuxBootstrap = EnsureTermuxBootstrapUseCase(termuxRuntimeGateway)
     val runTermuxCommand = RunTermuxCommandUseCase(termuxRuntimeGateway)
     val pairLocalAdb = PairLocalAdbUseCase(adbPairingGateway)
     val activateTcpipMode = ActivateTcpipModeUseCase(adbPairingGateway)
     val saveTunnelConfig = SaveTunnelConfigUseCase(tunnelConfigRepository)
+    val observeTunnelHistory = ObserveTunnelHistoryUseCase(tunnelHistoryRepository)
+    val clearTunnelHistory = ClearTunnelHistoryUseCase(tunnelHistoryRepository)
     val toggleReverseTunnel = ToggleReverseTunnelUseCase(
         configRepository = tunnelConfigRepository,
         tunnelGateway = reverseTunnelGateway

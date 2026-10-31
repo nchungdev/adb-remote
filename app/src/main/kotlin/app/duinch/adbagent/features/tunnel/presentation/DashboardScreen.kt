@@ -100,7 +100,7 @@ fun DashboardScreen(
                     icon = {
                         BadgedBox(
                             badge = {
-                                if (state.pairing.discoveredPairingPort != null) {
+                                if (state.pairing.discoveredPairingPort != null && !state.isTunnelActive) {
                                     Badge()
                                 }
                             }

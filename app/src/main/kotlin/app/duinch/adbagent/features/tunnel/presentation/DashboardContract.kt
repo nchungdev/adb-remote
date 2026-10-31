@@ -6,6 +6,7 @@ import app.duinch.adbagent.features.pairing.presentation.PairingUiState
 import app.duinch.adbagent.features.termux.presentation.TermuxUiIntent
 import app.duinch.adbagent.features.termux.presentation.TermuxUiState
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
+import app.duinch.adbagent.features.tunnel.domain.TunnelHistoryEntry
 
 enum class AppTab(val title: String) {
     CONNECT("Kết nối"),
@@ -26,6 +27,8 @@ data class DashboardUiState(
     val showCloudflareLoginDialog: Boolean = false,
     val activeNetwork: NetworkType = NetworkType.UNKNOWN,
     val connectionState: TunnelConnectionState = TunnelConnectionState.Disconnected,
+    val history: List<TunnelHistoryEntry> = emptyList(),
+    val showAllHistory: Boolean = false,
     val pairing: PairingUiState = PairingUiState(),
     val termux: TermuxUiState = TermuxUiState()
 ) {
@@ -53,6 +56,8 @@ sealed interface DashboardUiIntent {
     data class OnCloudflareCookieCaptured(val cookieHeader: String) : DashboardUiIntent
     data object SaveConfig : DashboardUiIntent
     data object ToggleTunnel : DashboardUiIntent
+    data object ToggleHistoryExpand : DashboardUiIntent
+    data object ClearHistory : DashboardUiIntent
     data class OnPairingIntent(val intent: PairingUiIntent) : DashboardUiIntent
     data class OnTermuxIntent(val intent: TermuxUiIntent) : DashboardUiIntent
 }

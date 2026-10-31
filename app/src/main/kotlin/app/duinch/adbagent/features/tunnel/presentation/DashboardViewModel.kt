@@ -58,6 +58,12 @@ class DashboardViewModel(
             is DashboardUiIntent.OnCloudflareCookieCaptured -> handleCookieCaptured(intent.cookieHeader)
             DashboardUiIntent.SaveConfig -> saveCurrentConfig()
             DashboardUiIntent.ToggleTunnel -> toggleTunnel()
+            DashboardUiIntent.ToggleHistoryExpand ->
+                _uiState.update { it.copy(showAllHistory = !it.showAllHistory) }
+            DashboardUiIntent.ClearHistory -> {
+                container.clearTunnelHistory()
+                _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã xóa lịch sử kết nối cũ"))
+            }
             is DashboardUiIntent.OnPairingIntent -> handlePairingIntent(intent.intent)
             is DashboardUiIntent.OnTermuxIntent -> handleTermuxIntent(intent.intent)
         }
@@ -72,6 +78,11 @@ class DashboardViewModel(
         viewModelScope.launch {
             container.reverseTunnelGateway.observeActiveNetwork().collect { net ->
                 _uiState.update { it.copy(activeNetwork = net) }
+            }
+        }
+        viewModelScope.launch {
+            container.observeTunnelHistory().collect { items ->
+                _uiState.update { it.copy(history = items) }
             }
         }
         viewModelScope.launch {

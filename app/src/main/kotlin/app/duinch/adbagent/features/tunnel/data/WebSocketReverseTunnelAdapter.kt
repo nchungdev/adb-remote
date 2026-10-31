@@ -9,6 +9,9 @@ import app.duinch.adbagent.features.tunnel.application.ComputeReconnectBackoffUs
 import app.duinch.adbagent.features.tunnel.domain.ReverseTunnelGateway
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfig
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
+import app.duinch.adbagent.features.tunnel.domain.TunnelHistoryEntry
+import app.duinch.adbagent.features.tunnel.domain.TunnelHistoryRepository
+import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -35,7 +38,8 @@ import java.util.concurrent.atomic.AtomicLong
 
 class WebSocketReverseTunnelAdapter(
     context: Context,
-    private val computeBackoff: ComputeReconnectBackoffUseCase
+    private val computeBackoff: ComputeReconnectBackoffUseCase,
+    private val historyRepository: TunnelHistoryRepository
 ) : ReverseTunnelGateway {
 
     private val appContext = context.applicationContext
@@ -63,6 +67,8 @@ class WebSocketReverseTunnelAdapter(
     @Volatile private var currentConfig: TunnelConfig? = null
     @Volatile private var activeWebSocket: WebSocket? = null
     @Volatile private var mappedServerPort: Int? = null
+    @Volatile private var connectedAtEpochMs: Long = 0L
+    @Volatile private var activeSessionId: String? = null
     private var reconnectJob: Job? = null
     private var retryAttempt = 0
 
@@ -88,12 +94,14 @@ class WebSocketReverseTunnelAdapter(
     override suspend fun disconnect() {
         userWantsConnected.set(false)
         reconnectJob?.cancel()
+        finishHistorySession("Chủ động ngắt kết nối")
         closeActiveSession()
         connectionState.value = TunnelConnectionState.Disconnected
         TunnelForegroundService.stop(appContext)
     }
 
     private fun openWebSocketSession(config: TunnelConfig) {
+        finishHistorySession("Mở lại kết nối")
         closeActiveSession()
         mappedServerPort = null
         connectionState.value = TunnelConnectionState.Connecting(config.serverUrl)
@@ -117,6 +125,18 @@ class WebSocketReverseTunnelAdapter(
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     retryAttempt = 0
                     bytesBridged.set(0L)
+                    val now = System.currentTimeMillis()
+                    val sid = UUID.randomUUID().toString()
+                    connectedAtEpochMs = now
+                    activeSessionId = sid
+                    historyRepository.recordSessionStarted(
+                        TunnelHistoryEntry(
+                            sessionId = sid,
+                            startedAtEpochMs = now,
+                            networkType = activeNetwork.value,
+                            localAdbPort = config.localAdbPort
+                        )
+                    )
                     webSocket.send(TunnelStreamProtocol.buildHelloJson(config.deviceAlias, config.localAdbPort))
                     publishConnectedState(config)
                 }
@@ -124,6 +144,9 @@ class WebSocketReverseTunnelAdapter(
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     TunnelStreamProtocol.parseWelcomePort(text)?.let { port ->
                         mappedServerPort = port
+                        activeSessionId?.let { sid ->
+                            historyRepository.updateActiveSession(sid, port, bytesBridged.get(), activeNetwork.value)
+                        }
                         publishConnectedState(config)
                     }
                 }
@@ -220,18 +243,29 @@ class WebSocketReverseTunnelAdapter(
             localAdbPort = config.localAdbPort,
             networkType = activeNetwork.value,
             bytesBridged = bytesBridged.get(),
-            mappedServerPort = mappedServerPort
+            mappedServerPort = mappedServerPort,
+            connectedAtEpochMs = if (connectedAtEpochMs > 0L) connectedAtEpochMs else System.currentTimeMillis()
         )
     }
 
     private fun updateBytesCount(delta: Long, config: TunnelConfig) {
-        bytesBridged.addAndGet(delta)
+        val total = bytesBridged.addAndGet(delta)
+        activeSessionId?.let { sid ->
+            historyRepository.updateActiveSession(sid, mappedServerPort, total, activeNetwork.value)
+        }
         if (connectionState.value is TunnelConnectionState.Connected) {
             publishConnectedState(config)
         }
     }
 
+    private fun finishHistorySession(reason: String) {
+        val sid = activeSessionId ?: return
+        activeSessionId = null
+        historyRepository.recordSessionEnded(sid, System.currentTimeMillis(), bytesBridged.get(), reason)
+    }
+
     private fun handleSessionDropped(reason: String, authBlocked: Boolean) {
+        finishHistorySession(reason)
         closeActiveSession()
         val cfg = currentConfig
         if (authBlocked) {

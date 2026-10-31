@@ -176,4 +176,32 @@ object AppIcons {
             lineTo(9f, 18f)
         }
     }
+
+    val Clock: ImageVector by lazy {
+        strokeIcon("Clock") {
+            moveTo(21f, 12f)
+            curveTo(21f, 16.97f, 16.97f, 21f, 12f, 21f)
+            curveTo(7.03f, 21f, 3f, 16.97f, 3f, 12f)
+            curveTo(3f, 7.03f, 7.03f, 3f, 12f, 3f)
+            curveTo(16.97f, 3f, 21f, 7.03f, 21f, 12f)
+            moveTo(12f, 7f)
+            verticalLineTo(12f)
+            lineTo(15.5f, 14f)
+        }
+    }
+
+    val Copy: ImageVector by lazy {
+        strokeIcon("Copy") {
+            moveTo(9f, 9f)
+            horizontalLineTo(19f)
+            verticalLineTo(19f)
+            horizontalLineTo(9f)
+            close()
+            moveTo(5f, 15f)
+            horizontalLineTo(4f)
+            verticalLineTo(5f)
+            horizontalLineTo(14f)
+            verticalLineTo(6f)
+        }
+    }
 }

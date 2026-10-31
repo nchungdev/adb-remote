@@ -26,9 +26,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.duinch.adbagent.core.designsystem.AdbTheme
@@ -38,6 +42,7 @@ import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
 import app.duinch.adbagent.features.updater.presentation.CompactUpdateAlertBanner
 import app.duinch.adbagent.features.updater.presentation.UpdaterUiIntent
 import app.duinch.adbagent.features.updater.presentation.UpdaterUiState
+import kotlinx.coroutines.delay
 
 @Composable
 fun TunnelHomeTab(
@@ -47,6 +52,20 @@ fun TunnelHomeTab(
     onUpdaterIntent: (UpdaterUiIntent) -> Unit
 ) {
     val ext = AdbTheme.colors
+    val clipboard = LocalClipboardManager.current
+    val connected = state.connectionState as? TunnelConnectionState.Connected
+
+    val nowEpochMs by produceState(
+        initialValue = System.currentTimeMillis(),
+        key1 = connected?.connectedAtEpochMs
+    ) {
+        if (connected != null) {
+            while (true) {
+                value = System.currentTimeMillis()
+                delay(1_000L)
+            }
+        }
+    }
 
     val (badgeLabel, subtitle, orbTint, orbContainer) = when (val conn = state.connectionState) {
         TunnelConnectionState.Disconnected -> StatusVisual(
@@ -93,7 +112,7 @@ fun TunnelHomeTab(
             modifier = Modifier.fillMaxWidth(),
             border = BorderStroke(
                 1.dp,
-                if (state.connectionState is TunnelConnectionState.Connected) ext.statusConnected else ext.cardBorder
+                if (connected != null) ext.statusConnected else ext.cardBorder
             ),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
@@ -105,7 +124,7 @@ fun TunnelHomeTab(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(84.dp)
+                        .size(80.dp)
                         .background(animatedContainer, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
@@ -113,16 +132,13 @@ fun TunnelHomeTab(
                         imageVector = AppIcons.ShieldBolt,
                         contentDescription = null,
                         tint = animatedTint,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(38.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                Surface(
-                    color = animatedContainer,
-                    shape = CircleShape
-                ) {
+                Surface(color = animatedContainer, shape = CircleShape) {
                     Text(
                         text = badgeLabel,
                         style = MaterialTheme.typography.labelLarge,
@@ -133,39 +149,82 @@ fun TunnelHomeTab(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // 3-Column Bento Telemetry Strip
-                val connected = state.connectionState as? TunnelConnectionState.Connected
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    TelemetryTile(
-                        label = "Mạng",
-                        value = state.activeNetwork.label,
-                        modifier = Modifier.weight(1f)
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
                     )
-                    TelemetryTile(
-                        label = "Cổng ADB",
-                        value = state.localAdbPortInput.ifBlank { "5555" },
-                        modifier = Modifier.weight(1f)
-                    )
-                    TelemetryTile(
-                        label = "Lưu lượng",
-                        value = formatBytes(connected?.bytesBridged ?: 0L),
-                        modifier = Modifier.weight(1f)
-                    )
+                    val mappedAddr = connected?.mappedServerPort?.let { "127.0.0.1:$it" }
+                    if (mappedAddr != null) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            color = ext.surfaceElevated,
+                            shape = CircleShape,
+                            modifier = Modifier.clickable(role = Role.Button) {
+                                clipboard.setText(AnnotatedString(mappedAddr))
+                            }
+                        ) {
+                            Icon(
+                                imageVector = AppIcons.Copy,
+                                contentDescription = "Sao chép $mappedAddr",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .padding(6.dp)
+                                    .size(14.dp)
+                            )
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // 2x2 Bento Telemetry Grid (Uptime, Network, Port, Traffic)
+                val uptimeText = if (connected != null) {
+                    formatDurationVi((nowEpochMs - connected.connectedAtEpochMs).coerceAtLeast(0L))
+                } else {
+                    "--:--"
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TelemetryTile(
+                            label = "Đã kết nối",
+                            value = uptimeText,
+                            monospace = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TelemetryTile(
+                            label = "Mạng",
+                            value = state.activeNetwork.label,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TelemetryTile(
+                            label = "Cổng ADB",
+                            value = state.localAdbPortInput.ifBlank { "5555" },
+                            monospace = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TelemetryTile(
+                            label = "Lưu lượng",
+                            value = formatBytesVi(connected?.bytesBridged ?: 0L),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
 
                 Button(
                     onClick = { onIntent(DashboardUiIntent.ToggleTunnel) },
@@ -201,16 +260,23 @@ fun TunnelHomeTab(
             modifier = Modifier.padding(horizontal = 4.dp)
         )
 
-        val adbReady = state.pairing.pairingState is AdbPairingState.PairedAndConnected ||
-            state.localAdbPortInput == "5555"
+        val locallyPaired = state.pairing.pairingState is AdbPairingState.PairedAndConnected
+        val bridgedViaHost = connected != null && connected.bytesBridged > 0L
+        val portDisplay = state.localAdbPortInput.ifBlank { "5555" }
+        val (adbSub, adbOk) = when {
+            locallyPaired -> "Đã ghép đôi nội bộ & cố định cổng 5555 cho 4G/5G" to true
+            bridgedViaHost && portDisplay == "5555" ->
+                "Đang hoạt động qua cổng 5555 (hỗ trợ cả Wi-Fi & 4G/5G)" to true
+            bridgedViaHost ->
+                "Đang thông suốt về Mac mini (Tùy chọn: đổi cổng 5555 nếu ra ngoài dùng 4G/5G)" to true
+            else ->
+                "Tùy chọn cho 4G/5G & Terminal nội bộ (không bắt buộc nếu Mac đã nhận máy)" to false
+        }
+
         ReadinessRowCard(
-            title = "1. Cổng ADB nội bộ (${state.localAdbPortInput.ifBlank { "5555" }})",
-            subtitle = if (state.pairing.pairingState is AdbPairingState.PairedAndConnected) {
-                "Đã ghép đôi và cố định cổng 5555 cho 4G/5G"
-            } else {
-                "Bấm để ghép đôi lần đầu qua Thanh thông báo"
-            },
-            isReady = adbReady && state.pairing.pairingState is AdbPairingState.PairedAndConnected,
+            title = "1. Cổng ADB trên máy ($portDisplay)",
+            subtitle = adbSub,
+            isReady = adbOk,
             onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.PAIRING)) }
         )
 
@@ -224,6 +290,15 @@ fun TunnelHomeTab(
             isReady = state.hasCloudflareAuth,
             onClick = { onIntent(DashboardUiIntent.OpenCloudflareLogin) }
         )
+
+        // Connection History Section
+        TunnelHistorySection(
+            history = state.history,
+            showAll = state.showAllHistory,
+            nowEpochMs = nowEpochMs,
+            onToggleExpand = { onIntent(DashboardUiIntent.ToggleHistoryExpand) },
+            onClearHistory = { onIntent(DashboardUiIntent.ClearHistory) }
+        )
     }
 }
 
@@ -233,84 +308,3 @@ private data class StatusVisual(
     val tint: androidx.compose.ui.graphics.Color,
     val container: androidx.compose.ui.graphics.Color
 )
-
-@Composable
-private fun TelemetryTile(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        color = AdbTheme.colors.surfaceElevated,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 10.dp, horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleSmall
-            )
-        }
-    }
-}
-
-@Composable
-private fun ReadinessRowCard(
-    title: String,
-    subtitle: String,
-    isReady: Boolean,
-    onClick: () -> Unit
-) {
-    val ext = AdbTheme.colors
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        border = BorderStroke(1.dp, ext.cardBorder),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 64.dp)
-                .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = if (isReady) AppIcons.CheckCircle else AppIcons.AlertCircle,
-                contentDescription = null,
-                tint = if (isReady) ext.statusConnected else MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                imageVector = AppIcons.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
-
-private fun formatBytes(bytes: Long): String = when {
-    bytes < 1024L -> "$bytes B"
-    bytes < 1024L * 1024L -> "${bytes / 1024L} KB"
-    else -> "%.1f MB".format(bytes / (1024.0 * 1024.0))
-}

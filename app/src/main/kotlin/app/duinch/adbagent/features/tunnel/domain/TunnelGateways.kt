@@ -14,3 +14,21 @@ interface ReverseTunnelGateway {
     suspend fun connect(config: TunnelConfig): Result<Unit>
     suspend fun disconnect()
 }
+
+interface TunnelHistoryRepository {
+    fun observeHistory(): Flow<List<TunnelHistoryEntry>>
+    fun recordSessionStarted(entry: TunnelHistoryEntry)
+    fun updateActiveSession(
+        sessionId: String,
+        mappedServerPort: Int?,
+        bytesBridged: Long,
+        networkType: NetworkType
+    )
+    fun recordSessionEnded(
+        sessionId: String,
+        endedAtEpochMs: Long,
+        bytesBridged: Long,
+        reason: String
+    )
+    fun clearHistory()
+}

@@ -56,7 +56,8 @@ sealed interface TunnelConnectionState {
         val localAdbPort: Int,
         val networkType: NetworkType,
         val bytesBridged: Long = 0L,
-        val mappedServerPort: Int? = null
+        val mappedServerPort: Int? = null,
+        val connectedAtEpochMs: Long = System.currentTimeMillis()
     ) : TunnelConnectionState
     data class Reconnecting(
         val attempt: Int,
@@ -64,4 +65,21 @@ sealed interface TunnelConnectionState {
         val reason: String
     ) : TunnelConnectionState
     data class Error(val message: String) : TunnelConnectionState
+}
+
+data class TunnelHistoryEntry(
+    val sessionId: String,
+    val startedAtEpochMs: Long,
+    val endedAtEpochMs: Long? = null,
+    val networkType: NetworkType,
+    val localAdbPort: Int,
+    val mappedServerPort: Int? = null,
+    val bytesBridged: Long = 0L,
+    val endReason: String = "Đang trực tuyến"
+) {
+    val isActive: Boolean
+        get() = endedAtEpochMs == null
+
+    fun durationMillis(nowEpochMs: Long): Long =
+        ((endedAtEpochMs ?: nowEpochMs) - startedAtEpochMs).coerceAtLeast(0L)
 }
