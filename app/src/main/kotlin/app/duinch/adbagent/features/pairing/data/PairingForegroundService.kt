@@ -66,20 +66,8 @@ class PairingForegroundService : Service() {
                 val pairPort = ports.pairingPort
                 if (pairPort != null) {
                     notifyUpdated(buildReplyNotification(pairPort, ports.connectPort))
-                    showPromptDialogIfPossible(pairPort, ports.connectPort)
                 }
             }
-        }
-    }
-
-    private fun showPromptDialogIfPossible(pairPort: Int, connectPort: Int?) {
-        try {
-            val promptIntent = PairingPromptActivity.createIntent(this, pairPort, connectPort).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }
-            startActivity(promptIntent)
-        } catch (_: Throwable) {
-            // Ignored if background launch is restricted by OS; notification handles tap
         }
     }
 
@@ -147,30 +135,28 @@ class PairingForegroundService : Service() {
             replyIntent,
             flagMutable or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        val action = Notification.Action.Builder(null, "Nhập mã 6 số", replyPending)
+        val replyAction = Notification.Action.Builder(null, "Nhập mã", replyPending)
             .addRemoteInput(remoteInput)
+            .apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    setSemanticAction(Notification.Action.SEMANTIC_ACTION_REPLY)
+                }
+            }
             .build()
 
-        val promptIntent = PairingPromptActivity.createIntent(this, pairPort, connectPort).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val promptPending = PendingIntent.getActivity(
+        val stopPending = PendingIntent.getService(
             this,
-            100,
-            promptIntent,
+            2,
+            Intent(this, PairingForegroundService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-
-        val bigText = Notification.BigTextStyle()
-            .setBigContentTitle("Đã tìm thấy cổng: $pairPort")
-            .bigText("Chạm vào đây để mở ô nhập mã, hoặc bấm nút 'Nhập mã 6 số' bên dưới.")
+        val cancelAction = Notification.Action.Builder(null, "Huỷ", stopPending).build()
 
         return baseBuilder()
-            .setContentTitle("Đã tìm thấy cổng: $pairPort")
-            .setContentText("Chạm để nhập mã 6 số ngay trên màn hình")
-            .setStyle(bigText)
-            .setContentIntent(promptPending)
-            .addAction(action)
+            .setContentTitle("Tìm thấy cổng ghép nối: $pairPort")
+            .setContentText("Bấm 'Nhập mã' để gõ mã 6 số từ màn hình Cài đặt")
+            .addAction(replyAction)
+            .addAction(cancelAction)
             .setOngoing(true)
             .build()
     }
