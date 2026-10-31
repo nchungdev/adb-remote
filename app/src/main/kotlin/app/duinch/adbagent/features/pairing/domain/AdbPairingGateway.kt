@@ -13,7 +13,6 @@ interface AdbPairingGateway {
     suspend fun connectLocalhost(port: Int): Result<String>
     suspend fun enablePersistentTcpip(fromPort: Int, targetTcpPort: Int = 5555): Result<Int>
     suspend fun bringAppToFront(port: Int = 5555): Result<Unit> = Result.success(Unit)
-    suspend fun deleteScreenshot(port: Int = 5555, filePath: String? = null, uriString: String? = null): Result<Unit> = Result.success(Unit)
 }
 
 interface PairingNotificationGateway {

@@ -18,8 +18,6 @@ class PairLocalAdbUseCaseTest {
         var lastCode: String? = null
         var lastConnectPort: Int? = null
         var lastTcpipFromPort: Int? = null
-        var lastDeletedPath: String? = null
-        var lastDeletedUri: String? = null
 
         override suspend fun pairLocalhost(port: Int, sixDigitCode: String): Result<String> {
             lastPairPort = port
@@ -35,12 +33,6 @@ class PairLocalAdbUseCaseTest {
         override suspend fun enablePersistentTcpip(fromPort: Int, targetTcpPort: Int): Result<Int> {
             lastTcpipFromPort = fromPort
             return tcpipResult
-        }
-
-        override suspend fun deleteScreenshot(port: Int, filePath: String?, uriString: String?): Result<Unit> {
-            lastDeletedPath = filePath
-            lastDeletedUri = uriString
-            return Result.success(Unit)
         }
     }
 
@@ -109,23 +101,5 @@ class PairLocalAdbUseCaseTest {
 
         assertTrue(res.isFailure)
         assertEquals(null, gateway.lastConnectPort)
-    }
-
-    @Test
-    fun `deletes screenshot file and uri upon successful pairing and connection`() = runTest {
-        val gateway = FakeAdbPairingGateway()
-        val useCase = PairLocalAdbUseCase(gateway)
-
-        val res = useCase(
-            pairingPort = 37192,
-            rawCode = "482910",
-            connectPortHint = 41923,
-            screenshotFilePath = "/storage/emulated/0/Pictures/Screenshots/Screenshot_123.png",
-            screenshotUri = "content://media/external/images/media/123"
-        )
-
-        assertTrue(res.isSuccess)
-        assertEquals("/storage/emulated/0/Pictures/Screenshots/Screenshot_123.png", gateway.lastDeletedPath)
-        assertEquals("content://media/external/images/media/123", gateway.lastDeletedUri)
     }
 }
