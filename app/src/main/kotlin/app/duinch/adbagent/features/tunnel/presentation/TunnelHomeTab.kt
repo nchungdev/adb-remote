@@ -84,9 +84,10 @@ fun TunnelHomeTab(
             else -> RemoteConnectionState.Disconnected
         }
         val channel = when {
+            state.isUsbConnected && state.selectedMode == AdbConnectionMode.USB -> RemoteTransportChannel.UsbCable
+            state.selectedMode == AdbConnectionMode.LAN || state.isAtHomeWifi -> RemoteTransportChannel.LanWifi
             state.serverUrlInput.contains("trycloudflare.com") -> RemoteTransportChannel.QuickTunnel
             state.remoteRoomCode.isNotBlank() -> RemoteTransportChannel.WebRtcDirect
-            state.isUsbConnected -> RemoteTransportChannel.LanWifi
             else -> RemoteTransportChannel.None
         }
         val uptimeSec = connected?.connectedAtEpochMs?.let {
@@ -118,7 +119,7 @@ fun TunnelHomeTab(
                 }
             )
         } else if (isTunnelOnline) {
-            // Active session switchboard
+            // Active session switchboard (State 3: Đã kết nối)
             TunnelSwitchboardCard(
                 state = state,
                 connected = connected,
@@ -132,28 +133,40 @@ fun TunnelHomeTab(
                 onIntent = onIntent,
                 onCopyText = { clipboard.setText(AnnotatedString(it)) }
             )
+        } else if (state.connectionState is TunnelConnectionState.Connecting ||
+            state.connectionState is TunnelConnectionState.Reconnecting
+        ) {
+            // Transition switchboard (State 2: Đang kết nối)
+            AdbConnectingCard(
+                state = state,
+                onCancel = { onIntent(DashboardUiIntent.ToggleTunnel) }
+            )
         } else {
-            // QR-First Remote Connection Card (Cloudflare Quick Tunnel / WebRTC P2P)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, ext.cardBorder),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                RemoteConnectContent(
-                    initialTarget = state.remoteRoomCode.ifBlank { state.serverUrlInput },
-                    telemetry = telemetry,
-                    onConnect = { target ->
-                        val parsed = RemoteQrPayloadParser.parse(target)
-                        val room = parsed?.roomCode?.takeIf { it.isNotBlank() }
-                            ?: (if (target.matches(Regex("""^\d{3}-?\d{3}$"""))) target else "")
-                        val url = parsed?.url
-                            ?: (if (!target.matches(Regex("""^\d{3}-?\d{3}$"""))) target else null)
-                        onIntent(DashboardUiIntent.ApplyQrRemoteConfig(roomCode = room, serverUrl = url))
-                    },
-                    onDisconnect = { onIntent(DashboardUiIntent.ToggleTunnel) },
-                    onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) }
-                )
+            // Selection switchboard (State 1: Chọn kiểu kết nối)
+            AdbConnectionModeBar(
+                selectedMode = state.selectedMode,
+                isUsbConnected = state.isUsbConnected,
+                onSelectMode = { onIntent(DashboardUiIntent.SelectConnectionMode(it)) }
+            )
+
+            when (state.selectedMode) {
+                AdbConnectionMode.USB -> {
+                    UsbConnectionContent()
+                }
+                AdbConnectionMode.LAN -> {
+                    LanConnectionContent(
+                        state = state,
+                        onIntent = onIntent,
+                        onCopyText = { clipboard.setText(AnnotatedString(it)) }
+                    )
+                }
+                AdbConnectionMode.REMOTE -> {
+                    // QR-First Remote Connection Card (Cloudflare Quick Tunnel / WebRTC P2P)
+                    RemoteQrConnectionCard(
+                        state = state,
+                        onIntent = onIntent
+                    )
+                }
             }
 
             // Collapsible Local Device Debugging Card (Android 11+ Pairing)
@@ -211,79 +224,5 @@ fun TunnelHomeTab(
                 )
             }
         }
-    }
-}
-
-private data class StatusVisual(
-    val badge: String,
-    val headline: String,
-    val subtitle: String,
-    val icon: ImageVector,
-    val tint: Color,
-    val container: Color
-)
-
-@Composable
-private fun resolveStatusVisual(
-    state: DashboardUiState,
-    ext: AdbExtendedColors
-): StatusVisual = when (val conn = state.connectionState) {
-    is TunnelConnectionState.Connected -> StatusVisual(
-        badge = "ĐANG TRỰC TUYẾN",
-        headline = if (state.isUsbConnected) "Đường hầm Mac mini & USB" else "Đường hầm Mac mini",
-        subtitle = conn.mappedServerPort?.let { "127.0.0.1:$it" } ?: "Đã kết nối thông suốt P2P",
-        icon = AppIcons.ShieldBolt,
-        tint = ext.statusConnected,
-        container = ext.statusConnectedContainer
-    )
-    is TunnelConnectionState.Connecting -> StatusVisual(
-        badge = "ĐANG KẾT NỐI...",
-        headline = "Đang kết nối Mac mini",
-        subtitle = "Đang thiết lập kênh TLS bảo mật",
-        icon = AppIcons.Refresh,
-        tint = ext.statusWarning,
-        container = ext.statusWarningContainer
-    )
-    is TunnelConnectionState.Reconnecting -> StatusVisual(
-        badge = "ĐANG NỐI LẠI (${conn.attempt})",
-        headline = "Đang tự động nối lại",
-        subtitle = "Thử lại sau ${conn.nextRetryDelayMs / 1000}s",
-        icon = AppIcons.Refresh,
-        tint = ext.statusWarning,
-        container = ext.statusWarningContainer
-    )
-    is TunnelConnectionState.Error -> StatusVisual(
-        badge = "GIÁN ĐOẠN KẾT NỐI",
-        headline = "Gián đoạn đường hầm",
-        subtitle = conn.message,
-        icon = AppIcons.AlertCircle,
-        tint = MaterialTheme.colorScheme.error,
-        container = MaterialTheme.colorScheme.errorContainer
-    )
-    TunnelConnectionState.Disconnected -> when {
-        state.isUsbConnected -> StatusVisual(
-            badge = "ĐÃ KẾT NỐI",
-            headline = "Cáp USB trực tiếp",
-            subtitle = "Máy tính nhận diện trực tiếp qua USB",
-            icon = AppIcons.Usb,
-            tint = ext.statusConnected,
-            container = ext.statusConnectedContainer
-        )
-        state.isAtHomeWifi || state.pairing.pairingState is AdbPairingState.PairedAndConnected -> StatusVisual(
-            badge = "SẴN SÀNG KẾT NỐI",
-            headline = if (state.isAtHomeWifi) "Wi-Fi nội bộ (${state.trustedHomeSsidInput.ifBlank { "Nhà" }})" else "Wi-Fi nội bộ",
-            subtitle = if (state.localWifiIp.isNotBlank()) "Cổng ADB sẵn sàng nhận lệnh" else "Cổng ADB nội bộ đã sẵn sàng",
-            icon = AppIcons.LinkWireless,
-            tint = MaterialTheme.colorScheme.primary,
-            container = MaterialTheme.colorScheme.primaryContainer
-        )
-        else -> StatusVisual(
-            badge = "CHƯA KẾT NỐI",
-            headline = "Sẵn sàng kết nối",
-            subtitle = "Mở đường hầm bảo mật hoặc cắm cáp USB",
-            icon = AppIcons.ShieldBolt,
-            tint = MaterialTheme.colorScheme.primary,
-            container = MaterialTheme.colorScheme.primaryContainer
-        )
     }
 }

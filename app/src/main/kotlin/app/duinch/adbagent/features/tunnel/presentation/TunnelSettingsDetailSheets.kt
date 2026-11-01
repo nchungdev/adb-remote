@@ -75,7 +75,7 @@ fun P2PConfigSheet(
                 onValueChange = { onIntent(DashboardUiIntent.UpdateServerUrl(it)) },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Địa chỉ Máy chủ / Signaling Endpoint") },
-                placeholder = { Text("https://adb.duinch.app") },
+                placeholder = { Text("https://*.trycloudflare.com hoặc IP máy chủ") },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Uri,
                     imeAction = ImeAction.Next

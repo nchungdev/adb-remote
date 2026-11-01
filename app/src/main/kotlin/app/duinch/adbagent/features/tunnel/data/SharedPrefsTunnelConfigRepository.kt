@@ -13,9 +13,10 @@ class SharedPrefsTunnelConfigRepository(
 
     override fun getConfig(): TunnelConfig {
         val defaultAlias = "${Build.MANUFACTURER}-${Build.MODEL}".replace(" ", "-")
+        val rawUrl = prefs.getString(KEY_SERVER_URL, "") ?: ""
+        val cleanUrl = if (rawUrl.contains("adb.duinch.app")) "" else rawUrl
         return TunnelConfig(
-            serverUrl = prefs.getString(KEY_SERVER_URL, TunnelConfig.DEFAULT_TUNNEL_URL)
-                ?: TunnelConfig.DEFAULT_TUNNEL_URL,
+            serverUrl = cleanUrl,
             deviceAlias = prefs.getString(KEY_DEVICE_ALIAS, defaultAlias) ?: defaultAlias,
             localAdbPort = prefs.getInt(KEY_LOCAL_PORT, 5555),
             autoReconnectOnNetworkChange = prefs.getBoolean(KEY_AUTO_RECONNECT, true),

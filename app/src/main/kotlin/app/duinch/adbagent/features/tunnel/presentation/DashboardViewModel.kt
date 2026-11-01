@@ -46,6 +46,8 @@ class DashboardViewModel(
         when (intent) {
             is DashboardUiIntent.SelectTab ->
                 _uiState.update { it.copy(selectedTab = intent.tab) }
+            is DashboardUiIntent.SelectConnectionMode ->
+                _uiState.update { it.copy(selectedMode = intent.mode) }
             is DashboardUiIntent.UpdateServerUrl ->
                 _uiState.update { it.copy(serverUrlInput = intent.value) }
             is DashboardUiIntent.UpdateRemoteRoomCode ->
@@ -132,7 +134,20 @@ class DashboardViewModel(
                 val ip = container.reverseTunnelGateway.getLocalWifiIp().orEmpty()
                 val ssid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty()
                 val usb = container.reverseTunnelGateway.isUsbConnected()
-                _uiState.update { it.copy(activeNetwork = net, localWifiIp = ip, currentWifiSsid = ssid, isUsbConnected = usb) }
+                _uiState.update { cur ->
+                    val autoMode = when {
+                        usb -> AdbConnectionMode.USB
+                        net == app.duinch.adbagent.core.model.NetworkType.WIFI -> AdbConnectionMode.LAN
+                        else -> AdbConnectionMode.REMOTE
+                    }
+                    cur.copy(
+                        activeNetwork = net,
+                        localWifiIp = ip,
+                        currentWifiSsid = ssid,
+                        isUsbConnected = usb,
+                        selectedMode = if (!cur.isTunnelActive) autoMode else cur.selectedMode
+                    )
+                }
             }
         }
         viewModelScope.launch {
@@ -231,6 +246,13 @@ class DashboardViewModel(
 
     private fun createInitialState(): DashboardUiState {
         val saved = container.tunnelConfigRepository.getConfig()
+        val usb = container.reverseTunnelGateway.isUsbConnected()
+        val net = container.reverseTunnelGateway.observeActiveNetwork()
+        val initMode = when {
+            usb -> AdbConnectionMode.USB
+            container.reverseTunnelGateway.getLocalWifiIp()?.isNotBlank() == true -> AdbConnectionMode.LAN
+            else -> AdbConnectionMode.REMOTE
+        }
         return DashboardUiState(
             serverUrlInput = saved.serverUrl,
             deviceAliasInput = saved.deviceAlias,
@@ -241,7 +263,8 @@ class DashboardViewModel(
             autoSwitchOnHomeWifi = saved.autoSwitchOnHomeWifi,
             currentWifiSsid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty(),
             localWifiIp = container.reverseTunnelGateway.getLocalWifiIp().orEmpty(),
-            isUsbConnected = container.reverseTunnelGateway.isUsbConnected(),
+            isUsbConnected = usb,
+            selectedMode = initMode,
             remoteRoomCode = saved.remoteRoomCode
         )
     }

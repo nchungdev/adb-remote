@@ -238,4 +238,20 @@ object AppIcons {
             moveTo(19f, 19f); horizontalLineTo(21f); verticalLineTo(21f)
         }
     }
+
+    val AppLogo: ImageVector by lazy {
+        strokeIcon("AppLogo") {
+            moveTo(8f, 6f); lineTo(6f, 3f)
+            moveTo(16f, 6f); lineTo(18f, 3f)
+            moveTo(5f, 10f)
+            curveTo(5f, 6.5f, 8f, 5f, 12f, 5f)
+            curveTo(16f, 5f, 19f, 6.5f, 19f, 10f)
+            close()
+            moveTo(9f, 8.5f); horizontalLineTo(9.05f)
+            moveTo(15f, 8.5f); horizontalLineTo(15.05f)
+            moveTo(13f, 9f); lineTo(9f, 14f); horizontalLineTo(12f); lineTo(11f, 19f); lineTo(15f, 13f); horizontalLineTo(12.5f); close()
+            moveTo(7f, 18f)
+            curveTo(9.5f, 20.5f, 14.5f, 20.5f, 17f, 18f)
+        }
+    }
 }

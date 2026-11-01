@@ -148,7 +148,7 @@ class TunnelForegroundService : Service() {
                 "ADB Agent • Đang trực tuyến" to "Mac mini: $mapped • Wi-Fi: ${wifiIp.ifBlank { "LAN" }}:$localPort"
             }
             is TunnelConnectionState.Connecting ->
-                "ADB Agent • Đang kết nối..." to "Đang bắt tay kênh bảo mật về adb.duinch.app"
+                "ADB Agent • Đang kết nối..." to "Đang thiết lập kênh bảo mật..."
             is TunnelConnectionState.Reconnecting ->
                 "ADB Agent • Đang tự nối lại" to "Lần thử ${state.attempt} • Thử lại sau ${state.nextRetryDelayMs / 1000}s"
             is TunnelConnectionState.Error ->

@@ -14,7 +14,8 @@ data class TunnelConfig(
 ) {
     fun validate(): Result<TunnelConfig> {
         val url = serverUrl.trim()
-        val isValidProtocol = url.startsWith("https://") ||
+        val isValidProtocol = url.isEmpty() ||
+            url.startsWith("https://") ||
             url.startsWith("http://") ||
             url.startsWith("wss://") ||
             url.startsWith("ws://")
@@ -42,7 +43,7 @@ data class TunnelConfig(
     }
 
     companion object {
-        const val DEFAULT_TUNNEL_URL = "https://adb.duinch.app"
+        const val DEFAULT_TUNNEL_URL = ""
     }
 }
 

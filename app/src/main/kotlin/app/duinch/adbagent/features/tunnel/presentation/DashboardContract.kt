@@ -14,6 +14,12 @@ enum class AppTab(val title: String) {
     SETTINGS("Cài đặt")
 }
 
+enum class AdbConnectionMode(val label: String) {
+    USB("Cáp USB"),
+    LAN("Mạng nội bộ"),
+    REMOTE("Mạng từ xa")
+}
+
 data class DashboardUiState(
     val selectedTab: AppTab = AppTab.CONNECT,
     val serverUrlInput: String = "",
@@ -27,6 +33,7 @@ data class DashboardUiState(
     val activeNetwork: NetworkType = NetworkType.UNKNOWN,
     val localWifiIp: String = "",
     val isUsbConnected: Boolean = false,
+    val selectedMode: AdbConnectionMode = AdbConnectionMode.REMOTE,
     val forceShowPairing: Boolean = false,
     val connectionState: TunnelConnectionState = TunnelConnectionState.Disconnected,
     val history: List<TunnelHistoryEntry> = emptyList(),
@@ -51,6 +58,7 @@ data class DashboardUiState(
 
 sealed interface DashboardUiIntent {
     data class SelectTab(val tab: AppTab) : DashboardUiIntent
+    data class SelectConnectionMode(val mode: AdbConnectionMode) : DashboardUiIntent
     data class UpdateServerUrl(val value: String) : DashboardUiIntent
     data class UpdateRemoteRoomCode(val value: String) : DashboardUiIntent
     data class UpdateDeviceAlias(val value: String) : DashboardUiIntent
