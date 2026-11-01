@@ -13,6 +13,7 @@ import (
 	"app.duinch/adb-device-manager/internal/controller/http/ui"
 	"app.duinch/adb-device-manager/internal/domain"
 	"app.duinch/adb-device-manager/internal/usecase"
+	"github.com/nchungdev/remote-tunnel/go/pairing"
 	"github.com/nchungdev/remote-tunnel/go/quicktunnel"
 )
 
@@ -27,6 +28,7 @@ type Server struct {
 	wsHub     WebSocketUpgrader
 	signaling http.Handler
 	qt        *quicktunnel.QuickTunnel
+	pairHub   *pairing.Hub
 	logger    *slog.Logger
 }
 
@@ -46,6 +48,7 @@ func NewRouter(
 		wsHub:     wsHub,
 		signaling: signaling,
 		qt:        qt,
+		pairHub:   pairing.NewHub(3 * time.Minute),
 		logger:    logger,
 	}
 
@@ -62,6 +65,10 @@ func NewRouter(
 	mux.HandleFunc("GET /api/remote/status", s.handleRemoteStatus)
 	mux.HandleFunc("POST /api/remote/toggle", s.handleRemoteToggle)
 	mux.HandleFunc("GET /api/remote/qr.png", s.handleRemoteQrPng)
+	mux.HandleFunc("POST /api/pair/request", s.handlePairRequest)
+	mux.HandleFunc("GET /api/pair/pending", s.handlePairPending)
+	mux.HandleFunc("POST /api/pair/confirm", s.handlePairConfirm)
+	mux.HandleFunc("GET /api/pair/check", s.handlePairCheck)
 
 	mux.HandleFunc("GET /download/adb-agent.apk", s.handleDownloadApk)
 	mux.HandleFunc("HEAD /download/adb-agent.apk", s.handleHeadApk)
