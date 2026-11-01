@@ -21,6 +21,7 @@ import (
 	httpctrl "app.duinch/adb-device-manager/internal/controller/http"
 	"app.duinch/adb-device-manager/internal/tray"
 	"app.duinch/adb-device-manager/internal/usecase"
+	"github.com/nchungdev/remote-tunnel/go/quicktunnel"
 )
 
 func main() {
@@ -82,26 +83,23 @@ func main() {
 	normRoom := strings.ReplaceAll(roomCode, "-", "")
 	_ = rtcHub.Start(appCtx, normRoom)
 
-	// Start P2P MQTT signaling relay (allows zero-config remote pairing over 4G/5G)
-	if mqttRelay, err := signaling.NewMQTTRelay(sigHub, roomCode, logger); err != nil {
-		logger.Warn("could not connect to public mqtt signaling relay (local signaling still active)", "err", err)
-	} else {
-		defer mqttRelay.Close()
-	}
-
 	deviceSvc := usecase.NewDeviceService(adbRunner, hub, cmdTracker)
 	deviceSvc.SetHistory(historyStore)
 	deviceSvc.SetRoomCode(roomCode)
 	tunnelSvc := usecase.NewTunnelService(hub, historyStore)
 	otaSvc := usecase.NewOtaService(otaStore)
 
-	handler := httpctrl.NewRouter(deviceSvc, tunnelSvc, otaSvc, hub, sigHandler, logger)
 	port := 8080
 	if parts := strings.Split(cfg.ListenAddr, ":"); len(parts) == 2 {
 		if p, err := strconv.Atoi(parts[1]); err == nil {
 			port = p
 		}
 	}
+
+	qt := quicktunnel.New(port)
+	defer qt.Stop()
+
+	handler := httpctrl.NewRouter(deviceSvc, tunnelSvc, otaSvc, hub, sigHandler, qt, logger)
 
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,

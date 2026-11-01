@@ -1,12 +1,14 @@
 module app.duinch/adb-device-manager
 
-go 1.26.0
+go 1.27.3
 
 require (
-	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/getlantern/systray v1.2.2
+	github.com/nchungdev/remote-tunnel/go v0.0.0-unpublished
 	github.com/pion/webrtc/v4 v4.2.26
 )
+
+replace github.com/nchungdev/remote-tunnel/go => ../shared/remote-tunnel/go
 
 require (
 	github.com/getlantern/context v0.0.0-20190109183933-c447772a6520 // indirect
@@ -17,7 +19,6 @@ require (
 	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
 	github.com/pion/datachannel v1.6.3 // indirect
 	github.com/pion/dtls/v3 v3.1.15 // indirect
@@ -38,7 +39,6 @@ require (
 	github.com/wlynxg/anet v0.0.5 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
 )

@@ -1,13 +1,13 @@
 package httpctrl
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
-
-	"github.com/skip2/go-qrcode"
+	"time"
 
 	"app.duinch/adb-device-manager/internal/controller/http/ui"
+	"github.com/nchungdev/remote-tunnel/go/pairing"
 )
 
 type RemoteStateProvider interface {
@@ -31,11 +31,18 @@ func (s *Server) handleRemotePage(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleRemoteStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	room := s.devices.GetRoomCode()
-	active := s.devices.IsRemoteActive()
 	dev := s.devices.GetActiveRemoteDevice()
+
+	active := false
+	url := ""
+	if s.qt != nil {
+		active = s.qt.IsActive()
+		url = s.qt.GetURL()
+	}
 
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"active":           active,
+		"url":              url,
 		"room":             room,
 		"connected_device": dev,
 	})
@@ -44,32 +51,55 @@ func (s *Server) handleRemoteStatus(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleRemoteToggle(w http.ResponseWriter, r *http.Request) {
 	activeStr := r.URL.Query().Get("active")
 	active := activeStr == "true" || activeStr == "1"
-	s.devices.SetRemoteActive(active)
+
+	var url string
+	var err error
+	if active {
+		if s.qt != nil {
+			ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+			defer cancel()
+			url, err = s.qt.Start(ctx)
+		}
+		s.devices.SetRemoteActive(true)
+	} else {
+		if s.qt != nil {
+			_ = s.qt.Stop()
+		}
+		s.devices.SetRemoteActive(false)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+			"active": false,
+		})
+		return
+	}
+
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"status": "ok",
 		"active": active,
+		"url":    url,
 	})
 }
 
 func (s *Server) handleRemoteQrPng(w http.ResponseWriter, r *http.Request) {
 	room := s.devices.GetRoomCode()
-	active := s.devices.IsRemoteActive()
-
-	payload := map[string]string{
-		"type":   "adb-remote",
-		"room":   room,
-		"broker": "broker.hivemq.com",
-		"active": fmt.Sprintf("%t", active),
+	url := ""
+	if s.qt != nil {
+		url = s.qt.GetURL()
 	}
-	data, err := json.Marshal(payload)
+
+	payload, err := pairing.BuildPairingJSON("adb-remote", url, "", room)
 	if err != nil {
 		http.Error(w, "Failed to encode QR payload", http.StatusInternalServerError)
 		return
 	}
 
-	png, err := qrcode.Encode(string(data), qrcode.Medium, 256)
+	png, err := pairing.GenerateQRPNG(payload, 256)
 	if err != nil {
 		http.Error(w, "Failed to generate QR code", http.StatusInternalServerError)
 		return

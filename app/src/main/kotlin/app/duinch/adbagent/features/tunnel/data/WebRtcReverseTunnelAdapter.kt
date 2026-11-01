@@ -104,12 +104,8 @@ class WebRtcReverseTunnelAdapter(
         val room = config.remoteRoomCode.takeIf { it.isNotBlank() }?.replace("-", "")?.trim() ?: "default"
         val peer = config.deviceAlias.ifBlank { "android-device" }
 
-        val sc: TunnelSignalingChannel = if (config.remoteRoomCode.isNotBlank()) {
-            MqttTunnelSignalingChannel(roomCode = room, brokerHost = "broker.hivemq.com")
-        } else {
-            val signalUrl = resolveWebRtcSignalEndpoint(config.serverUrl)
-            HttpTunnelSignalingChannel(signalingClient, signalUrl, room, peer, scope)
-        }
+        val signalUrl = resolveWebRtcSignalEndpoint(config.serverUrl)
+        val sc: TunnelSignalingChannel = HttpTunnelSignalingChannel(signalingClient, signalUrl, room, peer, scope)
         signalingChannel = sc
 
         val iceServers = listOf(

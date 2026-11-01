@@ -13,6 +13,7 @@ import (
 	"app.duinch/adb-device-manager/internal/controller/http/ui"
 	"app.duinch/adb-device-manager/internal/domain"
 	"app.duinch/adb-device-manager/internal/usecase"
+	"github.com/nchungdev/remote-tunnel/go/quicktunnel"
 )
 
 type WebSocketUpgrader interface {
@@ -25,6 +26,7 @@ type Server struct {
 	ota       *usecase.OtaService
 	wsHub     WebSocketUpgrader
 	signaling http.Handler
+	qt        *quicktunnel.QuickTunnel
 	logger    *slog.Logger
 }
 
@@ -34,6 +36,7 @@ func NewRouter(
 	ota *usecase.OtaService,
 	wsHub WebSocketUpgrader,
 	signaling http.Handler,
+	qt *quicktunnel.QuickTunnel,
 	logger *slog.Logger,
 ) http.Handler {
 	s := &Server{
@@ -42,6 +45,7 @@ func NewRouter(
 		ota:       ota,
 		wsHub:     wsHub,
 		signaling: signaling,
+		qt:        qt,
 		logger:    logger,
 	}
 

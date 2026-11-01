@@ -81,6 +81,7 @@ func TestRouterEndpoints(t *testing.T) {
 		usecase.NewOtaService(stubOta{}),
 		st,
 		nil,
+		nil,
 		logger,
 	)
 

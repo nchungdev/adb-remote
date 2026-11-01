@@ -64,38 +64,3 @@ class HttpTunnelSignalingChannel(
         pollJob = null
     }
 }
-
-class MqttTunnelSignalingChannel(
-    roomCode: String,
-    brokerHost: String = "broker.hivemq.com"
-) : TunnelSignalingChannel {
-    private var signalingClient: MqttSignalingClient? = null
-    private val room = roomCode
-    private val broker = brokerHost
-
-    override fun start(onSignal: (type: String, payload: JSONObject) -> Unit) {
-        signalingClient?.close()
-        val client = MqttSignalingClient(room, broker, onSignal)
-        signalingClient = client
-        client.connect()
-    }
-
-    override fun sendOffer(sdp: String) {
-        val payload = JSONObject().apply { put("sdp", sdp) }
-        signalingClient?.send("offer", payload)
-    }
-
-    override fun sendCandidate(candidate: IceCandidate) {
-        val payload = JSONObject().apply {
-            put("candidate", candidate.sdp)
-            put("sdpMid", candidate.sdpMid)
-            put("sdpMLineIndex", candidate.sdpMLineIndex)
-        }
-        signalingClient?.send("candidate", payload)
-    }
-
-    override fun close() {
-        signalingClient?.close()
-        signalingClient = null
-    }
-}
