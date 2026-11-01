@@ -15,3 +15,9 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "adb-remote"
+includeBuild("../shared/remote-tunnel/kotlin") {
+    dependencySubstitution {
+        substitute(module("app.duinch:remote-tunnel-kotlin")).using(project(":"))
+    }
+}
+
