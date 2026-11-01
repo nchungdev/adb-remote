@@ -105,11 +105,13 @@ fun TunnelHomeTab(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // 1. Unified Bento Telemetry Bar
-        ConnectionTelemetryBar(
-            telemetry = telemetry,
-            onTriggerConnect = { onIntent(DashboardUiIntent.ScanQrCode) }
-        )
+        // 1. Unified Bento Telemetry Bar (chỉ hiển thị khi đang kết nối hoặc đã kết nối)
+        if (telemetry.state != RemoteConnectionState.Disconnected) {
+            ConnectionTelemetryBar(
+                telemetry = telemetry,
+                onTriggerConnect = { onIntent(DashboardUiIntent.ScanQrCode) }
+            )
+        }
 
         if (state.forceShowPairing) {
             // Explicit local pairing flow when requested from top menu
