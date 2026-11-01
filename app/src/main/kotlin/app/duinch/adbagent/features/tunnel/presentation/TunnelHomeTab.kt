@@ -104,7 +104,7 @@ fun TunnelHomeTab(
         RemoteTelemetryData(
             state = connState,
             channel = channel,
-            host = if (state.isUsbConnected) "Cáp USB" else state.serverUrlInput,
+            host = if (state.isUsbConnected) "" else state.serverUrlInput,
             roomCode = state.remoteRoomCode,
             pingMs = ping,
             uptimeSec = uptimeSec ?: 0L
