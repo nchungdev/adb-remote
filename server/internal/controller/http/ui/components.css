@@ -127,3 +127,24 @@
 @media (max-width: 900px) {
   .device-deck { grid-template-columns: 1fr; }
 }
+
+/* Approval Prompt Banners */
+.prompt-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-sm); padding: 12px 18px; margin-bottom: 14px;
+}
+.prompt-banner.remote {
+  background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.4);
+}
+.prompt-body { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.prompt-title { font-weight: 700; font-size: 0.88rem; color: #10b981; }
+.prompt-dev { font-size: 0.8rem; color: #94a3b8; }
+.prompt-code { font-size: 1.15rem; font-weight: 700; color: #34d399; letter-spacing: 2px; }
+.prompt-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.btn-emerald { background: #10b981; color: #fff; }
+.btn-emerald:hover { background: #059669; }
+.btn-cyan { background: #38bdf8; color: #090d16; font-weight: 600; }
+.btn-cyan:hover { background: #0ea5e9; }
+.btn-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
+.btn-danger:hover { background: rgba(239, 68, 68, 0.3); }

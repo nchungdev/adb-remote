@@ -81,11 +81,20 @@ func (s *serverController) IsRemoteActive() bool {
 
 func (s *serverController) StartRemote() error {
 	s.deviceSvc.SetRemoteActive(true)
+	if s.qt != nil && !s.qt.IsActive() {
+		ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+		defer cancel()
+		_, err := s.qt.Start(ctx)
+		return err
+	}
 	return nil
 }
 
 func (s *serverController) StopRemote() error {
 	s.deviceSvc.SetRemoteActive(false)
+	if s.qt != nil && s.qt.IsActive() {
+		_ = s.qt.Stop()
+	}
 	if s.rtcHub != nil {
 		s.rtcHub.CloseAll()
 	}

@@ -58,7 +58,8 @@ func (t *TrayManager) onReady() {
 
 	systray.AddSeparator()
 
-	// Quick Copy actions (clean and compact)
+	// Quick Copy & Tunnel actions
+	mToggleTunnel := systray.AddMenuItem("⚡ Start Cloudflare Tunnel", "Start on-demand Cloudflare Quick Tunnel")
 	mTunnel := systray.AddMenuItem("Copy Cloudflare URL", "Copy ephemeral public URL")
 	mRoom := systray.AddMenuItem(fmt.Sprintf("Copy P2P Code (%s)", roomCode), "Copy WebRTC P2P Room Code")
 	lanIP := getLocalLANIP()
@@ -83,10 +84,14 @@ func (t *TrayManager) onReady() {
 		for range ticker.C {
 			url := t.ctrl.GetTunnelURL()
 			if url != "" {
+				mToggleTunnel.SetTitle("🛑 Stop Cloudflare Tunnel")
+				mToggleTunnel.SetTooltip("Click to stop public tunnel")
 				mTunnel.SetTitle("Copy Cloudflare URL")
 				mTunnel.SetTooltip(url)
 				mTunnel.Enable()
 			} else {
+				mToggleTunnel.SetTitle("⚡ Start Cloudflare Tunnel")
+				mToggleTunnel.SetTooltip("Click to start public tunnel")
 				mTunnel.SetTitle("Cloudflare: Off")
 				mTunnel.Disable()
 			}
@@ -105,6 +110,23 @@ func (t *TrayManager) onReady() {
 
 			case <-mShowQR.ClickedCh:
 				openBrowser(remoteURL)
+
+			case <-mToggleTunnel.ClickedCh:
+				url := t.ctrl.GetTunnelURL()
+				if url != "" {
+					_ = t.ctrl.StopRemote()
+					notify("ADB Device Manager", "Cloudflare Tunnel", "Đã tắt Cloudflare Tunnel")
+				} else {
+					notify("ADB Device Manager", "Cloudflare Tunnel", "Đang kết nối Cloudflare...")
+					go func() {
+						if err := t.ctrl.StartRemote(); err != nil {
+							notify("ADB Device Manager", "Lỗi Tunnel", err.Error())
+						} else {
+							newURL := t.ctrl.GetTunnelURL()
+							notify("ADB Device Manager", "Cloudflare Tunnel", "Đã bật: "+newURL)
+						}
+					}()
+				}
 
 			case <-mTunnel.ClickedCh:
 				url := t.ctrl.GetTunnelURL()

@@ -50,6 +50,10 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/></svg>
         <span>Nối Wi-Fi IP</span>
       </button>
+      <a class="nav-item" href="/remote" target="_blank">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Mã QR & P2P Room</span>
+      </a>
       <button class="nav-item" onclick="openPairModal()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <span>Ghép đôi PIN 6 số</span>
@@ -99,14 +103,18 @@
       </div>
 
       <div class="topbar-right">
+        <button id="topbarTunnelBtn" class="btn btn-sm" onclick="toggleQuickTunnel()" title="Bật/Tắt Cloudflare Quick Tunnel" style="border:1px solid rgba(56,189,248,0.4);background:rgba(56,189,248,0.1);color:#38bdf8;display:inline-flex;align-items:center;gap:6px;">
+          <span id="topbarTunnelDot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;"></span>
+          <span id="topbarTunnelText">Tunnel: Off</span>
+        </button>
+        <a href="/remote" target="_blank" class="btn btn-sm" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text-main);text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Mã QR
+        </a>
         <div class="quick-tcp-connect">
           <input type="text" id="remoteAddr" class="tcp-input" placeholder="192.168.1.50:5555">
           <button class="btn btn-primary btn-sm" onclick="connectRemote()">Nối TCP</button>
         </div>
-
-        <button class="btn btn-icon" onclick="loadDevices()" title="Làm mới (R)">
-          <svg id="refreshSpinIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        </button>
+        <button class="btn btn-icon" onclick="loadDevices()" title="Làm mới (R)"><svg id="refreshSpinIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
       </div>
     </header>
 
@@ -114,6 +122,16 @@
     <div class="tool-content">
       <!-- VIEW 1: DEVICES & MONITORS -->
       <section id="tabContentDevices" class="tool-view active">
+        <!-- Prompts for pairing & remote requests -->
+        <div id="pairPrompt" class="prompt-banner" style="display:none;">
+          <div class="prompt-body"><span class="prompt-title">🔔 Yêu Cầu Ghép Nối Mới</span><span id="pairDev" class="prompt-dev"></span><span id="pairCode" class="prompt-code font-mono">--- ---</span></div>
+          <div class="prompt-actions"><button onclick="confirmPair(true)" class="btn btn-sm btn-emerald">Cho Phép</button><button onclick="confirmPair(false)" class="btn btn-sm btn-danger">Từ Chối</button></div>
+        </div>
+        <div id="remotePrompt" class="prompt-banner remote" style="display:none;">
+          <div class="prompt-body"><span class="prompt-title" style="color:var(--accent);">☁️ Yêu Cầu Mở Quick Tunnel Từ Xa</span><span id="remotePromptDev" class="prompt-dev"></span><span style="font-size:12px;color:#94a3b8;">Thiết bị yêu cầu mở Cloudflare Quick Tunnel.</span></div>
+          <div class="prompt-actions"><button onclick="approveRemoteRequest(true)" class="btn btn-sm btn-cyan">Đồng Ý & Mở</button><button onclick="approveRemoteRequest(false)" class="btn btn-sm btn-danger">Từ Chối</button></div>
+        </div>
+
         <!-- Compact KPI Strip -->
         <div class="kpi-strip">
           <div class="kpi-card card-cyan"><span class="kpi-title">THIẾT BỊ ONLINE</span><span class="kpi-val" id="metricTotalDevices">0</span><span class="kpi-sub" id="metricOnlineRatio">0 trực tuyến / 0 tổng</span></div>
@@ -131,10 +149,6 @@
             <button class="chip" onclick="setFilter('wifi', this)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/></svg> Wi-Fi Local</button>
             <button class="chip" onclick="setFilter('tunnel', this)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> P2P WebRTC</button>
             <button class="chip" onclick="setFilter('offline', this)"><span class="dot-gray"></span> Ngoại tuyến</button>
-          </div>
-        </div>
-              <span class="dot-gray"></span> Ngoại tuyến
-            </button>
           </div>
         </div>
 
@@ -177,10 +191,7 @@
 <!-- Modals -->
 <div class="modal" id="screenModal" onclick="handleBackdropClick(event, 'screenModal')">
   <div class="modal-box" style="max-width:680px;">
-    <div class="modal-head">
-      <div id="screenModalTitle" class="modal-title"><span>Màn hình thiết bị</span></div>
-      <button class="modal-close" onclick="closeModal('screenModal')">&times;</button>
-    </div>
+    <div class="modal-head"><div id="screenModalTitle" class="modal-title"><span>Màn hình thiết bị</span></div><button class="modal-close" onclick="closeModal('screenModal')">&times;</button></div>
     <div class="modal-body" style="align-items:center;">
       <div id="screenLoading" style="padding:40px; color:var(--text-muted); font-size:0.82rem;">Đang chụp ảnh màn hình từ thiết bị...</div>
       <img id="screenImage" class="screen-img" style="display:none;" alt="Device Screen">
@@ -195,10 +206,7 @@
 
 <div class="modal" id="shellModal" onclick="handleBackdropClick(event, 'shellModal')">
   <div class="modal-box" style="max-width:860px;">
-    <div class="modal-head">
-      <div id="shellModalTitle" class="modal-title"><span>Chạy lệnh ADB Shell</span></div>
-      <button class="modal-close" onclick="closeModal('shellModal')">&times;</button>
-    </div>
+    <div class="modal-head"><div id="shellModalTitle" class="modal-title"><span>Chạy lệnh ADB Shell</span></div><button class="modal-close" onclick="closeModal('shellModal')">&times;</button></div>
     <div class="modal-body">
       <div style="display:flex; gap:8px;">
         <input type="text" id="shellCommandInput" class="form-input font-mono" placeholder="getprop ro.build.version.release" onkeydown="if(event.key==='Enter') executeShell()">
@@ -222,10 +230,7 @@
 
 <div class="modal" id="logcatModal" onclick="handleBackdropClick(event, 'logcatModal')">
   <div class="modal-box" style="max-width:960px;">
-    <div class="modal-head">
-      <div id="logcatModalTitle" class="modal-title"><span>Nhật ký hệ thống (Logcat)</span></div>
-      <button class="modal-close" onclick="closeModal('logcatModal')">&times;</button>
-    </div>
+    <div class="modal-head"><div id="logcatModalTitle" class="modal-title"><span>Nhật ký hệ thống (Logcat)</span></div><button class="modal-close" onclick="closeModal('logcatModal')">&times;</button></div>
     <div class="modal-body">
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
         <div style="display:flex; gap:6px; align-items:center;">
@@ -254,10 +259,7 @@
 
 <div class="modal" id="connectModal" onclick="handleBackdropClick(event, 'connectModal')">
   <div class="modal-box" style="max-width:460px;">
-    <div class="modal-head">
-      <div class="modal-title"><span>Kết nối không dây nội bộ (Wi-Fi)</span></div>
-      <button class="modal-close" onclick="closeModal('connectModal')">&times;</button>
-    </div>
+    <div class="modal-head"><div class="modal-title"><span>Kết nối không dây nội bộ (Wi-Fi)</span></div><button class="modal-close" onclick="closeModal('connectModal')">&times;</button></div>
     <div class="modal-body">
       <p style="font-size:0.78rem; color:var(--text-muted);">Nhập địa chỉ IP:Port Wireless Debugging từ điện thoại:</p>
       <input type="text" id="connectModalAddr" class="form-input font-mono" placeholder="192.168.1.50:5555" onkeydown="if(event.key==='Enter') connectWirelessModal()">
@@ -275,10 +277,7 @@
 
 <div class="modal" id="pairModal" onclick="handleBackdropClick(event, 'pairModal')">
   <div class="modal-box" style="max-width:460px;">
-    <div class="modal-head">
-      <div class="modal-title"><span>Ghép đôi không dây (ADB Pair)</span></div>
-      <button class="modal-close" onclick="closeModal('pairModal')">&times;</button>
-    </div>
+    <div class="modal-head"><div class="modal-title"><span>Ghép đôi không dây (ADB Pair)</span></div><button class="modal-close" onclick="closeModal('pairModal')">&times;</button></div>
     <div class="modal-body">
       <p style="font-size:0.78rem; color:var(--text-muted);">Lấy IP:Port và mã 6 số từ menu Ghép nối thiết bị trên Android:</p>
       <input type="text" id="pairAddr" class="form-input font-mono" placeholder="192.168.1.50:37891">
@@ -291,6 +290,7 @@
 </div>
 
 <script src="/ui/app.js"></script>
+<script src="/ui/pairing.js"></script>
 <script src="/ui/modals.js"></script>
 </body>
 </html>
