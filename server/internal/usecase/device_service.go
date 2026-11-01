@@ -17,8 +17,9 @@ type DeviceService struct {
 	history        HistoryRepository
 	mu             sync.RWMutex
 	roomCode       string
-	remoteActive   bool
+	remoteActive    bool
 	activeRemoteDev string
+	lastTunnelURL   string
 }
 
 func NewDeviceService(adb AdbRunner, tunnels TunnelInspector, auditor CommandAuditor) *DeviceService {

@@ -167,6 +167,8 @@ fun TunnelHomeTab(
                 telemetry = telemetry,
                 isUsbConnected = state.isUsbConnected,
                 isWifiConnected = isWifiConnected,
+                serverRemoteUrl = state.serverQuickTunnelUrl,
+                isServerRemoteActive = state.isServerRemoteActive,
                 onConnect = { lan, remote ->
                     onIntent(DashboardUiIntent.ApplyQrRemoteConfig(roomCode = remote, serverUrl = lan))
                 },

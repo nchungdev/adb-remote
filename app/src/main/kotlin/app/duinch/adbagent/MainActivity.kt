@@ -2,7 +2,10 @@ package app.duinch.adbagent
 
 import android.Manifest
 import android.app.RecoverableSecurityException
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -16,6 +19,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -82,6 +86,35 @@ class MainActivity : ComponentActivity() {
 
                 BackHandler(enabled = uiState.selectedTab != AppTab.CONNECT) {
                     dashboardVm.onIntent(DashboardUiIntent.SelectTab(AppTab.CONNECT))
+                }
+
+                DisposableEffect(dashboardVm) {
+                    val receiver = object : BroadcastReceiver() {
+                        override fun onReceive(context: Context?, intent: Intent?) {
+                            if (intent?.action == ACTION_REMOTE_TUNNEL_STATE) {
+                                val url = intent.getStringExtra("url").orEmpty()
+                                val room = intent.getStringExtra("room").orEmpty()
+                                val active = intent.getBooleanExtra("active", false)
+                                dashboardVm.onIntent(
+                                    DashboardUiIntent.OnServerRemoteTunnelPushed(
+                                        url = url,
+                                        roomCode = room,
+                                        active = active
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    val filter = IntentFilter(ACTION_REMOTE_TUNNEL_STATE)
+                    ContextCompat.registerReceiver(
+                        this@MainActivity,
+                        receiver,
+                        filter,
+                        ContextCompat.RECEIVER_EXPORTED
+                    )
+                    onDispose {
+                        runCatching { unregisterReceiver(receiver) }
+                    }
                 }
 
 
@@ -213,5 +246,6 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_DELETE_SCREENSHOT_URI = "extra_delete_screenshot_uri"
+        const val ACTION_REMOTE_TUNNEL_STATE = "app.duinch.adbagent.ACTION_REMOTE_TUNNEL_STATE"
     }
 }

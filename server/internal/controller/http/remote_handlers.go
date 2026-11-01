@@ -85,11 +85,15 @@ func (s *Server) handleRemoteToggle(w http.ResponseWriter, r *http.Request) {
 			url, err = s.qt.Start(ctx)
 		}
 		s.devices.SetRemoteActive(true)
+		if err == nil {
+			s.devices.BroadcastRemoteTunnelState(r.Context(), url, s.devices.GetRoomCode(), true)
+		}
 	} else {
 		if s.qt != nil {
 			_ = s.qt.Stop()
 		}
 		s.devices.SetRemoteActive(false)
+		s.devices.BroadcastRemoteTunnelState(r.Context(), "", s.devices.GetRoomCode(), false)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -224,6 +228,7 @@ func (s *Server) handleRemoteApproveRequest(w http.ResponseWriter, r *http.Reque
 			url = s.qt.GetURL()
 		}
 		s.devices.SetRemoteActive(true)
+		s.devices.BroadcastRemoteTunnelState(r.Context(), url, room, true)
 	}
 
 	s.pairHub.ConfirmRemoteTunnelRequest(req.DeviceID, req.Approved, url, room)

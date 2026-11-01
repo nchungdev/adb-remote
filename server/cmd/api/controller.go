@@ -84,9 +84,17 @@ func (s *serverController) StartRemote() error {
 	if s.qt != nil && !s.qt.IsActive() {
 		ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 		defer cancel()
-		_, err := s.qt.Start(ctx)
+		url, err := s.qt.Start(ctx)
+		if err == nil {
+			s.deviceSvc.BroadcastRemoteTunnelState(context.Background(), url, s.GetRoomCode(), true)
+		}
 		return err
 	}
+	url := ""
+	if s.qt != nil {
+		url = s.qt.GetURL()
+	}
+	s.deviceSvc.BroadcastRemoteTunnelState(context.Background(), url, s.GetRoomCode(), true)
 	return nil
 }
 
@@ -98,6 +106,7 @@ func (s *serverController) StopRemote() error {
 	if s.rtcHub != nil {
 		s.rtcHub.CloseAll()
 	}
+	s.deviceSvc.BroadcastRemoteTunnelState(context.Background(), "", s.GetRoomCode(), false)
 	return nil
 }
 

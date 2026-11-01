@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"app.duinch/adb-device-manager/internal/domain"
 )
@@ -94,6 +95,41 @@ func (s *DeviceService) IsRemoteActive() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.remoteActive
+}
+
+func (s *DeviceService) GetLastTunnelURL() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.lastTunnelURL
+}
+
+func (s *DeviceService) BroadcastRemoteTunnelState(ctx context.Context, tunnelURL, roomCode string, active bool) {
+	s.mu.Lock()
+	s.lastTunnelURL = tunnelURL
+	s.remoteActive = active
+	s.mu.Unlock()
+
+	raw, err := s.adb.ListRawDevices(ctx)
+	if err != nil {
+		return
+	}
+
+	for _, d := range raw {
+		if strings.Contains(d.Serial, ":") || strings.Contains(d.Serial, ".") || d.State != "device" {
+			continue
+		}
+		go func(serial string) {
+			bctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			activeFlag := "false"
+			if active {
+				activeFlag = "true"
+			}
+			cmd := fmt.Sprintf("am broadcast -a app.duinch.adbagent.ACTION_REMOTE_TUNNEL_STATE --es url %q --es room %q --ez active %s",
+				tunnelURL, roomCode, activeFlag)
+			_, _ = s.adb.RunShell(bctx, serial, cmd)
+		}(d.Serial)
+	}
 }
 
 func (s *DeviceService) SetActiveRemoteDevice(dev string) {

@@ -118,8 +118,27 @@ class DashboardViewModel(
                     DashboardUiEffect.ShowMessage("Đã ghép nối phòng: ${intent.roomCode}. Đang kết nối...")
                 )
             }
+            is DashboardUiIntent.OnServerRemoteTunnelPushed -> {
+                _uiState.update { cur ->
+                    cur.copy(
+                        serverQuickTunnelUrl = if (intent.active) intent.url else "",
+                        isServerRemoteActive = intent.active,
+                        remoteRoomCode = if (intent.active && intent.roomCode.isNotBlank()) intent.roomCode else cur.remoteRoomCode,
+                        serverUrlInput = if (intent.active && intent.url.isNotBlank()) intent.url else cur.serverUrlInput
+                    )
+                }
+                if (intent.active && intent.url.isNotBlank()) {
+                    _effects.tryEmit(DashboardUiEffect.ShowMessage("Máy chủ đã mở Quick Tunnel qua cáp USB!"))
+                }
+            }
             is DashboardUiIntent.OnPairingIntent -> handlePairingIntent(intent.intent)
-            is DashboardUiIntent.OnTermuxIntent -> handleTermuxIntent(intent.intent)
+            is DashboardUiIntent.OnTermuxIntent -> handleTermuxAction(
+                intent = intent.intent,
+                scope = viewModelScope,
+                uiState = _uiState,
+                runCommand = container.runTermuxCommand::invoke,
+                clearLogs = container.termuxRuntimeGateway::clearConsoleLogs
+            )
         }
     }
 
@@ -207,26 +226,6 @@ class DashboardViewModel(
         pairingController.handleIntent(intent)
     }
 
-    private fun handleTermuxIntent(intent: TermuxUiIntent) {
-        when (intent) {
-            TermuxUiIntent.OpenConsole ->
-                _uiState.update { cur -> cur.copy(termux = cur.termux.copy(isSheetVisible = true)) }
-            TermuxUiIntent.CloseConsole ->
-                _uiState.update { cur -> cur.copy(termux = cur.termux.copy(isSheetVisible = false)) }
-            is TermuxUiIntent.UpdateCommandInput ->
-                _uiState.update { cur -> cur.copy(termux = cur.termux.copy(commandInput = intent.value)) }
-            TermuxUiIntent.ClearLogs -> container.termuxRuntimeGateway.clearConsoleLogs()
-            TermuxUiIntent.SubmitCommand -> {
-                val cmd = _uiState.value.termux.commandInput
-                _uiState.update { cur -> cur.copy(termux = cur.termux.copy(commandInput = "", isRunningCommand = true)) }
-                viewModelScope.launch {
-                    container.runTermuxCommand(cmd)
-                    _uiState.update { cur -> cur.copy(termux = cur.termux.copy(isRunningCommand = false)) }
-                }
-            }
-        }
-    }
-
     private fun saveCurrentConfig(silent: Boolean = false) {
         val draft = buildDraftConfig(_uiState.value)
         container.saveTunnelConfig(draft).fold(
@@ -268,17 +267,6 @@ class DashboardViewModel(
             remoteRoomCode = saved.remoteRoomCode
         )
     }
-
-    private fun buildDraftConfig(state: DashboardUiState) = TunnelConfig(
-        serverUrl = state.serverUrlInput,
-        deviceAlias = state.deviceAliasInput,
-        localAdbPort = state.localAdbPortInput.toIntOrNull() ?: 5555,
-        autoReconnectOnNetworkChange = state.autoReconnect,
-        runInBackground = state.runInBackground,
-        trustedHomeSsid = state.trustedHomeSsidInput,
-        autoSwitchOnHomeWifi = state.autoSwitchOnHomeWifi,
-        remoteRoomCode = state.remoteRoomCode
-    )
 
     override fun onCleared() {
         container.adbDiscoveryGateway.stopDiscovery()

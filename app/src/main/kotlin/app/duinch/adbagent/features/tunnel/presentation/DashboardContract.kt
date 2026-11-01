@@ -42,7 +42,9 @@ data class DashboardUiState(
     val showAllHostCommands: Boolean = false,
     val pairing: PairingUiState = PairingUiState(),
     val termux: TermuxUiState = TermuxUiState(),
-    val remoteRoomCode: String = ""
+    val remoteRoomCode: String = "",
+    val serverQuickTunnelUrl: String = "",
+    val isServerRemoteActive: Boolean = false
 ) {
     val isTunnelActive: Boolean
         get() = connectionState is TunnelConnectionState.Connected ||
@@ -77,6 +79,7 @@ sealed interface DashboardUiIntent {
     data class SetForceShowPairing(val force: Boolean) : DashboardUiIntent
     data object ScanQrCode : DashboardUiIntent
     data class ApplyQrRemoteConfig(val roomCode: String, val serverUrl: String?) : DashboardUiIntent
+    data class OnServerRemoteTunnelPushed(val url: String, val roomCode: String, val active: Boolean) : DashboardUiIntent
     data class OnPairingIntent(val intent: PairingUiIntent) : DashboardUiIntent
     data class OnTermuxIntent(val intent: TermuxUiIntent) : DashboardUiIntent
 }
