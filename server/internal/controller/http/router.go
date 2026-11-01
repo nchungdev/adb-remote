@@ -69,6 +69,10 @@ func NewRouter(
 	mux.HandleFunc("GET /api/pair/pending", s.handlePairPending)
 	mux.HandleFunc("POST /api/pair/confirm", s.handlePairConfirm)
 	mux.HandleFunc("GET /api/pair/check", s.handlePairCheck)
+	mux.HandleFunc("POST /api/remote/request-enable", s.handleRemoteRequestEnable)
+	mux.HandleFunc("GET /api/remote/pending-requests", s.handleRemotePendingRequests)
+	mux.HandleFunc("POST /api/remote/approve-request", s.handleRemoteApproveRequest)
+	mux.HandleFunc("GET /api/remote/request-status", s.handleRemoteRequestStatus)
 
 	mux.HandleFunc("GET /download/adb-agent.apk", s.handleDownloadApk)
 	mux.HandleFunc("HEAD /download/adb-agent.apk", s.handleHeadApk)

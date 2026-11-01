@@ -179,3 +179,70 @@ func (s *Server) handlePairCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{"status": status})
 }
+
+func (s *Server) handleRemoteRequestEnable(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		DeviceID   string `json:"device_id"`
+		DeviceName string `json:"device_name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if req.DeviceID == "" {
+		req.DeviceID = "android-device"
+	}
+	s.pairHub.SubmitRemoteTunnelRequest(req.DeviceID, req.DeviceName)
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{"status": "pending"})
+}
+
+func (s *Server) handleRemotePendingRequests(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	pending := s.pairHub.GetPendingRemoteTunnelRequests()
+	_ = json.NewEncoder(w).Encode(pending)
+}
+
+func (s *Server) handleRemoteApproveRequest(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		DeviceID string `json:"device_id"`
+		Approved bool   `json:"approved"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+
+	url := ""
+	room := s.devices.GetRoomCode()
+	if req.Approved {
+		if s.qt != nil && !s.qt.IsActive() {
+			ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+			defer cancel()
+			url, _ = s.qt.Start(ctx)
+		} else if s.qt != nil {
+			url = s.qt.GetURL()
+		}
+		s.devices.SetRemoteActive(true)
+	}
+
+	s.pairHub.ConfirmRemoteTunnelRequest(req.DeviceID, req.Approved, url, room)
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"status": "ok",
+		"active": req.Approved,
+		"url":    url,
+		"room":   room,
+	})
+}
+
+func (s *Server) handleRemoteRequestStatus(w http.ResponseWriter, r *http.Request) {
+	deviceID := r.URL.Query().Get("device_id")
+	status, url, room := s.pairHub.CheckRemoteTunnelStatus(deviceID)
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"status": status,
+		"url":    url,
+		"room":   room,
+	})
+}
