@@ -20,7 +20,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okio.ByteString.Companion.toByteString
 import org.json.JSONObject
@@ -29,7 +28,6 @@ import org.webrtc.IceCandidate
 import org.webrtc.MediaConstraints
 import org.webrtc.PeerConnection
 import org.webrtc.PeerConnectionFactory
-import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 
 class WebRtcReverseTunnelAdapter(
@@ -54,11 +52,11 @@ class WebRtcReverseTunnelAdapter(
     @Volatile private var currentConfig: TunnelConfig? = null
     @Volatile private var peerConnection: PeerConnection? = null
     @Volatile private var dataChannel: DataChannel? = null
+    @Volatile private var signalingChannel: TunnelSignalingChannel? = null
     @Volatile private var activeSessionId: String? = null
     @Volatile private var connectedAtEpochMs: Long = 0L
     @Volatile private var mappedServerPort: Int? = null
 
-    private var pollJob: Job? = null
     private var reconnectJob: Job? = null
     private var retryAttempt = 0
 
@@ -90,7 +88,6 @@ class WebRtcReverseTunnelAdapter(
     override suspend fun disconnect() {
         userWantsConnected.set(false)
         reconnectJob?.cancel()
-        pollJob?.cancel()
         finishHistorySession("Chủ động ngắt kết nối")
         closeActiveSession()
         connectionState.value = TunnelConnectionState.Disconnected
@@ -104,12 +101,21 @@ class WebRtcReverseTunnelAdapter(
         closeActiveSession()
         connectionState.value = TunnelConnectionState.Connecting(config.serverUrl)
 
-        val signalUrl = resolveWebRtcSignalEndpoint(config.serverUrl)
-        val room = "default"
-        val peer = config.deviceAlias.ifBlank { "android-client" }
+        val room = config.remoteRoomCode.takeIf { it.isNotBlank() }?.replace("-", "")?.trim() ?: "default"
+        val peer = config.deviceAlias.ifBlank { "android-device" }
+
+        val sc: TunnelSignalingChannel = if (config.remoteRoomCode.isNotBlank()) {
+            MqttTunnelSignalingChannel(roomCode = room, brokerHost = "broker.hivemq.com")
+        } else {
+            val signalUrl = resolveWebRtcSignalEndpoint(config.serverUrl)
+            HttpTunnelSignalingChannel(signalingClient, signalUrl, room, peer, scope)
+        }
+        signalingChannel = sc
 
         val iceServers = listOf(
-            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
+            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer()
         )
         val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
@@ -118,14 +124,7 @@ class WebRtcReverseTunnelAdapter(
 
         val pc = factory.createPeerConnection(rtcConfig, object : SimplePeerConnectionObserver() {
             override fun onIceCandidate(candidate: IceCandidate) {
-                scope.launch {
-                    val candObj = JSONObject().apply {
-                        put("candidate", candidate.sdp)
-                        put("sdpMid", candidate.sdpMid)
-                        put("sdpMLineIndex", candidate.sdpMLineIndex)
-                    }
-                    signalingClient.sendSignal(signalUrl, room, peer, "candidate", candObj)
-                }
+                sc.sendCandidate(candidate)
             }
 
             override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState) {
@@ -198,44 +197,26 @@ class WebRtcReverseTunnelAdapter(
                 if (desc == null) return
                 pc.setLocalDescription(object : SimpleSdpObserver() {
                     override fun onSetSuccess() {
-                        scope.launch {
-                            val offerObj = JSONObject().apply { put("sdp", desc.description) }
-                            signalingClient.sendSignal(signalUrl, room, peer, "offer", offerObj)
-                        }
+                        sc.sendOffer(desc.description)
                     }
                 }, desc)
             }
         }, MediaConstraints())
 
-        startSignalPolling(signalUrl, room, peer, pc)
-    }
-
-    private fun startSignalPolling(signalUrl: String, room: String, peer: String, pc: PeerConnection) {
-        pollJob?.cancel()
-        pollJob = scope.launch {
-            while (isActive && userWantsConnected.get()) {
-                val signal = signalingClient.pollSignal(signalUrl, room, peer).getOrNull()
-                if (signal != null) {
-                    val type = signal.optString("type")
-                    val payload = signal.optJSONObject("payload")
-                    when (type) {
-                        "answer" -> {
-                            val sdp = payload?.optString("sdp").orEmpty()
-                            if (sdp.isNotBlank()) {
-                                pc.setRemoteDescription(SimpleSdpObserver(), SessionDescription(SessionDescription.Type.ANSWER, sdp))
-                            }
-                        }
-                        "candidate" -> {
-                            if (payload != null) {
-                                val cand = payload.optString("candidate")
-                                val sdpMid = payload.optString("sdpMid")
-                                val sdpMLineIndex = payload.optInt("sdpMLineIndex", 0)
-                                pc.addIceCandidate(IceCandidate(sdpMid, sdpMLineIndex, cand))
-                            }
-                        }
+        sc.start { type, payload ->
+            when (type) {
+                "answer" -> {
+                    val sdp = payload.optString("sdp").orEmpty()
+                    if (sdp.isNotBlank()) {
+                        pc.setRemoteDescription(SimpleSdpObserver(), SessionDescription(SessionDescription.Type.ANSWER, sdp))
                     }
                 }
-                delay(300L)
+                "candidate" -> {
+                    val cand = payload.optString("candidate")
+                    val sdpMid = payload.optString("sdpMid")
+                    val sdpMLineIndex = payload.optInt("sdpMLineIndex", 0)
+                    pc.addIceCandidate(IceCandidate(sdpMid, sdpMLineIndex, cand))
+                }
             }
         }
     }
@@ -287,7 +268,8 @@ class WebRtcReverseTunnelAdapter(
     }
 
     private fun closeActiveSession() {
-        pollJob?.cancel()
+        signalingChannel?.close()
+        signalingChannel = null
         streamBridge.closeAll()
         runCatching { dataChannel?.close() }
         dataChannel = null

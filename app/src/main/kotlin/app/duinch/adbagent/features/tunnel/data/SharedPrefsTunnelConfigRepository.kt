@@ -21,7 +21,8 @@ class SharedPrefsTunnelConfigRepository(
             autoReconnectOnNetworkChange = prefs.getBoolean(KEY_AUTO_RECONNECT, true),
             trustedHomeSsid = prefs.getString(KEY_TRUSTED_HOME_SSID, "") ?: "",
             autoSwitchOnHomeWifi = prefs.getBoolean(KEY_AUTO_SWITCH_HOME_WIFI, true),
-            runInBackground = prefs.getBoolean(KEY_RUN_IN_BACKGROUND, true)
+            runInBackground = prefs.getBoolean(KEY_RUN_IN_BACKGROUND, true),
+            remoteRoomCode = prefs.getString(KEY_REMOTE_ROOM_CODE, "") ?: ""
         )
     }
 
@@ -34,6 +35,7 @@ class SharedPrefsTunnelConfigRepository(
             .putString(KEY_TRUSTED_HOME_SSID, config.trustedHomeSsid)
             .putBoolean(KEY_AUTO_SWITCH_HOME_WIFI, config.autoSwitchOnHomeWifi)
             .putBoolean(KEY_RUN_IN_BACKGROUND, config.runInBackground)
+            .putString(KEY_REMOTE_ROOM_CODE, config.remoteRoomCode)
             .apply()
     }
 
@@ -46,5 +48,6 @@ class SharedPrefsTunnelConfigRepository(
         private const val KEY_TRUSTED_HOME_SSID = "trusted_home_ssid"
         private const val KEY_AUTO_SWITCH_HOME_WIFI = "auto_switch_home_wifi"
         private const val KEY_RUN_IN_BACKGROUND = "run_in_background"
+        private const val KEY_REMOTE_ROOM_CODE = "remote_room_code"
     }
 }

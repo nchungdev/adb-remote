@@ -22,17 +22,12 @@ import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 import app.duinch.adbagent.features.pairing.presentation.PairingSection
 import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
-import app.duinch.adbagent.features.updater.presentation.CompactUpdateAlertBanner
-import app.duinch.adbagent.features.updater.presentation.UpdaterUiIntent
-import app.duinch.adbagent.features.updater.presentation.UpdaterUiState
 import kotlinx.coroutines.delay
 
 @Composable
 fun TunnelHomeTab(
     state: DashboardUiState,
-    updaterState: UpdaterUiState,
     onIntent: (DashboardUiIntent) -> Unit,
-    onUpdaterIntent: (UpdaterUiIntent) -> Unit,
     onPairingIntent: (PairingUiIntent) -> Unit
 ) {
     val ext = AdbTheme.colors
@@ -62,8 +57,6 @@ fun TunnelHomeTab(
     val animatedTint by animateColorAsState(targetValue = visual.tint, label = "orbTint")
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        CompactUpdateAlertBanner(state = updaterState, onIntent = onUpdaterIntent)
-
         if (shouldShowPairing) {
             PairingSection(
                 state = state.pairing,

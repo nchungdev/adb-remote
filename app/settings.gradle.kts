@@ -14,4 +14,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "adb-agent"
+rootProject.name = "adb-remote"

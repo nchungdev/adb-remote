@@ -3,6 +3,7 @@ package signaling
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 	"sync"
 	"time"
 )
@@ -70,6 +71,10 @@ func (h *MessageHub) Unregister(room, peerID string) {
 	}
 }
 
+func isRelayPeer(id string) bool {
+	return strings.HasPrefix(id, "relay") || strings.Contains(id, "relay")
+}
+
 func (h *MessageHub) Broadcast(room string, msg SignalMessage) int {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -86,8 +91,8 @@ func (h *MessageHub) Broadcast(room string, msg SignalMessage) int {
 		if id == msg.Sender {
 			continue // Do not echo back to sender
 		}
-		if msg.Recipient != "" && msg.Recipient != id {
-			continue // Targeted message
+		if msg.Recipient != "" && msg.Recipient != id && !isRelayPeer(id) {
+			continue // Targeted message, but relay bridges to external peers
 		}
 		select {
 		case ch <- msg:

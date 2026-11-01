@@ -223,4 +223,19 @@ object AppIcons {
             moveTo(12f, 19f); horizontalLineTo(12.05f)
         }
     }
+
+    val QrCode: ImageVector by lazy {
+        strokeIcon("QrCode") {
+            moveTo(3f, 3f); horizontalLineTo(9f); verticalLineTo(9f); horizontalLineTo(3f); close()
+            moveTo(15f, 3f); horizontalLineTo(21f); verticalLineTo(9f); horizontalLineTo(15f); close()
+            moveTo(3f, 15f); horizontalLineTo(9f); verticalLineTo(21f); horizontalLineTo(3f); close()
+            moveTo(6f, 6f); horizontalLineTo(6.05f)
+            moveTo(18f, 6f); horizontalLineTo(18.05f)
+            moveTo(6f, 18f); horizontalLineTo(6.05f)
+            moveTo(15f, 15f); horizontalLineTo(17f); verticalLineTo(17f); horizontalLineTo(15f); close()
+            moveTo(19f, 15f); horizontalLineTo(21f)
+            moveTo(15f, 19f); verticalLineTo(21f)
+            moveTo(19f, 19f); horizontalLineTo(21f); verticalLineTo(21f)
+        }
+    }
 }

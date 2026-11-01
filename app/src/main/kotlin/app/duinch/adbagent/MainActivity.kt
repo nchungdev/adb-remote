@@ -92,6 +92,8 @@ class MainActivity : ComponentActivity() {
                                 snackbarHostState.showSnackbar(effect.text)
                             DashboardUiEffect.LaunchDeveloperSettings ->
                                 openDeveloperSettings()
+                            DashboardUiEffect.LaunchQrScanner ->
+                                openQrScanner(dashboardVm)
                         }
                     }
                 }
@@ -124,6 +126,34 @@ class MainActivity : ComponentActivity() {
             Uri.parse("package:$packageName")
         )
         runCatching { unknownSourcesLauncher.launch(intent) }
+    }
+
+    private fun openQrScanner(dashboardVm: DashboardViewModel) {
+        val options = com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_QR_CODE)
+            .enableAutoZoom()
+            .build()
+        val scanner = com.google.mlkit.vision.codescanner.GmsBarcodeScanning.getClient(this, options)
+        scanner.startScan()
+            .addOnSuccessListener { barcode ->
+                val raw = barcode.rawValue.orEmpty()
+                val parsed = app.duinch.adbagent.features.tunnel.domain.RemoteQrPayloadParser.parse(raw)
+                if (parsed != null) {
+                    dashboardVm.onIntent(
+                        DashboardUiIntent.ApplyQrRemoteConfig(
+                            roomCode = parsed.roomCode,
+                            serverUrl = parsed.serverUrl
+                        )
+                    )
+                } else if (raw.isNotBlank()) {
+                    dashboardVm.onIntent(
+                        DashboardUiIntent.ApplyQrRemoteConfig(
+                            roomCode = raw.trim(),
+                            serverUrl = null
+                        )
+                    )
+                }
+            }
     }
 
     private fun openDeveloperSettings() {

@@ -34,7 +34,8 @@ data class DashboardUiState(
     val hostCommands: List<app.duinch.adbagent.features.tunnel.domain.HostCommandRecord> = emptyList(),
     val showAllHostCommands: Boolean = false,
     val pairing: PairingUiState = PairingUiState(),
-    val termux: TermuxUiState = TermuxUiState()
+    val termux: TermuxUiState = TermuxUiState(),
+    val remoteRoomCode: String = ""
 ) {
     val isTunnelActive: Boolean
         get() = connectionState is TunnelConnectionState.Connected ||
@@ -51,6 +52,7 @@ data class DashboardUiState(
 sealed interface DashboardUiIntent {
     data class SelectTab(val tab: AppTab) : DashboardUiIntent
     data class UpdateServerUrl(val value: String) : DashboardUiIntent
+    data class UpdateRemoteRoomCode(val value: String) : DashboardUiIntent
     data class UpdateDeviceAlias(val value: String) : DashboardUiIntent
     data class UpdateLocalAdbPort(val value: String) : DashboardUiIntent
     data class ToggleAutoReconnect(val enabled: Boolean) : DashboardUiIntent
@@ -65,6 +67,8 @@ sealed interface DashboardUiIntent {
     data object ToggleHostCommandsExpand : DashboardUiIntent
     data object ClearHostCommands : DashboardUiIntent
     data class SetForceShowPairing(val force: Boolean) : DashboardUiIntent
+    data object ScanQrCode : DashboardUiIntent
+    data class ApplyQrRemoteConfig(val roomCode: String, val serverUrl: String?) : DashboardUiIntent
     data class OnPairingIntent(val intent: PairingUiIntent) : DashboardUiIntent
     data class OnTermuxIntent(val intent: TermuxUiIntent) : DashboardUiIntent
 }
@@ -72,4 +76,5 @@ sealed interface DashboardUiIntent {
 sealed interface DashboardUiEffect {
     data class ShowMessage(val text: String) : DashboardUiEffect
     data object LaunchDeveloperSettings : DashboardUiEffect
+    data object LaunchQrScanner : DashboardUiEffect
 }

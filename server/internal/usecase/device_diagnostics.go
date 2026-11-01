@@ -68,3 +68,42 @@ func (s *DeviceService) RestartServer(ctx context.Context) error {
 	}
 	return err
 }
+
+func (s *DeviceService) SetRoomCode(code string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.roomCode = code
+}
+
+func (s *DeviceService) GetRoomCode() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.roomCode == "" {
+		return "883-716"
+	}
+	return s.roomCode
+}
+
+func (s *DeviceService) SetRemoteActive(active bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.remoteActive = active
+}
+
+func (s *DeviceService) IsRemoteActive() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.remoteActive
+}
+
+func (s *DeviceService) SetActiveRemoteDevice(dev string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.activeRemoteDev = dev
+}
+
+func (s *DeviceService) GetActiveRemoteDevice() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.activeRemoteDev
+}

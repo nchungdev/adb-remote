@@ -54,6 +54,11 @@ func NewRouter(
 	mux.HandleFunc("HEAD /{$}", s.handleHeadOK)
 	mux.Handle("GET /ui/", http.StripPrefix("/ui/", http.FileServer(http.FS(ui.DistFS))))
 
+	mux.HandleFunc("GET /remote", s.handleRemotePage)
+	mux.HandleFunc("GET /api/remote/status", s.handleRemoteStatus)
+	mux.HandleFunc("POST /api/remote/toggle", s.handleRemoteToggle)
+	mux.HandleFunc("GET /api/remote/qr.png", s.handleRemoteQrPng)
+
 	mux.HandleFunc("GET /download/adb-agent.apk", s.handleDownloadApk)
 	mux.HandleFunc("HEAD /download/adb-agent.apk", s.handleHeadApk)
 	mux.HandleFunc("GET /downloads/adb-agent.apk", s.handleDownloadApk)

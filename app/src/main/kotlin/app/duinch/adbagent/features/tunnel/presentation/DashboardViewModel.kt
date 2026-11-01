@@ -48,6 +48,8 @@ class DashboardViewModel(
                 _uiState.update { it.copy(selectedTab = intent.tab) }
             is DashboardUiIntent.UpdateServerUrl ->
                 _uiState.update { it.copy(serverUrlInput = intent.value) }
+            is DashboardUiIntent.UpdateRemoteRoomCode ->
+                _uiState.update { it.copy(remoteRoomCode = intent.value.trim()) }
             is DashboardUiIntent.UpdateDeviceAlias ->
                 _uiState.update { it.copy(deviceAliasInput = intent.value) }
             is DashboardUiIntent.UpdateLocalAdbPort ->
@@ -98,6 +100,22 @@ class DashboardViewModel(
             }
             is DashboardUiIntent.SetForceShowPairing ->
                 _uiState.update { it.copy(selectedTab = AppTab.CONNECT, forceShowPairing = intent.force) }
+            DashboardUiIntent.ScanQrCode ->
+                _effects.tryEmit(DashboardUiEffect.LaunchQrScanner)
+            is DashboardUiIntent.ApplyQrRemoteConfig -> {
+                _uiState.update { cur ->
+                    cur.copy(
+                        remoteRoomCode = intent.roomCode,
+                        serverUrlInput = intent.serverUrl ?: cur.serverUrlInput,
+                        selectedTab = AppTab.CONNECT
+                    )
+                }
+                saveCurrentConfig(silent = true)
+                toggleTunnel()
+                _effects.tryEmit(
+                    DashboardUiEffect.ShowMessage("Đã ghép nối phòng: ${intent.roomCode}. Đang kết nối...")
+                )
+            }
             is DashboardUiIntent.OnPairingIntent -> handlePairingIntent(intent.intent)
             is DashboardUiIntent.OnTermuxIntent -> handleTermuxIntent(intent.intent)
         }
@@ -223,7 +241,8 @@ class DashboardViewModel(
             autoSwitchOnHomeWifi = saved.autoSwitchOnHomeWifi,
             currentWifiSsid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty(),
             localWifiIp = container.reverseTunnelGateway.getLocalWifiIp().orEmpty(),
-            isUsbConnected = container.reverseTunnelGateway.isUsbConnected()
+            isUsbConnected = container.reverseTunnelGateway.isUsbConnected(),
+            remoteRoomCode = saved.remoteRoomCode
         )
     }
 
@@ -234,7 +253,8 @@ class DashboardViewModel(
         autoReconnectOnNetworkChange = state.autoReconnect,
         runInBackground = state.runInBackground,
         trustedHomeSsid = state.trustedHomeSsidInput,
-        autoSwitchOnHomeWifi = state.autoSwitchOnHomeWifi
+        autoSwitchOnHomeWifi = state.autoSwitchOnHomeWifi,
+        remoteRoomCode = state.remoteRoomCode
     )
 
     override fun onCleared() {

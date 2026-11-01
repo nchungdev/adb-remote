@@ -28,20 +28,6 @@ import app.duinch.adbagent.core.designsystem.AppIcons
 import app.duinch.adbagent.features.updater.domain.UpdateStatus
 
 @Composable
-fun CompactUpdateAlertBanner(
-    state: UpdaterUiState,
-    onIntent: (UpdaterUiIntent) -> Unit
-) {
-    val active = state.status is UpdateStatus.Available ||
-        state.status is UpdateStatus.Downloading ||
-        state.status is UpdateStatus.Installing ||
-        state.status is UpdateStatus.ReadyToInstall
-    if (!active) return
-
-    UpdateBannerCard(state = state, onIntent = onIntent)
-}
-
-@Composable
 fun UpdateBannerCard(
     state: UpdaterUiState,
     onIntent: (UpdaterUiIntent) -> Unit
@@ -93,28 +79,26 @@ fun UpdateBannerCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    val subtitle = when (val s = state.status) {
-                        UpdateStatus.Idle -> "Cập nhật trực tiếp qua OTA"
-                        UpdateStatus.Checking -> "Đang kiểm tra bản phát hành mới..."
-                        is UpdateStatus.UpToDate -> "Đang ở phiên bản mới nhất"
-                        is UpdateStatus.Available -> "Có bản mới v${s.release.versionName}: ${s.release.changelog}"
-                        is UpdateStatus.Downloading -> "Đang tải gói cài đặt... ${s.progressPercent}%"
-                        is UpdateStatus.Installing -> "Đang tự động cài đặt ngầm qua ADB..."
-                        is UpdateStatus.ReadyToInstall ->
-                            if (s.needsInstallPermission) "Cần cấp quyền cài đặt APK để hoàn tất"
-                            else "Đã tải xong v${s.release.versionName} — sẵn sàng cài đặt"
+                    val subtitle: String? = when (val s = state.status) {
+                        UpdateStatus.Checking -> "Đang kiểm tra..."
+                        is UpdateStatus.Downloading -> "Đang tải... ${s.progressPercent}%"
+                        is UpdateStatus.Installing -> "Đang cài đặt..."
+                        is UpdateStatus.UpToDate -> "Đã là phiên bản mới nhất"
                         is UpdateStatus.Failed -> s.reason
+                        else -> null
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (state.status is UpdateStatus.Available) {
-                            ext.statusConnected
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
+                    if (subtitle != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (state.status is UpdateStatus.Available) {
+                                ext.statusConnected
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
                 }
             }
 
@@ -194,9 +178,6 @@ fun UpdateBannerCard(
                 }
                 else -> Unit
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            GitHubTokenSettingsSection(state = state, onIntent = onIntent)
         }
     }
 }

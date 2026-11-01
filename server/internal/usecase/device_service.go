@@ -4,20 +4,30 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"app.duinch/adb-device-manager/internal/domain"
 )
 
 type DeviceService struct {
-	adb     AdbRunner
-	tunnels TunnelInspector
-	auditor CommandAuditor
-	history HistoryRepository
+	adb            AdbRunner
+	tunnels        TunnelInspector
+	auditor        CommandAuditor
+	history        HistoryRepository
+	mu             sync.RWMutex
+	roomCode       string
+	remoteActive   bool
+	activeRemoteDev string
 }
 
 func NewDeviceService(adb AdbRunner, tunnels TunnelInspector, auditor CommandAuditor) *DeviceService {
-	return &DeviceService{adb: adb, tunnels: tunnels, auditor: auditor}
+	return &DeviceService{
+		adb:          adb,
+		tunnels:      tunnels,
+		auditor:      auditor,
+		remoteActive: true,
+	}
 }
 
 func (s *DeviceService) SetHistory(history HistoryRepository) {

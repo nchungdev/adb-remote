@@ -260,20 +260,32 @@ internal fun TunnelSwitchboardCard(
                                 maxLines = 1
                             )
                         }
-                        OutlinedButton(
-                            onClick = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 46.dp),
-                            shape = MaterialTheme.shapes.medium
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(AppIcons.LinkWireless, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Ghép đôi không dây",
-                                style = MaterialTheme.typography.labelLarge,
-                                maxLines = 1
-                            )
+                            OutlinedButton(
+                                onClick = { onIntent(DashboardUiIntent.ScanQrCode) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 46.dp),
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                Icon(AppIcons.QrCode, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Quét QR", style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                            }
+                            OutlinedButton(
+                                onClick = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 46.dp),
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                Icon(AppIcons.LinkWireless, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Ghép đôi", style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                            }
                         }
                     }
                 }

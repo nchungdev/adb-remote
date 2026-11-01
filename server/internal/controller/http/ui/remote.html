@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADB Remote · Fast Pairing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #090d16;
+  --card-bg: rgba(18, 24, 38, 0.85);
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.25);
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --danger: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 60%);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.popup-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--warning);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.header-badge.connected {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--success);
+}
+
+.header-badge.stopped {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+p.subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+
+.qr-box {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 25px -5px var(--accent-glow);
+  position: relative;
+  transition: opacity 0.3s;
+}
+
+.qr-box img {
+  display: block;
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+}
+
+.code-deck {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.code-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+
+.copy-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.copy-btn:hover { background: rgba(255, 255, 255, 0.15); }
+
+.action-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.stop-btn {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+.stop-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: var(--danger);
+  color: #ffffff;
+}
+
+.resume-btn {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #7dd3fc;
+}
+.resume-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.footer-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 14px;
+}
+</style>
+</head>
+<body>
+
+<div class="popup-card">
+  <div id="statusBadge" class="header-badge">
+    <div class="pulse-dot"></div>
+    <span id="statusText">Waiting for device to scan QR...</span>
+  </div>
+
+  <h1>ADB Remote Pairing</h1>
+  <p class="subtitle">Scan this QR code with the mobile app to pair via P2P (works over 4G/5G). Disconnects only when you stop remote.</p>
+
+  <div class="qr-box" id="qrContainer">
+    <img id="qrImage" src="/api/remote/qr.png" alt="QR Code">
+  </div>
+
+  <div class="code-deck">
+    <span style="font-size: 12px; color: var(--text-muted);">P2P Room Code:</span>
+    <span class="code-val" id="roomCodeDisplay">--- ---</span>
+    <button class="copy-btn" id="copyBtn">Copy</button>
+  </div>
+
+  <button class="action-btn stop-btn" id="toggleBtn">
+    <span>🛑</span> Stop Remote ADB
+  </button>
+
+  <div class="footer-hint">Connection remains active until explicitly stopped.</div>
+</div>
+
+<script>
+let isActive = true;
+const statusBadge = document.getElementById('statusBadge');
+const statusText = document.getElementById('statusText');
+const roomDisplay = document.getElementById('roomCodeDisplay');
+const toggleBtn = document.getElementById('toggleBtn');
+const copyBtn = document.getElementById('copyBtn');
+const qrContainer = document.getElementById('qrContainer');
+const qrImage = document.getElementById('qrImage');
+
+async function fetchStatus() {
+  try {
+    const res = await fetch('/api/remote/status');
+    if (!res.ok) return;
+    const data = await res.json();
+    isActive = data.active;
+    roomDisplay.textContent = data.room || '--- ---';
+
+    if (!isActive) {
+      statusBadge.className = 'header-badge stopped';
+      statusText.textContent = 'Remote ADB is Off';
+      qrContainer.style.opacity = '0.3';
+      toggleBtn.className = 'action-btn resume-btn';
+      toggleBtn.innerHTML = '<span>⚡</span> Turn on Remote ADB';
+    } else if (data.connected_device) {
+      statusBadge.className = 'header-badge connected';
+      statusText.textContent = 'Paired: ' + data.connected_device;
+      qrContainer.style.opacity = '1';
+      toggleBtn.className = 'action-btn stop-btn';
+      toggleBtn.innerHTML = '<span>🛑</span> Stop Remote ADB';
+    } else {
+      statusBadge.className = 'header-badge';
+      statusText.textContent = 'Waiting for device to scan QR...';
+      qrContainer.style.opacity = '1';
+      toggleBtn.className = 'action-btn stop-btn';
+      toggleBtn.innerHTML = '<span>🛑</span> Stop Remote ADB';
+    }
+  } catch (err) {}
+}
+
+toggleBtn.addEventListener('click', async () => {
+  const nextState = !isActive;
+  try {
+    await fetch('/api/remote/toggle?active=' + nextState, { method: 'POST' });
+    qrImage.src = '/api/remote/qr.png?t=' + Date.now();
+    await fetchStatus();
+  } catch (err) {}
+});
+
+copyBtn.addEventListener('click', () => {
+  const code = roomDisplay.textContent.trim();
+  if (code && code !== '--- ---') {
+    navigator.clipboard.writeText(code);
+    copyBtn.textContent = 'Copied!';
+    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+  }
+});
+
+fetchStatus();
+setInterval(fetchStatus, 2000);
+</script>
+</body>
+</html>

@@ -100,6 +100,8 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("io.getstream:stream-webrtc-android:1.3.8")
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.2.20")

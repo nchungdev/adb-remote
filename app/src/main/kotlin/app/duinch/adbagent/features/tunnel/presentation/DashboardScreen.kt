@@ -1,8 +1,5 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -12,17 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -35,7 +27,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.duinch.adbagent.core.designsystem.AppIcons
@@ -79,6 +70,15 @@ fun DashboardScreen(
                 },
                 actions = {
                     IconButton(
+                        onClick = { onIntent(DashboardUiIntent.ScanQrCode) }
+                    ) {
+                        Icon(
+                            imageVector = AppIcons.QrCode,
+                            contentDescription = "Quét mã QR Remote",
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    IconButton(
                         onClick = { onIntent(DashboardUiIntent.OnTermuxIntent(TermuxUiIntent.OpenConsole)) }
                     ) {
                         Icon(
@@ -100,6 +100,20 @@ fun DashboardScreen(
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Quét mã QR Remote") },
+                                onClick = {
+                                    menuExpanded = false
+                                    onIntent(DashboardUiIntent.ScanQrCode)
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = AppIcons.QrCode,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Ghép đôi lại ADB") },
                                 onClick = {
@@ -137,105 +151,11 @@ fun DashboardScreen(
             )
         },
         bottomBar = {
-            val isDark = isSystemInDarkTheme()
-            val unselectedNavColor = MaterialTheme.colorScheme.onSurfaceVariant
-            val adbTabVisual = rememberAdbTabVisual(state = state, isDark = isDark)
-            val animatedAdbSelectedIconColor by animateColorAsState(
-                targetValue = adbTabVisual.selectedColor,
-                label = "adbTabSelectedIconColor"
+            DashboardBottomBar(
+                state = state,
+                hasUpdateDot = hasUpdateDot,
+                onIntent = onIntent
             )
-            val animatedAdbSelectedTextColor by animateColorAsState(
-                targetValue = adbTabVisual.selectedTextColor,
-                label = "adbTabSelectedTextColor"
-            )
-            val animatedAdbIndicatorColor by animateColorAsState(
-                targetValue = adbTabVisual.indicatorColor,
-                label = "adbTabIndicatorColor"
-            )
-            val animatedAdbUnselectedIconColor by animateColorAsState(
-                targetValue = adbTabVisual.unselectedIconColor,
-                label = "adbTabUnselectedIconColor"
-            )
-
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                // Tab 1: Kết nối (Cập nhật biểu tượng và màu sắc theo trạng thái ADB)
-                NavigationBarItem(
-                    selected = state.selectedTab == AppTab.CONNECT,
-                    onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.CONNECT)) },
-                    icon = {
-                        Crossfade(
-                            targetState = adbTabVisual.icon,
-                            label = "adbTabIconCrossfade"
-                        ) { iconVector ->
-                            Icon(
-                                imageVector = iconVector,
-                                contentDescription = adbTabVisual.contentDescription,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    },
-                    label = { Text(AppTab.CONNECT.title) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = animatedAdbSelectedIconColor,
-                        selectedTextColor = animatedAdbSelectedTextColor,
-                        indicatorColor = animatedAdbIndicatorColor,
-                        unselectedIconColor = animatedAdbUnselectedIconColor,
-                        unselectedTextColor = unselectedNavColor
-                    )
-                )
-
-                // Tab 2: Nhật ký (Màu Lam Indigo Hoàng Gia)
-                NavigationBarItem(
-                    selected = state.selectedTab == AppTab.HISTORY,
-                    onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.HISTORY)) },
-                    icon = {
-                        Icon(
-                            imageVector = AppIcons.Clock,
-                            contentDescription = null,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    },
-                    label = { Text(AppTab.HISTORY.title) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5),
-                        selectedTextColor = if (isDark) Color(0xFF818CF8) else Color(0xFF4F46E5),
-                        indicatorColor = if (isDark) Color(0xFF312E81) else Color(0xFFEEF2FF),
-                        unselectedIconColor = unselectedNavColor,
-                        unselectedTextColor = unselectedNavColor
-                    )
-                )
-
-                // Tab 3: Cài đặt (Màu Tím Violet Sang Trọng)
-                NavigationBarItem(
-                    selected = state.selectedTab == AppTab.SETTINGS,
-                    onClick = { onIntent(DashboardUiIntent.SelectTab(AppTab.SETTINGS)) },
-                    icon = {
-                        BadgedBox(
-                            badge = {
-                                if (hasUpdateDot) {
-                                    Badge()
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = AppIcons.Sliders,
-                                contentDescription = null,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    },
-                    label = { Text(AppTab.SETTINGS.title) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = if (isDark) Color(0xFFC084FC) else Color(0xFF9333EA),
-                        selectedTextColor = if (isDark) Color(0xFFC084FC) else Color(0xFF9333EA),
-                        indicatorColor = if (isDark) Color(0xFF581C87) else Color(0xFFF3E8FF),
-                        unselectedIconColor = unselectedNavColor,
-                        unselectedTextColor = unselectedNavColor
-                    )
-                )
-            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
@@ -254,9 +174,7 @@ fun DashboardScreen(
                 when (state.selectedTab) {
                     AppTab.CONNECT -> TunnelHomeTab(
                         state = state,
-                        updaterState = updaterState,
                         onIntent = onIntent,
-                        onUpdaterIntent = onUpdaterIntent,
                         onPairingIntent = { onIntent(DashboardUiIntent.OnPairingIntent(it)) }
                     )
                     AppTab.HISTORY -> TunnelHistoryTab(

@@ -84,6 +84,16 @@ fun P2PConfigSheet(
             )
 
             OutlinedTextField(
+                value = state.remoteRoomCode,
+                onValueChange = { onIntent(DashboardUiIntent.UpdateRemoteRoomCode(it)) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Mã phòng Remote P2P (từ máy tính)") },
+                placeholder = { Text("883-716") },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                singleLine = true
+            )
+
+            OutlinedTextField(
                 value = state.deviceAliasInput,
                 onValueChange = { onIntent(DashboardUiIntent.UpdateDeviceAlias(it)) },
                 modifier = Modifier.fillMaxWidth(),

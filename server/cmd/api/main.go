@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,11 +19,22 @@ import (
 	"app.duinch/adb-device-manager/internal/adapter/tunnel"
 	"app.duinch/adb-device-manager/internal/config"
 	httpctrl "app.duinch/adb-device-manager/internal/controller/http"
+	"app.duinch/adb-device-manager/internal/tray"
 	"app.duinch/adb-device-manager/internal/usecase"
 )
 
 func main() {
-	cfg, err := config.Load(os.Args[1:])
+	headless := false
+	var filteredArgs []string
+	for _, arg := range os.Args[1:] {
+		if arg == "--headless" || arg == "-headless" {
+			headless = true
+		} else {
+			filteredArgs = append(filteredArgs, arg)
+		}
+	}
+
+	cfg, err := config.Load(filteredArgs)
 	if err != nil {
 		os.Stderr.WriteString("fatal config error: " + err.Error() + "\n")
 		os.Exit(1)
@@ -31,7 +45,6 @@ func main() {
 		"addr", cfg.ListenAddr,
 		"data_dir", cfg.DataDir,
 		"adb_bin", cfg.AdbBin,
-		"base_tunnel_port", cfg.BaseTunnelPort,
 	)
 
 	adbRunner := adb.NewCLIRunner(cfg.AdbBin)
@@ -47,7 +60,6 @@ func main() {
 		time.Sleep(150 * time.Millisecond)
 		_, _ = adbRunner.Connect(ctx, mappedAddr)
 	}
-
 	autoDisconnect := func(ctx context.Context, mappedAddr string) {
 		_, _ = adbRunner.Disconnect(ctx, mappedAddr)
 	}
@@ -57,40 +69,68 @@ func main() {
 	cmdTracker := tracker.NewCommandTracker()
 	cmdTracker.SetBroadcast(hub.BroadcastCommand)
 
+	roomCode := tray.LoadOrGenerateRoomCode(cfg.DataDir)
 	sigHub := signaling.NewMessageHub()
 	sigHandler := signaling.NewHTTPHandler(sigHub, "")
 	rtcHub := tunnel.NewWebRtcHub(hub, sigHub, []string{"stun:stun.l.google.com:19302"}, logger)
 
 	appCtx, appCancel := context.WithCancel(context.Background())
 	defer appCancel()
-	if err := rtcHub.Start(appCtx, "default"); err != nil {
-		logger.Warn("failed to start webrtc hub signaling listener", "err", err)
+
+	// Start local room and persistent room code
+	_ = rtcHub.Start(appCtx, "default")
+	normRoom := strings.ReplaceAll(roomCode, "-", "")
+	_ = rtcHub.Start(appCtx, normRoom)
+
+	// Start P2P MQTT signaling relay (allows zero-config remote pairing over 4G/5G)
+	if mqttRelay, err := signaling.NewMQTTRelay(sigHub, roomCode, logger); err != nil {
+		logger.Warn("could not connect to public mqtt signaling relay (local signaling still active)", "err", err)
+	} else {
+		defer mqttRelay.Close()
 	}
 
 	deviceSvc := usecase.NewDeviceService(adbRunner, hub, cmdTracker)
 	deviceSvc.SetHistory(historyStore)
+	deviceSvc.SetRoomCode(roomCode)
 	tunnelSvc := usecase.NewTunnelService(hub, historyStore)
 	otaSvc := usecase.NewOtaService(otaStore)
 
 	handler := httpctrl.NewRouter(deviceSvc, tunnelSvc, otaSvc, hub, sigHandler, logger)
+	port := 8080
+	if parts := strings.Split(cfg.ListenAddr, ":"); len(parts) == 2 {
+		if p, err := strconv.Atoi(parts[1]); err == nil {
+			port = p
+		}
+	}
+
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
+	ctrl := newServerController(port, cfg.ListenAddr, roomCode, adbRunner, handler, rtcHub, hub, deviceSvc, logger, appCancel)
+	ctrl.SetServer(srv)
+
+	// If on macOS and not in headless mode: run native menu bar tray
+	if runtime.GOOS == "darwin" && !headless {
+		go func() {
+			if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logger.Error("http server terminated with error", "err", err)
+			}
+		}()
+		trayMgr := tray.NewTrayManager(ctrl)
+		trayMgr.Run()
+		return
+	}
+
+	// Headless CLI mode
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
 	go func() {
 		<-sigCh
 		logger.Info("shutting down gracefully...")
-		appCancel()
-		rtcHub.CloseAll()
-		hub.CloseAll()
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = srv.Shutdown(ctx)
+		ctrl.Shutdown()
 	}()
 
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

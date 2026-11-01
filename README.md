@@ -1,4 +1,4 @@
-# ADB Agent & Manager (`adb-agent`)
+# ADB Remote & Manager (`adb-remote`)
 
 Hệ thống điều khiển và duy trì đường hầm ADB không dây từ xa & nội bộ toàn diện, bao gồm ứng dụng di động Android (`app/`) và máy chủ quản trị đa nền tảng viết bằng Go (`server/`).
 
