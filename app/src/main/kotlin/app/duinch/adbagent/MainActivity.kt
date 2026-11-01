@@ -137,12 +137,14 @@ class MainActivity : ComponentActivity() {
         scanner.startScan()
             .addOnSuccessListener { barcode ->
                 val raw = barcode.rawValue.orEmpty()
-                val parsed = app.duinch.adbagent.features.tunnel.domain.RemoteQrPayloadParser.parse(raw)
+                val parsed = app.duinch.remotetunnel.parser.RemoteQrPayloadParser.parse(raw)
                 if (parsed != null) {
+                    val room = parsed.roomCode.orEmpty()
+                    val targetServer = parsed.lan?.takeIf { it.isNotBlank() } ?: parsed.url
                     dashboardVm.onIntent(
                         DashboardUiIntent.ApplyQrRemoteConfig(
-                            roomCode = parsed.roomCode,
-                            serverUrl = parsed.serverUrl
+                            roomCode = room,
+                            serverUrl = targetServer
                         )
                     )
                 } else if (raw.isNotBlank()) {

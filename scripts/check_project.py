@@ -60,7 +60,7 @@ def iter_source_files() -> list[pathlib.Path]:
     for ext in ("*.kt", "*.py", "*.go", "*.html", "*.js", "*.css"):
         for path in ROOT.rglob(ext):
             parts = set(path.relative_to(ROOT).parts)
-            if parts & {".gradle", "build", ".git", ".idea", ".kotlin", "vendor", "node_modules", "dist"}:
+            if parts & {".gradle", "build", ".git", ".idea", ".kotlin", "vendor", "node_modules", "dist", "shared"}:
                 continue
             results.append(path)
     return sorted(results)

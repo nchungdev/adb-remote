@@ -210,21 +210,25 @@ p.subtitle {
     <span class="code-val" id="roomCodeDisplay">--- ---</span>
     <button class="copy-btn" id="copyBtn">Copy</button>
   </div>
-
+  <div class="code-deck" style="margin-top: -12px;">
+    <span style="font-size: 12px; color: var(--text-muted);">Wi-Fi LAN:</span>
+    <span class="code-val" id="lanDisplay" style="font-size: 14px; letter-spacing: 0;">192.168.x.x:8080</span>
+    <button class="copy-btn" id="copyLanBtn">Copy</button>
+  </div>
   <button class="action-btn stop-btn" id="toggleBtn">
     <span>🛑</span> Stop Remote ADB
   </button>
-
   <div class="footer-hint">Connection remains active until explicitly stopped.</div>
 </div>
-
 <script>
 let isActive = true;
 const statusBadge = document.getElementById('statusBadge');
 const statusText = document.getElementById('statusText');
 const roomDisplay = document.getElementById('roomCodeDisplay');
+const lanDisplay = document.getElementById('lanDisplay');
 const toggleBtn = document.getElementById('toggleBtn');
 const copyBtn = document.getElementById('copyBtn');
+const copyLanBtn = document.getElementById('copyLanBtn');
 const qrContainer = document.getElementById('qrContainer');
 const qrImage = document.getElementById('qrImage');
 
@@ -235,6 +239,7 @@ async function fetchStatus() {
     const data = await res.json();
     isActive = data.active;
     roomDisplay.textContent = data.room || '--- ---';
+    if (data.lan) lanDisplay.textContent = data.lan;
 
     if (!isActive) {
       statusBadge.className = 'header-badge stopped';
@@ -273,6 +278,15 @@ copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(code);
     copyBtn.textContent = 'Copied!';
     setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+  }
+});
+
+copyLanBtn.addEventListener('click', () => {
+  const lan = lanDisplay.textContent.trim();
+  if (lan && !lan.includes('x.x')) {
+    navigator.clipboard.writeText(lan);
+    copyLanBtn.textContent = 'Copied!';
+    setTimeout(() => { copyLanBtn.textContent = 'Copy'; }, 1500);
   }
 });
 

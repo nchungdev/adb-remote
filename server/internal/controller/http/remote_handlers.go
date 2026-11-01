@@ -3,12 +3,26 @@ package httpctrl
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"app.duinch/adb-device-manager/internal/controller/http/ui"
 	"github.com/nchungdev/remote-tunnel/go/pairing"
 )
+
+func getLANIPAddress() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err == nil {
+		defer conn.Close()
+		if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+			return localAddr.IP.String()
+		}
+	}
+	return "127.0.0.1"
+}
 
 type RemoteStateProvider interface {
 	GetRoomCode() string
@@ -28,10 +42,19 @@ func (s *Server) handleRemotePage(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(data)
 }
 
+func extractPort(r *http.Request) string {
+	host := r.Host
+	if strings.Contains(host, ":") {
+		return strings.Split(host, ":")[1]
+	}
+	return "8080"
+}
+
 func (s *Server) handleRemoteStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	room := s.devices.GetRoomCode()
 	dev := s.devices.GetActiveRemoteDevice()
+	lan := fmt.Sprintf("%s:%s", getLANIPAddress(), extractPort(r))
 
 	active := false
 	url := ""
@@ -43,6 +66,7 @@ func (s *Server) handleRemoteStatus(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"active":           active,
 		"url":              url,
+		"lan":              lan,
 		"room":             room,
 		"connected_device": dev,
 	})
@@ -56,7 +80,7 @@ func (s *Server) handleRemoteToggle(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if active {
 		if s.qt != nil {
-			ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 			defer cancel()
 			url, err = s.qt.Start(ctx)
 		}
@@ -92,8 +116,9 @@ func (s *Server) handleRemoteQrPng(w http.ResponseWriter, r *http.Request) {
 	if s.qt != nil {
 		url = s.qt.GetURL()
 	}
+	lan := fmt.Sprintf("%s:%s", getLANIPAddress(), extractPort(r))
 
-	payload, err := pairing.BuildPairingJSON("adb-remote", url, "", room)
+	payload, err := pairing.BuildPairingJSON("adb-remote", url, "", room, lan)
 	if err != nil {
 		http.Error(w, "Failed to encode QR payload", http.StatusInternalServerError)
 		return

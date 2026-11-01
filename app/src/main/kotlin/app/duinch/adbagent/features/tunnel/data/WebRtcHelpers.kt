@@ -9,7 +9,9 @@ fun resolveWebRtcSignalEndpoint(serverUrl: String): String {
     var base = serverUrl.trim()
     if (base.startsWith("wss://")) base = "https://" + base.removePrefix("wss://")
     if (base.startsWith("ws://")) base = "http://" + base.removePrefix("ws://")
-    if (!base.startsWith("http://") && !base.startsWith("https://")) base = "https://$base"
+    if (!base.startsWith("http://") && !base.startsWith("https://")) {
+        base = if (base.contains("trycloudflare.com")) "https://$base" else "http://$base"
+    }
     val clean = base.substringBefore("/api/tunnel").trimEnd('/')
     return "$clean/api/webrtc/signal"
 }

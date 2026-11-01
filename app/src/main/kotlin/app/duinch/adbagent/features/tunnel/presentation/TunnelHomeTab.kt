@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
 import app.duinch.adbagent.core.designsystem.AdbExtendedColors
 import app.duinch.adbagent.core.designsystem.AdbTheme
 import app.duinch.adbagent.core.designsystem.AppIcons
@@ -41,6 +42,7 @@ import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
 import app.duinch.remotetunnel.parser.RemoteQrPayloadParser
 import app.duinch.remotetunnel.ui.ConnectionTelemetryBar
+import app.duinch.remotetunnel.ui.DualChannelConnectContent
 import app.duinch.remotetunnel.ui.RemoteConnectContent
 import app.duinch.remotetunnel.ui.RemoteConnectionState
 import app.duinch.remotetunnel.ui.RemoteTelemetryData
@@ -142,37 +144,24 @@ fun TunnelHomeTab(
                 onCancel = { onIntent(DashboardUiIntent.ToggleTunnel) }
             )
         } else {
-            // Selection switchboard (State 1: Chọn kiểu kết nối)
-            AdbConnectionModeBar(
-                selectedMode = state.selectedMode,
+            // Unified Dual-Channel Profile Card (Cùng mạng LAN & Khác mạng Remote P2P song song)
+            DualChannelConnectContent(
+                initialLanAddress = state.serverUrlInput,
+                initialRemoteTarget = state.remoteRoomCode,
+                telemetry = telemetry,
                 isUsbConnected = state.isUsbConnected,
-                onSelectMode = { onIntent(DashboardUiIntent.SelectConnectionMode(it)) }
+                onConnect = { lan, remote ->
+                    onIntent(DashboardUiIntent.ApplyQrRemoteConfig(roomCode = remote, serverUrl = lan))
+                },
+                onDisconnect = { onIntent(DashboardUiIntent.ToggleTunnel) },
+                onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) }
             )
-
-            when (state.selectedMode) {
-                AdbConnectionMode.USB -> {
-                    UsbConnectionContent()
-                }
-                AdbConnectionMode.LAN -> {
-                    LanConnectionContent(
-                        state = state,
-                        onIntent = onIntent,
-                        onCopyText = { clipboard.setText(AnnotatedString(it)) }
-                    )
-                }
-                AdbConnectionMode.REMOTE -> {
-                    // QR-First Remote Connection Card (Cloudflare Quick Tunnel / WebRTC P2P)
-                    RemoteQrConnectionCard(
-                        state = state,
-                        onIntent = onIntent
-                    )
-                }
-            }
 
             // Collapsible Local Device Debugging Card (Android 11+ Pairing)
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
                     .clickable { showLocalPairing = !showLocalPairing },
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surface,

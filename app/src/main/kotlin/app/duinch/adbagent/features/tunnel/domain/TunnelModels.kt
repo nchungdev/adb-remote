@@ -13,16 +13,17 @@ data class TunnelConfig(
     val remoteRoomCode: String = ""
 ) {
     fun validate(): Result<TunnelConfig> {
-        val url = serverUrl.trim()
-        val isValidProtocol = url.isEmpty() ||
-            url.startsWith("https://") ||
-            url.startsWith("http://") ||
-            url.startsWith("wss://") ||
-            url.startsWith("ws://")
-        if (!isValidProtocol) {
+        val raw = serverUrl.trim()
+        if (raw.contains("://") && !raw.startsWith("http://") && !raw.startsWith("https://") && !raw.startsWith("ws://") && !raw.startsWith("wss://")) {
             return Result.failure(
                 IllegalArgumentException("Endpoint máy chủ bắt buộc dùng giao thức http(s):// hoặc ws(s)://")
             )
+        }
+        val url = when {
+            raw.isEmpty() -> ""
+            raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("ws://") || raw.startsWith("wss://") -> raw
+            raw.contains("trycloudflare.com") -> "https://$raw"
+            else -> "http://$raw"
         }
         if (deviceAlias.trim().isEmpty()) {
             return Result.failure(
