@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/getlantern/systray"
 )
@@ -14,6 +15,7 @@ var trayIconBytes []byte
 type ServerController interface {
 	GetPort() int
 	GetRoomCode() string
+	GetTunnelURL() string
 	IsRemoteActive() bool
 	StartRemote() error
 	StopRemote() error
@@ -44,33 +46,78 @@ func (t *TrayManager) onReady() {
 	port := t.ctrl.GetPort()
 	roomCode := t.ctrl.GetRoomCode()
 
-	mWeb := systray.AddMenuItem("Open Dashboard", "Open management dashboard in browser")
-	mRemote := systray.AddMenuItem("Turn on remote ADB", "Enable P2P remote connection and show QR code")
+	// Status Header
+	mStatus := systray.AddMenuItem(fmt.Sprintf("● Server Running (:%d)", port), "Server Status")
+	mStatus.Disable()
 
 	systray.AddSeparator()
 
-	mRestartAdb := systray.AddMenuItem("Restart ADB", "Restart local adb server process")
-	mQuit := systray.AddMenuItem("Exit", "Quit application")
+	// Primary actions
+	mDashboard := systray.AddMenuItem("Open Dashboard...", "Open management dashboard in browser")
+	mShowQR := systray.AddMenuItem("Pair Device (QR Code)...", "Open device pairing QR code")
 
+	systray.AddSeparator()
+
+	// Quick Copy actions (clean and compact)
+	mTunnel := systray.AddMenuItem("Copy Cloudflare URL", "Copy ephemeral public URL")
+	mRoom := systray.AddMenuItem(fmt.Sprintf("Copy P2P Code (%s)", roomCode), "Copy WebRTC P2P Room Code")
+	lanIP := getLocalLANIP()
+	mLAN := systray.AddMenuItem(fmt.Sprintf("Copy LAN Address (%s)", lanIP), "Copy local HTTP/WebSocket URL")
+
+	systray.AddSeparator()
+
+	// Controls & Settings
+	mRestartAdb := systray.AddMenuItem("Restart ADB", "Restart local adb server process")
+
+	mSettings := systray.AddMenuItem("Settings", "Server Configuration")
+	mSetPort := mSettings.AddSubMenuItem(fmt.Sprintf("Port (:%d)...", port), "Server listening port")
+	mSetPort.Disable()
+
+	systray.AddSeparator()
+	mQuit := systray.AddMenuItem("Quit ADB Device Manager", "Shut down server daemon")
+
+	// Background ticker to update Cloudflare tunnel status
+	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			url := t.ctrl.GetTunnelURL()
+			if url != "" {
+				mTunnel.SetTitle("Copy Cloudflare URL")
+				mTunnel.SetTooltip(url)
+				mTunnel.Enable()
+			} else {
+				mTunnel.SetTitle("Cloudflare: Off")
+				mTunnel.Disable()
+			}
+		}
+	}()
+
+	// Event handling loop
 	go func() {
 		remoteURL := fmt.Sprintf("http://127.0.0.1:%d/remote", port)
 		dashboardURL := fmt.Sprintf("http://127.0.0.1:%d", port)
 
 		for {
 			select {
-			case <-mWeb.ClickedCh:
+			case <-mDashboard.ClickedCh:
 				openBrowser(dashboardURL)
 
-			case <-mRemote.ClickedCh:
-				if !t.ctrl.IsRemoteActive() {
-					_ = t.ctrl.StartRemote()
-					mRemote.SetTitle("Turn off remote ADB")
-					openBrowser(remoteURL)
-					notify("ADB Device Manager", "Remote ADB Enabled", "Room: "+roomCode)
-				} else {
-					// Open the remote pairing dialog
-					openBrowser(remoteURL)
+			case <-mShowQR.ClickedCh:
+				openBrowser(remoteURL)
+
+			case <-mTunnel.ClickedCh:
+				url := t.ctrl.GetTunnelURL()
+				if url != "" {
+					copyToClipboard(url)
 				}
+
+			case <-mRoom.ClickedCh:
+				copyToClipboard(roomCode)
+
+			case <-mLAN.ClickedCh:
+				lanURL := fmt.Sprintf("http://%s:%d", lanIP, port)
+				copyToClipboard(lanURL)
 
 			case <-mRestartAdb.ClickedCh:
 				if err := t.ctrl.RestartAdb(); err != nil {

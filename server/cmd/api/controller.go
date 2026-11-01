@@ -10,6 +10,7 @@ import (
 	"app.duinch/adb-device-manager/internal/adapter/adb"
 	"app.duinch/adb-device-manager/internal/adapter/tunnel"
 	"app.duinch/adb-device-manager/internal/usecase"
+	"github.com/nchungdev/remote-tunnel/go/quicktunnel"
 )
 
 type serverController struct {
@@ -22,6 +23,7 @@ type serverController struct {
 	hub        *tunnel.Hub
 	deviceSvc  *usecase.DeviceService
 	logger     *slog.Logger
+	qt         *quicktunnel.QuickTunnel
 
 	mu      sync.Mutex
 	srv     *http.Server
@@ -39,6 +41,7 @@ func newServerController(
 	hub *tunnel.Hub,
 	deviceSvc *usecase.DeviceService,
 	logger *slog.Logger,
+	qt *quicktunnel.QuickTunnel,
 	cancel context.CancelFunc,
 ) *serverController {
 	return &serverController{
@@ -51,9 +54,17 @@ func newServerController(
 		hub:        hub,
 		deviceSvc:  deviceSvc,
 		logger:     logger,
+		qt:         qt,
 		cancel:     cancel,
 		running:    true,
 	}
+}
+
+func (s *serverController) GetTunnelURL() string {
+	if s.qt != nil && s.qt.IsActive() {
+		return s.qt.GetURL()
+	}
+	return ""
 }
 
 func (s *serverController) GetPort() int {

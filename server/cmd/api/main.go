@@ -107,7 +107,7 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	ctrl := newServerController(port, cfg.ListenAddr, roomCode, adbRunner, handler, rtcHub, hub, deviceSvc, logger, appCancel)
+	ctrl := newServerController(port, cfg.ListenAddr, roomCode, adbRunner, handler, rtcHub, hub, deviceSvc, logger, qt, appCancel)
 	ctrl.SetServer(srv)
 
 	// If on macOS and not in headless mode: run native menu bar tray
