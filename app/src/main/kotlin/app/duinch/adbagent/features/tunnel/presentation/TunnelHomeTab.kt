@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
@@ -22,6 +23,10 @@ import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 import app.duinch.adbagent.features.pairing.presentation.PairingSection
 import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
+import app.duinch.remotetunnel.ui.ConnectionTelemetryBar
+import app.duinch.remotetunnel.ui.RemoteConnectionState
+import app.duinch.remotetunnel.ui.RemoteTelemetryData
+import app.duinch.remotetunnel.ui.RemoteTransportChannel
 import kotlinx.coroutines.delay
 
 @Composable
@@ -56,7 +61,37 @@ fun TunnelHomeTab(
     val animatedContainer by animateColorAsState(targetValue = visual.container, label = "orbContainer")
     val animatedTint by animateColorAsState(targetValue = visual.tint, label = "orbTint")
 
+    val telemetry = remember(state.connectionState, state.serverUrlInput, state.remoteRoomCode, nowEpochMs) {
+        val connState = when (state.connectionState) {
+            is TunnelConnectionState.Connected -> RemoteConnectionState.Connected
+            is TunnelConnectionState.Connecting -> RemoteConnectionState.Connecting
+            is TunnelConnectionState.Disconnected -> RemoteConnectionState.Disconnected
+            else -> RemoteConnectionState.Disconnected
+        }
+        val channel = when {
+            state.serverUrlInput.contains("trycloudflare.com") -> RemoteTransportChannel.QuickTunnel
+            state.remoteRoomCode.isNotBlank() -> RemoteTransportChannel.WebRtcDirect
+            state.isUsbConnected -> RemoteTransportChannel.LanWifi
+            else -> RemoteTransportChannel.None
+        }
+        val uptimeSec = connected?.connectedAtEpochMs?.let {
+            if (it > 0 && nowEpochMs > it) (nowEpochMs - it) / 1000 else null
+        }
+        RemoteTelemetryData(
+            state = connState,
+            channel = channel,
+            host = state.serverUrlInput,
+            roomCode = state.remoteRoomCode,
+            uptimeSec = uptimeSec ?: 0L
+        )
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        ConnectionTelemetryBar(
+            telemetry = telemetry,
+            onTriggerConnect = { onIntent(DashboardUiIntent.ScanQrCode) }
+        )
+
         if (shouldShowPairing) {
             PairingSection(
                 state = state.pairing,
