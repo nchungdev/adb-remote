@@ -44,7 +44,8 @@ data class DashboardUiState(
     val termux: TermuxUiState = TermuxUiState(),
     val remoteRoomCode: String = "",
     val serverQuickTunnelUrl: String = "",
-    val isServerRemoteActive: Boolean = false
+    val isServerRemoteActive: Boolean = false,
+    val usbConnectedAtEpochMs: Long = 0L
 ) {
     val isTunnelActive: Boolean
         get() = connectionState is TunnelConnectionState.Connected ||

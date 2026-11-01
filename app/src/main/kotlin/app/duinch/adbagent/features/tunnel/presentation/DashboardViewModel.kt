@@ -153,17 +153,24 @@ class DashboardViewModel(
                 val ip = container.reverseTunnelGateway.getLocalWifiIp().orEmpty()
                 val ssid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty()
                 val usb = container.reverseTunnelGateway.isUsbConnected()
+                val now = System.currentTimeMillis()
                 _uiState.update { cur ->
                     val autoMode = when {
                         usb -> AdbConnectionMode.USB
                         net == app.duinch.adbagent.core.model.NetworkType.WIFI -> AdbConnectionMode.LAN
                         else -> AdbConnectionMode.REMOTE
                     }
+                    val usbStarted = when {
+                        usb && cur.usbConnectedAtEpochMs == 0L -> now
+                        !usb -> 0L
+                        else -> cur.usbConnectedAtEpochMs
+                    }
                     cur.copy(
                         activeNetwork = net,
                         localWifiIp = ip,
                         currentWifiSsid = ssid,
                         isUsbConnected = usb,
+                        usbConnectedAtEpochMs = usbStarted,
                         selectedMode = if (!cur.isTunnelActive) autoMode else cur.selectedMode
                     )
                 }
@@ -263,6 +270,7 @@ class DashboardViewModel(
             currentWifiSsid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty(),
             localWifiIp = container.reverseTunnelGateway.getLocalWifiIp().orEmpty(),
             isUsbConnected = usb,
+            usbConnectedAtEpochMs = if (usb) System.currentTimeMillis() else 0L,
             selectedMode = initMode,
             remoteRoomCode = saved.remoteRoomCode
         )

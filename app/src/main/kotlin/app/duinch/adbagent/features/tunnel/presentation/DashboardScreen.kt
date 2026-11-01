@@ -169,7 +169,7 @@ fun DashboardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
                 when (state.selectedTab) {
                     AppTab.CONNECT -> TunnelHomeTab(

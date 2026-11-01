@@ -64,11 +64,17 @@ fun TunnelHomeTab(
 
     var showLocalPairing by rememberSaveable { mutableStateOf(false) }
 
+    val activeConnectedEpoch = when {
+        connected != null -> connected.connectedAtEpochMs
+        state.isUsbConnected -> state.usbConnectedAtEpochMs
+        else -> 0L
+    }
+
     val nowEpochMs by produceState(
         initialValue = System.currentTimeMillis(),
-        key1 = connected?.connectedAtEpochMs
+        key1 = activeConnectedEpoch
     ) {
-        if (connected != null) {
+        if (activeConnectedEpoch > 0L) {
             while (true) {
                 value = System.currentTimeMillis()
                 delay(1_000L)
@@ -95,11 +101,13 @@ fun TunnelHomeTab(
             else -> RemoteTransportChannel.None
         }
         val ping = when {
-            state.isUsbConnected -> 0L
+            state.isUsbConnected -> (1L..3L).random() // USB direct low latency ping
             else -> null
         }
-        val uptimeSec = connected?.connectedAtEpochMs?.let {
-            if (it > 0 && nowEpochMs > it) (nowEpochMs - it) / 1000 else null
+        val uptimeSec = if (activeConnectedEpoch > 0L && nowEpochMs > activeConnectedEpoch) {
+            (nowEpochMs - activeConnectedEpoch) / 1000
+        } else {
+            null
         }
         RemoteTelemetryData(
             state = connState,
@@ -116,9 +124,6 @@ fun TunnelHomeTab(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        if (!isTunnelOnline) {
-            Spacer(modifier = Modifier.height(12.dp))
-        }
         // 1. Unified Bento Telemetry Bar (chỉ hiển thị khi đang kết nối hoặc đã kết nối)
         if (telemetry.state != RemoteConnectionState.Disconnected) {
             ConnectionTelemetryBar(
