@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import app.duinch.adbagent.core.designsystem.AdbExtendedColors
 import app.duinch.adbagent.core.designsystem.AdbTheme
 import app.duinch.adbagent.core.designsystem.AppIcons
+import app.duinch.adbagent.core.model.NetworkType
 import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 import app.duinch.adbagent.features.pairing.presentation.PairingSection
 import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
@@ -104,7 +106,14 @@ fun TunnelHomeTab(
         )
     }
 
+    val isWifiConnected = remember(state.activeNetwork, state.localWifiIp) {
+        state.activeNetwork == NetworkType.WIFI || state.localWifiIp.isNotBlank()
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (!isTunnelOnline) {
+            Spacer(modifier = Modifier.height(12.dp))
+        }
         // 1. Unified Bento Telemetry Bar (chỉ hiển thị khi đang kết nối hoặc đã kết nối)
         if (telemetry.state != RemoteConnectionState.Disconnected) {
             ConnectionTelemetryBar(
@@ -152,6 +161,7 @@ fun TunnelHomeTab(
                 initialRemoteTarget = state.remoteRoomCode,
                 telemetry = telemetry,
                 isUsbConnected = state.isUsbConnected,
+                isWifiConnected = isWifiConnected,
                 onConnect = { lan, remote ->
                     onIntent(DashboardUiIntent.ApplyQrRemoteConfig(roomCode = remote, serverUrl = lan))
                 },
@@ -159,15 +169,14 @@ fun TunnelHomeTab(
                 onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) }
             )
 
-            // Collapsible Local Device Debugging Card (Android 11+ Pairing)
+            // Collapsible Local Device Debugging Card (Android 11+ Pairing) - Flat secondary tile
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .clickable { showLocalPairing = !showLocalPairing },
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, ext.cardBorder)
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -185,18 +194,11 @@ fun TunnelHomeTab(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "Ghép đôi ADB không dây nội bộ",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Tùy chọn: Dành cho thiết bị chưa bật cổng 5555",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(
+                            text = "Ghép đôi không dây (Android 11+)",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                     Icon(
                         imageVector = if (showLocalPairing) AppIcons.ChevronDown else AppIcons.ChevronRight,
