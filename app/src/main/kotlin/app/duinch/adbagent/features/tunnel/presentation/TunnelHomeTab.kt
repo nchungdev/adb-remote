@@ -1,9 +1,23 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -11,6 +25,8 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -23,7 +39,9 @@ import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 import app.duinch.adbagent.features.pairing.presentation.PairingSection
 import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
+import app.duinch.remotetunnel.parser.RemoteQrPayloadParser
 import app.duinch.remotetunnel.ui.ConnectionTelemetryBar
+import app.duinch.remotetunnel.ui.RemoteConnectContent
 import app.duinch.remotetunnel.ui.RemoteConnectionState
 import app.duinch.remotetunnel.ui.RemoteTelemetryData
 import app.duinch.remotetunnel.ui.RemoteTransportChannel
@@ -38,12 +56,9 @@ fun TunnelHomeTab(
     val ext = AdbTheme.colors
     val clipboard = LocalClipboardManager.current
     val connected = state.connectionState as? TunnelConnectionState.Connected
-    val isPaired = state.pairing.pairingState is AdbPairingState.PairedAndConnected
     val isTunnelOnline = state.connectionState is TunnelConnectionState.Connected
 
-    var dismissPairingGuide by rememberSaveable { mutableStateOf(false) }
-
-    val shouldShowPairing = (!isPaired && !isTunnelOnline && !state.isUsbConnected && !dismissPairingGuide) || state.forceShowPairing
+    var showLocalPairing by rememberSaveable { mutableStateOf(false) }
 
     val nowEpochMs by produceState(
         initialValue = System.currentTimeMillis(),
@@ -87,21 +102,23 @@ fun TunnelHomeTab(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // 1. Unified Bento Telemetry Bar
         ConnectionTelemetryBar(
             telemetry = telemetry,
             onTriggerConnect = { onIntent(DashboardUiIntent.ScanQrCode) }
         )
 
-        if (shouldShowPairing) {
+        if (state.forceShowPairing) {
+            // Explicit local pairing flow when requested from top menu
             PairingSection(
                 state = state.pairing,
                 onIntent = onPairingIntent,
                 onSwitchToConnect = {
-                    dismissPairingGuide = true
                     onIntent(DashboardUiIntent.SetForceShowPairing(false))
                 }
             )
-        } else {
+        } else if (isTunnelOnline) {
+            // Active session switchboard
             TunnelSwitchboardCard(
                 state = state,
                 connected = connected,
@@ -115,6 +132,84 @@ fun TunnelHomeTab(
                 onIntent = onIntent,
                 onCopyText = { clipboard.setText(AnnotatedString(it)) }
             )
+        } else {
+            // QR-First Remote Connection Card (Cloudflare Quick Tunnel / WebRTC P2P)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, ext.cardBorder),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                RemoteConnectContent(
+                    initialTarget = state.remoteRoomCode.ifBlank { state.serverUrlInput },
+                    telemetry = telemetry,
+                    onConnect = { target ->
+                        val parsed = RemoteQrPayloadParser.parse(target)
+                        val room = parsed?.roomCode?.takeIf { it.isNotBlank() }
+                            ?: (if (target.matches(Regex("""^\d{3}-?\d{3}$"""))) target else "")
+                        val url = parsed?.url
+                            ?: (if (!target.matches(Regex("""^\d{3}-?\d{3}$"""))) target else null)
+                        onIntent(DashboardUiIntent.ApplyQrRemoteConfig(roomCode = room, serverUrl = url))
+                    },
+                    onDisconnect = { onIntent(DashboardUiIntent.ToggleTunnel) },
+                    onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) }
+                )
+            }
+
+            // Collapsible Local Device Debugging Card (Android 11+ Pairing)
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showLocalPairing = !showLocalPairing },
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, ext.cardBorder)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = AppIcons.LinkWireless,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Ghép đôi ADB không dây nội bộ",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Tùy chọn: Dành cho thiết bị chưa bật cổng 5555",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = if (showLocalPairing) AppIcons.ChevronDown else AppIcons.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            if (showLocalPairing) {
+                PairingSection(
+                    state = state.pairing,
+                    onIntent = onPairingIntent,
+                    onSwitchToConnect = { showLocalPairing = false }
+                )
+            }
         }
     }
 }
