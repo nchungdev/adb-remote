@@ -80,19 +80,23 @@ fun TunnelHomeTab(
     val animatedContainer by animateColorAsState(targetValue = visual.container, label = "orbContainer")
     val animatedTint by animateColorAsState(targetValue = visual.tint, label = "orbTint")
 
-    val telemetry = remember(state.connectionState, state.serverUrlInput, state.remoteRoomCode, nowEpochMs) {
-        val connState = when (state.connectionState) {
-            is TunnelConnectionState.Connected -> RemoteConnectionState.Connected
-            is TunnelConnectionState.Connecting -> RemoteConnectionState.Connecting
-            is TunnelConnectionState.Disconnected -> RemoteConnectionState.Disconnected
+    val telemetry = remember(state.connectionState, state.serverUrlInput, state.remoteRoomCode, state.isUsbConnected, nowEpochMs) {
+        val connState = when {
+            state.connectionState is TunnelConnectionState.Connected -> RemoteConnectionState.Connected
+            state.isUsbConnected -> RemoteConnectionState.Connected
+            state.connectionState is TunnelConnectionState.Connecting -> RemoteConnectionState.Connecting
             else -> RemoteConnectionState.Disconnected
         }
         val channel = when {
-            state.isUsbConnected && state.selectedMode == AdbConnectionMode.USB -> RemoteTransportChannel.UsbCable
+            state.isUsbConnected -> RemoteTransportChannel.UsbCable
             state.selectedMode == AdbConnectionMode.LAN || state.isAtHomeWifi -> RemoteTransportChannel.LanWifi
             state.serverUrlInput.contains("trycloudflare.com") -> RemoteTransportChannel.QuickTunnel
             state.remoteRoomCode.isNotBlank() -> RemoteTransportChannel.WebRtcDirect
             else -> RemoteTransportChannel.None
+        }
+        val ping = when {
+            state.isUsbConnected -> 0L
+            else -> null
         }
         val uptimeSec = connected?.connectedAtEpochMs?.let {
             if (it > 0 && nowEpochMs > it) (nowEpochMs - it) / 1000 else null
@@ -100,8 +104,9 @@ fun TunnelHomeTab(
         RemoteTelemetryData(
             state = connState,
             channel = channel,
-            host = state.serverUrlInput,
+            host = if (state.isUsbConnected) "Cáp USB" else state.serverUrlInput,
             roomCode = state.remoteRoomCode,
+            pingMs = ping,
             uptimeSec = uptimeSec ?: 0L
         )
     }
