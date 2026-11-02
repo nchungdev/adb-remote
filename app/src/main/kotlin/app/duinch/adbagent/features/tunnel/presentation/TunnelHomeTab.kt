@@ -87,13 +87,21 @@ fun TunnelHomeTab(
     val animatedTint by animateColorAsState(targetValue = visual.tint, label = "orbTint")
 
     val telemetry = remember(state.connectionState, state.serverUrlInput, state.remoteRoomCode, state.isUsbConnected, nowEpochMs) {
+        val isTunnelActive = state.connectionState is TunnelConnectionState.Connecting ||
+            state.connectionState is TunnelConnectionState.Reconnecting ||
+            state.connectionState is TunnelConnectionState.Connected
+
         val connState = when {
+            state.connectionState is TunnelConnectionState.Connecting ||
+                state.connectionState is TunnelConnectionState.Reconnecting -> RemoteConnectionState.Connecting
             state.connectionState is TunnelConnectionState.Connected -> RemoteConnectionState.Connected
             state.isUsbConnected -> RemoteConnectionState.Connected
-            state.connectionState is TunnelConnectionState.Connecting -> RemoteConnectionState.Connecting
             else -> RemoteConnectionState.Disconnected
         }
         val channel = when {
+            isTunnelActive && state.serverUrlInput.contains("trycloudflare.com") -> RemoteTransportChannel.QuickTunnel
+            isTunnelActive && state.remoteRoomCode.isNotBlank() -> RemoteTransportChannel.WebRtcDirect
+            isTunnelActive && (state.selectedMode == AdbConnectionMode.LAN || state.isAtHomeWifi) -> RemoteTransportChannel.LanWifi
             state.isUsbConnected -> RemoteTransportChannel.UsbCable
             state.selectedMode == AdbConnectionMode.LAN || state.isAtHomeWifi -> RemoteTransportChannel.LanWifi
             state.serverUrlInput.contains("trycloudflare.com") -> RemoteTransportChannel.QuickTunnel
@@ -156,14 +164,6 @@ fun TunnelHomeTab(
                 onIntent = onIntent,
                 onCopyText = { clipboard.setText(AnnotatedString(it)) }
             )
-        } else if (state.connectionState is TunnelConnectionState.Connecting ||
-            state.connectionState is TunnelConnectionState.Reconnecting
-        ) {
-            // Transition switchboard (State 2: Đang kết nối)
-            AdbConnectingCard(
-                state = state,
-                onCancel = { onIntent(DashboardUiIntent.ToggleTunnel) }
-            )
         } else {
             // Unified Dual-Channel Profile Card (Cùng mạng LAN & Khác mạng Remote P2P song song)
             DualChannelConnectContent(
@@ -175,7 +175,17 @@ fun TunnelHomeTab(
                 serverRemoteUrl = state.serverQuickTunnelUrl,
                 isServerRemoteActive = state.isServerRemoteActive,
                 onConnect = { lan, remote ->
-                    onIntent(DashboardUiIntent.ApplyQrRemoteConfig(roomCode = remote, serverUrl = lan))
+                    val isUrl = remote.startsWith("http://") || remote.startsWith("https://") || remote.contains("trycloudflare.com")
+                    val targetServer = when {
+                        lan.isNotBlank() -> lan
+                        isUrl -> remote
+                        else -> state.serverUrlInput
+                    }
+                    val targetRoom = when {
+                        !isUrl && remote.isNotBlank() -> remote
+                        else -> state.remoteRoomCode
+                    }
+                    onIntent(DashboardUiIntent.ApplyQrRemoteConfig(roomCode = targetRoom, serverUrl = targetServer))
                 },
                 onDisconnect = { onIntent(DashboardUiIntent.ToggleTunnel) },
                 onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) }

@@ -105,18 +105,25 @@ class DashboardViewModel(
             DashboardUiIntent.ScanQrCode ->
                 _effects.tryEmit(DashboardUiEffect.LaunchQrScanner)
             is DashboardUiIntent.ApplyQrRemoteConfig -> {
+                val isUrl = intent.roomCode.startsWith("http://") || intent.roomCode.startsWith("https://") || intent.roomCode.contains("trycloudflare.com")
+                val finalServer = when {
+                    intent.serverUrl?.isNotBlank() == true -> intent.serverUrl
+                    isUrl -> intent.roomCode
+                    else -> _uiState.value.serverUrlInput
+                }
+                val cleanStateRoom = _uiState.value.remoteRoomCode.takeIf { !it.contains("://") && !it.contains("trycloudflare.com") }.orEmpty()
+                val finalRoom = if (isUrl) cleanStateRoom else if (intent.roomCode.contains("://") || intent.roomCode.contains("trycloudflare.com")) "" else intent.roomCode
                 _uiState.update { cur ->
                     cur.copy(
-                        remoteRoomCode = intent.roomCode,
-                        serverUrlInput = intent.serverUrl ?: cur.serverUrlInput,
+                        remoteRoomCode = finalRoom,
+                        serverUrlInput = finalServer,
                         selectedTab = AppTab.CONNECT
                     )
                 }
                 saveCurrentConfig(silent = true)
                 toggleTunnel()
-                _effects.tryEmit(
-                    DashboardUiEffect.ShowMessage("Đã ghép nối phòng: ${intent.roomCode}. Đang kết nối...")
-                )
+                val displayMsg = if (finalRoom.isNotBlank()) "Đã kết nối phòng: $finalRoom" else "Đang thiết lập kết nối..."
+                _effects.tryEmit(DashboardUiEffect.ShowMessage(displayMsg))
             }
             is DashboardUiIntent.OnServerRemoteTunnelPushed -> {
                 _uiState.update { cur ->

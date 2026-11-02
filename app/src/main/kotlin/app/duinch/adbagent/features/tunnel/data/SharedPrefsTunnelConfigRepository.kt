@@ -23,11 +23,14 @@ class SharedPrefsTunnelConfigRepository(
             trustedHomeSsid = prefs.getString(KEY_TRUSTED_HOME_SSID, "") ?: "",
             autoSwitchOnHomeWifi = prefs.getBoolean(KEY_AUTO_SWITCH_HOME_WIFI, true),
             runInBackground = prefs.getBoolean(KEY_RUN_IN_BACKGROUND, true),
-            remoteRoomCode = prefs.getString(KEY_REMOTE_ROOM_CODE, "") ?: ""
+            remoteRoomCode = (prefs.getString(KEY_REMOTE_ROOM_CODE, "") ?: "").let {
+                if (it.contains("://") || it.contains("trycloudflare.com")) "" else it
+            }
         )
     }
 
     override fun saveConfig(config: TunnelConfig) {
+        val cleanRoom = if (config.remoteRoomCode.contains("://") || config.remoteRoomCode.contains("trycloudflare.com")) "" else config.remoteRoomCode
         prefs.edit()
             .putString(KEY_SERVER_URL, config.serverUrl)
             .putString(KEY_DEVICE_ALIAS, config.deviceAlias)
@@ -36,7 +39,7 @@ class SharedPrefsTunnelConfigRepository(
             .putString(KEY_TRUSTED_HOME_SSID, config.trustedHomeSsid)
             .putBoolean(KEY_AUTO_SWITCH_HOME_WIFI, config.autoSwitchOnHomeWifi)
             .putBoolean(KEY_RUN_IN_BACKGROUND, config.runInBackground)
-            .putString(KEY_REMOTE_ROOM_CODE, config.remoteRoomCode)
+            .putString(KEY_REMOTE_ROOM_CODE, cleanRoom)
             .apply()
     }
 
