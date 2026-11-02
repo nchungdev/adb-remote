@@ -111,7 +111,7 @@ class OkHttpAppUpdateAdapter(
     }
 
     private fun parseDerivedVersionCode(versionName: String, changelog: String): Int {
-        val codeMatch = Regex("versionCode:\\s*(\\d+)", RegexOption.IGNORE_CASE).find(changelog)
+        val codeMatch = Regex("(?:versionCode|code)[:=]\\s*(\\d+)", RegexOption.IGNORE_CASE).find(changelog)
         if (codeMatch != null) {
             val code = codeMatch.groupValues[1].toIntOrNull()
             if (code != null) return code

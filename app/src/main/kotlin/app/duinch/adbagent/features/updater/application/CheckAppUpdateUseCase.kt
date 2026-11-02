@@ -9,8 +9,12 @@ class CheckAppUpdateUseCase(
     suspend operator fun invoke(repository: String = AppUpdateGateway.DEFAULT_REPOSITORY): UpdateStatus {
         return updateGateway.fetchLatestRelease(repository).fold(
             onSuccess = { release ->
-                val isNewer = isNewerVersion(release.versionName, updateGateway.installedVersionName) ||
-                    release.versionCode > updateGateway.installedVersionCode
+                val isNewer = isUpdateAvailable(
+                    remoteVersionName = release.versionName,
+                    remoteVersionCode = release.versionCode,
+                    installedVersionName = updateGateway.installedVersionName,
+                    installedVersionCode = updateGateway.installedVersionCode
+                )
                 if (isNewer) {
                     UpdateStatus.Available(release)
                 } else {
@@ -24,6 +28,17 @@ class CheckAppUpdateUseCase(
     }
 
     companion object {
+        fun isUpdateAvailable(
+            remoteVersionName: String,
+            remoteVersionCode: Int,
+            installedVersionName: String,
+            installedVersionCode: Int
+        ): Boolean {
+            if (isNewerVersion(remoteVersionName, installedVersionName)) return true
+            if (isNewerVersion(installedVersionName, remoteVersionName)) return false
+            return remoteVersionCode > installedVersionCode
+        }
+
         fun isNewerVersion(remote: String, local: String): Boolean {
             val rParts = remote.split('.').mapNotNull { it.filter(Char::isDigit).toIntOrNull() }
             val lParts = local.split('.').mapNotNull { it.filter(Char::isDigit).toIntOrNull() }
