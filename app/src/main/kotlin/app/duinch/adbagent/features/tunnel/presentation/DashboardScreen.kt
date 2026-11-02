@@ -129,6 +129,20 @@ fun DashboardScreen(
                                 }
                             )
                             DropdownMenuItem(
+                                text = { Text("Hướng dẫn sử dụng") },
+                                onClick = {
+                                    menuExpanded = false
+                                    onIntent(DashboardUiIntent.ShowOnboarding)
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = AppIcons.CheckCircle,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Mở Terminal") },
                                 onClick = {
                                     menuExpanded = false
@@ -196,5 +210,12 @@ fun DashboardScreen(
     TermuxConsoleSheet(
         state = state.termux,
         onIntent = { onIntent(DashboardUiIntent.OnTermuxIntent(it)) }
+    )
+
+    // Tooltip Guide Walkthrough Overlay
+    OnboardingGuideOverlay(
+        currentStep = state.activeOnboardingStep,
+        onNextStep = { onIntent(DashboardUiIntent.NextOnboardingStep) },
+        onDismiss = { onIntent(DashboardUiIntent.DismissOnboarding) }
     )
 }

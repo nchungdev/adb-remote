@@ -43,6 +43,12 @@ class SharedPrefsTunnelConfigRepository(
             .apply()
     }
 
+    override fun hasSeenOnboarding(): Boolean = prefs.getBoolean(KEY_HAS_SEEN_ONBOARDING, false)
+
+    override fun setHasSeenOnboarding(seen: Boolean) {
+        prefs.edit().putBoolean(KEY_HAS_SEEN_ONBOARDING, seen).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "adb_agent_tunnel_prefs"
         private const val KEY_SERVER_URL = "server_url"
@@ -53,5 +59,6 @@ class SharedPrefsTunnelConfigRepository(
         private const val KEY_AUTO_SWITCH_HOME_WIFI = "auto_switch_home_wifi"
         private const val KEY_RUN_IN_BACKGROUND = "run_in_background"
         private const val KEY_REMOTE_ROOM_CODE = "remote_room_code"
+        private const val KEY_HAS_SEEN_ONBOARDING = "has_seen_onboarding_guide"
     }
 }

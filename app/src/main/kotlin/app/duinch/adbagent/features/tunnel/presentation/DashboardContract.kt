@@ -46,7 +46,8 @@ data class DashboardUiState(
     val serverQuickTunnelUrl: String = "",
     val isServerRemoteActive: Boolean = false,
     val recentTunnelUrls: List<String> = emptyList(),
-    val usbConnectedAtEpochMs: Long = 0L
+    val usbConnectedAtEpochMs: Long = 0L,
+    val activeOnboardingStep: OnboardingStep? = null
 ) {
     val isTunnelActive: Boolean
         get() = connectionState is TunnelConnectionState.Connected ||
@@ -84,6 +85,9 @@ sealed interface DashboardUiIntent {
     data class OnServerRemoteTunnelPushed(val url: String, val roomCode: String, val active: Boolean) : DashboardUiIntent
     data class OnPairingIntent(val intent: PairingUiIntent) : DashboardUiIntent
     data class OnTermuxIntent(val intent: TermuxUiIntent) : DashboardUiIntent
+    data object NextOnboardingStep : DashboardUiIntent
+    data object DismissOnboarding : DashboardUiIntent
+    data object ShowOnboarding : DashboardUiIntent
 }
 
 sealed interface DashboardUiEffect {

@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.Flow
 interface TunnelConfigRepository {
     fun getConfig(): TunnelConfig
     fun saveConfig(config: TunnelConfig)
+    fun hasSeenOnboarding(): Boolean = true
+    fun setHasSeenOnboarding(seen: Boolean) {}
 }
 
 interface ReverseTunnelGateway {

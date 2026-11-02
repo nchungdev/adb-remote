@@ -105,21 +105,8 @@ class DashboardViewModel(
             DashboardUiIntent.ScanQrCode ->
                 _effects.tryEmit(DashboardUiEffect.LaunchQrScanner)
             is DashboardUiIntent.ApplyQrRemoteConfig -> {
-                val isUrl = intent.roomCode.startsWith("http://") || intent.roomCode.startsWith("https://") || intent.roomCode.contains("trycloudflare.com")
-                val finalServer = when {
-                    intent.serverUrl?.isNotBlank() == true -> intent.serverUrl
-                    isUrl -> intent.roomCode
-                    else -> _uiState.value.serverUrlInput
-                }
-                val cleanStateRoom = _uiState.value.remoteRoomCode.takeIf { !it.contains("://") && !it.contains("trycloudflare.com") }.orEmpty()
-                val finalRoom = if (isUrl) cleanStateRoom else if (intent.roomCode.contains("://") || intent.roomCode.contains("trycloudflare.com")) "" else intent.roomCode
-                _uiState.update { cur ->
-                    cur.copy(
-                        remoteRoomCode = finalRoom,
-                        serverUrlInput = finalServer,
-                        selectedTab = AppTab.CONNECT
-                    )
-                }
+                val (finalServer, finalRoom) = resolveQrRemoteTarget(intent, _uiState.value.serverUrlInput, _uiState.value.remoteRoomCode)
+                _uiState.update { it.copy(remoteRoomCode = finalRoom, serverUrlInput = finalServer, selectedTab = AppTab.CONNECT) }
                 saveCurrentConfig(silent = true)
                 toggleTunnel()
             }
@@ -141,6 +128,21 @@ class DashboardViewModel(
                 runCommand = container.runTermuxCommand::invoke,
                 clearLogs = container.termuxRuntimeGateway::clearConsoleLogs
             )
+            DashboardUiIntent.NextOnboardingStep -> {
+                val next = when (_uiState.value.activeOnboardingStep) {
+                    OnboardingStep.STEP_ADB -> OnboardingStep.STEP_SERVER_MODE
+                    OnboardingStep.STEP_SERVER_MODE -> OnboardingStep.STEP_SCAN_QR
+                    else -> null
+                }
+                if (next == null) container.tunnelConfigRepository.setHasSeenOnboarding(true)
+                _uiState.update { it.copy(activeOnboardingStep = next) }
+            }
+            DashboardUiIntent.DismissOnboarding -> {
+                container.tunnelConfigRepository.setHasSeenOnboarding(true)
+                _uiState.update { it.copy(activeOnboardingStep = null) }
+            }
+            DashboardUiIntent.ShowOnboarding ->
+                _uiState.update { it.copy(activeOnboardingStep = OnboardingStep.STEP_ADB) }
         }
     }
 
@@ -261,6 +263,7 @@ class DashboardViewModel(
             container.reverseTunnelGateway.getLocalWifiIp()?.isNotBlank() == true -> AdbConnectionMode.LAN
             else -> AdbConnectionMode.REMOTE
         }
+        val firstTime = !container.tunnelConfigRepository.hasSeenOnboarding()
         return DashboardUiState(
             serverUrlInput = saved.serverUrl,
             deviceAliasInput = saved.deviceAlias,
@@ -274,7 +277,8 @@ class DashboardViewModel(
             isUsbConnected = usb,
             usbConnectedAtEpochMs = if (usb) System.currentTimeMillis() else 0L,
             selectedMode = initMode,
-            remoteRoomCode = saved.remoteRoomCode
+            remoteRoomCode = saved.remoteRoomCode,
+            activeOnboardingStep = if (firstTime) OnboardingStep.STEP_ADB else null
         )
     }
 

@@ -18,6 +18,22 @@ internal fun buildDraftConfig(state: DashboardUiState) = TunnelConfig(
     remoteRoomCode = state.remoteRoomCode
 )
 
+internal fun resolveQrRemoteTarget(
+    intent: DashboardUiIntent.ApplyQrRemoteConfig,
+    currentServer: String,
+    currentRoom: String
+): Pair<String, String> {
+    val isUrl = intent.roomCode.startsWith("http://") || intent.roomCode.startsWith("https://") || intent.roomCode.contains("trycloudflare.com")
+    val finalServer = when {
+        intent.serverUrl?.isNotBlank() == true -> intent.serverUrl
+        isUrl -> intent.roomCode
+        else -> currentServer
+    }
+    val cleanStateRoom = currentRoom.takeIf { !it.contains("://") && !it.contains("trycloudflare.com") }.orEmpty()
+    val finalRoom = if (isUrl) cleanStateRoom else if (intent.roomCode.contains("://") || intent.roomCode.contains("trycloudflare.com")) "" else intent.roomCode
+    return finalServer to finalRoom
+}
+
 internal fun handleTermuxAction(
     intent: TermuxUiIntent,
     scope: CoroutineScope,
