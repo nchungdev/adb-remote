@@ -130,14 +130,6 @@ fun TunnelHomeTab(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // 1. Unified Bento Telemetry Bar (chỉ hiển thị khi đang kết nối hoặc đã kết nối)
-        if (telemetry.state != RemoteConnectionState.Disconnected) {
-            ConnectionTelemetryBar(
-                telemetry = telemetry,
-                onTriggerConnect = { onIntent(DashboardUiIntent.ScanQrCode) }
-            )
-        }
-
         if (isTunnelOnline) {
             // Active session switchboard (State 3: Đã kết nối)
             TunnelSwitchboardCard(
@@ -154,14 +146,15 @@ fun TunnelHomeTab(
                 onCopyText = { clipboard.setText(AnnotatedString(it)) }
             )
         } else {
-            // 2. Tier 1: Trạng thái ADB Thiết bị (USB / Không dây / Chưa bật)
+            // Tier 1: Trạng thái ADB Thiết bị gộp Telemetry (USB / Không dây / Chưa bật)
             AdbDeviceStatusCard(
                 isUsbConnected = state.isUsbConnected,
                 pairingState = state.pairing.pairingState,
+                telemetry = telemetry,
                 onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
             )
 
-            // 3. Tier 2: Kết nối Máy Chủ (Cùng Wi-Fi LAN / Khác mạng Từ Xa)
+            // Tier 2: Kết nối Máy Chủ (Cùng Wi-Fi LAN / Khác mạng Từ Xa)
             DualChannelConnectContent(
                 initialLanAddress = state.serverUrlInput,
                 initialRemoteTarget = state.remoteRoomCode,
