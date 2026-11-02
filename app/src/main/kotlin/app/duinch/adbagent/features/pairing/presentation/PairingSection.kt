@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -59,6 +60,7 @@ fun PairingSection(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = dim.spacingXxl, vertical = dim.spacingM)
+            .imePadding()
     ) {
         val statusText = when (val ps = state.pairingState) {
             is AdbPairingState.Failed -> ps.reason
