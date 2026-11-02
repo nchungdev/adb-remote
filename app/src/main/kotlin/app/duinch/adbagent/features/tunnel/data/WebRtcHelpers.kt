@@ -16,6 +16,17 @@ fun resolveWebRtcSignalEndpoint(serverUrl: String): String {
     return "$clean/api/webrtc/signal"
 }
 
+fun resolveWebSocketTunnelEndpoint(serverUrl: String): String {
+    var base = serverUrl.trim()
+    if (base.startsWith("https://")) base = "wss://" + base.removePrefix("https://")
+    if (base.startsWith("http://")) base = "ws://" + base.removePrefix("http://")
+    if (!base.startsWith("ws://") && !base.startsWith("wss://")) {
+        base = if (base.contains("trycloudflare.com")) "wss://$base" else "ws://$base"
+    }
+    val clean = base.substringBefore("/api/tunnel").substringBefore("/api/webrtc").trimEnd('/')
+    return "$clean/api/tunnel"
+}
+
 open class SimpleSdpObserver : SdpObserver {
     override fun onCreateSuccess(desc: SessionDescription?) {}
     override fun onSetSuccess() {}

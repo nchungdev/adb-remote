@@ -20,9 +20,11 @@ import app.duinch.adbagent.features.tunnel.application.ObserveTunnelHistoryUseCa
 import app.duinch.adbagent.features.tunnel.application.SaveTunnelConfigUseCase
 import app.duinch.adbagent.features.tunnel.application.ToggleReverseTunnelUseCase
 import app.duinch.adbagent.features.tunnel.data.AndroidConnectionAlertNotifier
+import app.duinch.adbagent.features.tunnel.data.HybridReverseTunnelGateway
 import app.duinch.adbagent.features.tunnel.data.SharedPrefsTunnelConfigRepository
 import app.duinch.adbagent.features.tunnel.data.SharedPrefsTunnelHistoryRepository
 import app.duinch.adbagent.features.tunnel.data.WebRtcReverseTunnelAdapter
+import app.duinch.adbagent.features.tunnel.data.WebSocketReverseTunnelAdapter
 import app.duinch.adbagent.features.tunnel.domain.ConnectionAlertGateway
 import app.duinch.adbagent.features.tunnel.domain.ReverseTunnelGateway
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfigRepository
@@ -62,13 +64,21 @@ class AppContainer(context: Context) {
 
     private val computeReconnectBackoff = ComputeReconnectBackoffUseCase()
 
-    val reverseTunnelGateway: ReverseTunnelGateway =
-        WebRtcReverseTunnelAdapter(
+    val reverseTunnelGateway: ReverseTunnelGateway = run {
+        val webRtc = WebRtcReverseTunnelAdapter(
             appContext,
             computeReconnectBackoff,
             tunnelHistoryRepository,
             hostActivityRepository
         )
+        val webSocket = WebSocketReverseTunnelAdapter(
+            appContext,
+            computeReconnectBackoff,
+            tunnelHistoryRepository,
+            hostActivityRepository
+        )
+        HybridReverseTunnelGateway(webRtc, webSocket)
+    }
 
     val connectionAlertNotifier: ConnectionAlertGateway =
         AndroidConnectionAlertNotifier(
