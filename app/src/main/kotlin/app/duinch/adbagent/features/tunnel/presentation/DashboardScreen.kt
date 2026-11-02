@@ -45,6 +45,15 @@ fun DashboardScreen(
     onIntent: (DashboardUiIntent) -> Unit,
     onUpdaterIntent: (UpdaterUiIntent) -> Unit
 ) {
+    if (state.forceShowPairing) {
+        WirelessPairingScreen(
+            state = state,
+            onBack = { onIntent(DashboardUiIntent.SetForceShowPairing(false)) },
+            onPairingIntent = { onIntent(DashboardUiIntent.OnPairingIntent(it)) }
+        )
+        return
+    }
+
     val hasUpdateDot = updaterState.status is UpdateStatus.Available ||
         updaterState.status is UpdateStatus.ReadyToInstall
 
@@ -106,7 +115,7 @@ fun DashboardScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Ghép đôi không dây (Android 11+)") },
+                                text = { Text("Ghép đôi không dây") },
                                 onClick = {
                                     menuExpanded = false
                                     onIntent(DashboardUiIntent.SetForceShowPairing(true))

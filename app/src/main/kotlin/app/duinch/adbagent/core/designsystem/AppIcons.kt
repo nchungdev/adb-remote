@@ -254,4 +254,14 @@ object AppIcons {
             curveTo(9.5f, 20.5f, 14.5f, 20.5f, 17f, 18f)
         }
     }
+
+    val ArrowLeft: ImageVector by lazy {
+        strokeIcon("ArrowLeft") {
+            moveTo(19f, 12f)
+            lineTo(5f, 12f)
+            moveTo(12f, 19f)
+            lineTo(5f, 12f)
+            lineTo(12f, 5f)
+        }
+    }
 }

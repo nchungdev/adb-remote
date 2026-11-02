@@ -40,7 +40,6 @@ import app.duinch.adbagent.core.designsystem.AdbTheme
 import app.duinch.adbagent.core.designsystem.AppIcons
 import app.duinch.adbagent.core.model.NetworkType
 import app.duinch.adbagent.features.pairing.domain.AdbPairingState
-import app.duinch.adbagent.features.pairing.presentation.PairingSection
 import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
 import app.duinch.remotetunnel.parser.RemoteQrPayloadParser
@@ -62,8 +61,6 @@ fun TunnelHomeTab(
     val clipboard = LocalClipboardManager.current
     val connected = state.connectionState as? TunnelConnectionState.Connected
     val isTunnelOnline = state.connectionState is TunnelConnectionState.Connected
-
-    var showLocalPairing by rememberSaveable { mutableStateOf(false) }
 
     val activeConnectedEpoch = when {
         connected != null -> connected.connectedAtEpochMs
@@ -141,16 +138,7 @@ fun TunnelHomeTab(
             )
         }
 
-        if (state.forceShowPairing) {
-            // Explicit local pairing flow when requested from top menu
-            PairingSection(
-                state = state.pairing,
-                onIntent = onPairingIntent,
-                onSwitchToConnect = {
-                    onIntent(DashboardUiIntent.SetForceShowPairing(false))
-                }
-            )
-        } else if (isTunnelOnline) {
+        if (isTunnelOnline) {
             // Active session switchboard (State 3: Đã kết nối)
             TunnelSwitchboardCard(
                 state = state,
@@ -200,12 +188,12 @@ fun TunnelHomeTab(
                 onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) }
             )
 
-            // Subtle footer link for local wireless pairing (Android 11+)
+            // Subtle footer link to open dedicated Wireless Pairing screen
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { showLocalPairing = !showLocalPairing }
+                    .clickable { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
                     .padding(vertical = 10.dp, horizontal = 12.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
@@ -218,25 +206,16 @@ fun TunnelHomeTab(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Ghép đôi không dây (Android 11+)",
+                    text = "Ghép đôi không dây",
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
-                    imageVector = if (showLocalPairing) AppIcons.ChevronDown else AppIcons.ChevronRight,
+                    imageVector = AppIcons.ChevronRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.size(13.dp)
-                )
-            }
-
-            if (showLocalPairing) {
-                Spacer(modifier = Modifier.height(8.dp))
-                PairingSection(
-                    state = state.pairing,
-                    onIntent = onPairingIntent,
-                    onSwitchToConnect = { showLocalPairing = false }
                 )
             }
         }

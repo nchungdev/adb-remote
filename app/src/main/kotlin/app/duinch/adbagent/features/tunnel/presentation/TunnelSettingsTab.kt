@@ -100,7 +100,7 @@ fun TunnelSettingsTab(
 
                     SettingsNavigationRow(
                         icon = AppIcons.LinkWireless,
-                        title = "Ghép đôi không dây (Android 11+)",
+                        title = "Ghép đôi không dây",
                         subtitle = "Ghép đôi cổng ADB nội bộ trên thiết bị",
                         onClick = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
                     )

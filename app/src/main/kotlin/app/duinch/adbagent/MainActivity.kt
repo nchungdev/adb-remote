@@ -84,8 +84,12 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                BackHandler(enabled = uiState.selectedTab != AppTab.CONNECT) {
-                    dashboardVm.onIntent(DashboardUiIntent.SelectTab(AppTab.CONNECT))
+                BackHandler(enabled = uiState.forceShowPairing || uiState.selectedTab != AppTab.CONNECT) {
+                    if (uiState.forceShowPairing) {
+                        dashboardVm.onIntent(DashboardUiIntent.SetForceShowPairing(false))
+                    } else {
+                        dashboardVm.onIntent(DashboardUiIntent.SelectTab(AppTab.CONNECT))
+                    }
                 }
 
                 DisposableEffect(dashboardVm) {
