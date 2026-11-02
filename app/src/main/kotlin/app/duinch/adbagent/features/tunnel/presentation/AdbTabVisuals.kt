@@ -63,7 +63,7 @@ fun rememberAdbTabVisual(
         )
         AdbOverallState.CONNECTING, AdbOverallState.RECONNECTING -> AdbTabVisual(
             state = overallState,
-            icon = AppIcons.Refresh,
+            icon = AppIcons.ShieldBolt,
             selectedColor = if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706),
             selectedTextColor = if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706),
             indicatorColor = if (isDark) Color(0xFF451A03) else Color(0xFFFEF3C7),
