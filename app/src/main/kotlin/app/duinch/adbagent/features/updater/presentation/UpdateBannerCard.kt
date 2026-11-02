@@ -1,5 +1,8 @@
 package app.duinch.adbagent.features.updater.presentation
 
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -20,8 +24,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.dp
 import app.duinch.adbagent.core.designsystem.AdbTheme
 import app.duinch.adbagent.core.designsystem.AppIcons
@@ -37,6 +44,13 @@ fun UpdateBannerCard(
         state.status is UpdateStatus.ReadyToInstall ||
         state.status is UpdateStatus.Installing
     val borderColor = if (isHighlight) ext.statusConnected else ext.cardBorder
+
+    val targetProgress = (state.status as? UpdateStatus.Downloading)?.progressPercent?.div(100f) ?: 0f
+    val animatedProgress by animateFloatAsState(
+        targetValue = targetProgress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 250, easing = LinearOutSlowInEasing),
+        label = "downloadProgress"
+    )
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -142,10 +156,14 @@ fun UpdateBannerCard(
                 is UpdateStatus.Downloading -> {
                     Spacer(modifier = Modifier.height(12.dp))
                     LinearProgressIndicator(
-                        progress = { s.progressPercent / 100f },
+                        progress = { animatedProgress },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        strokeCap = StrokeCap.Round,
+                        gapSize = 0.dp,
+                        drawStopIndicator = {}
                     )
                 }
                 is UpdateStatus.Installing -> {
@@ -154,6 +172,8 @@ fun UpdateBannerCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        strokeCap = StrokeCap.Round
                     )
                 }
                 is UpdateStatus.ReadyToInstall -> {
