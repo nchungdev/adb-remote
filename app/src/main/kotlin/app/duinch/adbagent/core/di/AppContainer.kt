@@ -55,7 +55,7 @@ class AppContainer(context: Context) {
         app.duinch.adbagent.features.tunnel.data.InMemoryHostActivityRepository()
 
     val appUpdateGateway: AppUpdateGateway =
-        OkHttpAppUpdateAdapter(appContext, termuxRuntimeGateway)
+        OkHttpAppUpdateAdapter(appContext)
 
     private val computeReconnectBackoff = ComputeReconnectBackoffUseCase()
 

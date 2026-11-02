@@ -20,12 +20,7 @@ interface AppUpdateGateway {
 
     fun triggerPackageInstall(localFilePath: String): Result<Unit>
 
-    suspend fun installPackageSilently(
-        localFilePath: String,
-        adbPort: Int = 5555
-    ): Result<Unit> = Result.failure(UnsupportedOperationException("Silent install not supported"))
-
     companion object {
-        const val DEFAULT_REPOSITORY = "nchungdev/adb-agent"
+        const val DEFAULT_REPOSITORY = "nchungdev/adb-remote"
     }
 }

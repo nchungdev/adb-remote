@@ -92,14 +92,6 @@ class UpdaterViewModel(
     private fun installExistingApk() {
         val ready = _uiState.value.status as? UpdateStatus.ReadyToInstall ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(status = UpdateStatus.Installing(ready.release)) }
-            val silentRes = container.appUpdateGateway.installPackageSilently(ready.localFilePath)
-            if (silentRes.isSuccess) {
-                _uiState.update { it.copy(status = UpdateStatus.UpToDate(ready.release.versionName)) }
-                _effects.emit(UpdaterUiEffect.ShowMessage("Đã cài đặt bản cập nhật thành công!"))
-                return@launch
-            }
-
             if (!container.appUpdateGateway.canRequestPackageInstalls()) {
                 _uiState.update { it.copy(status = ready) }
                 _effects.tryEmit(UpdaterUiEffect.OpenInstallUnknownAppsSettings)
