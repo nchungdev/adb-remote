@@ -22,12 +22,14 @@ func Start(serviceType string, port int, logger *slog.Logger) *Advertiser {
 		hostName = "Mac"
 	}
 
-	trimmedType := strings.TrimSuffix(serviceType, ".")
-	trimmedType = strings.TrimSuffix(trimmedType, "._tcp")
+	serviceName := strings.TrimSuffix(serviceType, ".")
+	if !strings.HasSuffix(serviceName, "._tcp") {
+		serviceName += "._tcp"
+	}
 
 	server, err := zeroconf.Register(
 		hostName,
-		trimmedType,
+		serviceName,
 		"local.",
 		port,
 		[]string{"version=1.0", "name=" + hostName},
