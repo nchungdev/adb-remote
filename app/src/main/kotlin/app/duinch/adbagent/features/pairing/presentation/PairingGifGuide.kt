@@ -25,7 +25,7 @@ internal fun PairingGifGuide(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(260.dp),
+            .height(310.dp),
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))

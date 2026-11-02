@@ -1,9 +1,7 @@
 package app.duinch.adbagent.features.pairing.presentation
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -56,7 +52,6 @@ fun PairingSection(
     val ext = AdbTheme.colors
     var showManualInput by rememberSaveable { mutableStateOf(false) }
     val isFailed = state.pairingState is AdbPairingState.Failed
-    val pagerState = rememberPagerState(pageCount = { SLIDES.size })
 
     Column(
         modifier = modifier
@@ -78,7 +73,7 @@ fun PairingSection(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(top = 10.dp, bottom = 4.dp)
+                .padding(top = 4.dp, bottom = 4.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
@@ -98,66 +93,32 @@ fun PairingSection(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxWidth()
-            ) { page ->
-                val slide = SLIDES[page]
+            // Big, clean GIF illustration view
+            PairingGifGuide(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(340.dp)
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Step instructions card
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    when (slide.illustrationType) {
-                        0 -> PairingGifGuide(modifier = Modifier.fillMaxWidth())
-                        1 -> SlideOneToggleIllustration()
-                        2 -> SlideTwoDialogIllustration()
-                        else -> SlideThreeScreenshotIllustration()
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = CircleShape
-                    ) {
-                        Text(
-                            text = slide.stepLabel,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = slide.title,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = slide.description,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontSize = 15.sp,
-                            lineHeight = 22.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        minLines = 2
-                    )
+                    PairingStepRow(step = "1", text = "Bấm nút bên dưới để mở Cài đặt, gạt bật \"Gỡ lỗi không dây\"")
+                    PairingStepRow(step = "2", text = "Chạm dòng \"Ghép nối bằng mã ghép nối\" để hiện mã 6 số")
+                    PairingStepRow(step = "3", text = "Nhấn Phím Nguồn + Giảm âm lượng để AI tự động ghép đôi")
                 }
             }
 
@@ -165,7 +126,7 @@ fun PairingSection(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 18.dp),
+                        .padding(top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     OutlinedTextField(
@@ -202,36 +163,11 @@ fun PairingSection(
             }
         }
 
-        // Pager Indicators placed low right above the Action Buttons
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp, bottom = 10.dp)
-        ) {
-            repeat(SLIDES.size) { index ->
-                val isSelected = pagerState.currentPage == index
-                val width by animateDpAsState(targetValue = if (isSelected) 24.dp else 8.dp, label = "dotWidth")
-                val dotColor by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                    label = "dotColor"
-                )
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 4.dp)
-                        .height(8.dp)
-                        .width(width)
-                        .background(dotColor, CircleShape)
-                )
-            }
-        }
-
         // Bottom Action Area: Primary action docked at the bottom
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 6.dp),
+                .padding(top = 10.dp, bottom = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -273,5 +209,32 @@ fun PairingSection(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun PairingStepRow(step: String, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(24.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = step,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp, lineHeight = 19.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
