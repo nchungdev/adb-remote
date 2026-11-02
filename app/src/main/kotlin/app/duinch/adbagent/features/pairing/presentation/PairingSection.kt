@@ -1,20 +1,21 @@
 package app.duinch.adbagent.features.pairing.presentation
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -41,35 +42,36 @@ import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 fun PairingSection(
     state: PairingUiState,
     onIntent: (PairingUiIntent) -> Unit,
-    onSwitchToConnect: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val ext = AdbTheme.colors
     var showManualInput by rememberSaveable { mutableStateOf(false) }
     val isFailed = state.pairingState is AdbPairingState.Failed
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        border = BorderStroke(1.dp, ext.cardBorder),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp, vertical = 12.dp)
     ) {
+        val statusText = when (val ps = state.pairingState) {
+            is AdbPairingState.Failed -> ps.reason
+            is AdbPairingState.PairingInProgress -> "Đang ghép nối..."
+            else -> when {
+                state.discoveredPairingPort != null -> "Đã tìm thấy cổng ghép nối: ${state.discoveredPairingPort}"
+                state.discoveredConnectPort != null -> "Đã phát hiện cổng gỡ lỗi: ${state.discoveredConnectPort}"
+                else -> null
+            }
+        }
+
+        // Center / Main Content Area
         Column(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 22.dp),
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.Center
         ) {
-            val statusText = when (val ps = state.pairingState) {
-                is AdbPairingState.Failed -> ps.reason
-                is AdbPairingState.PairingInProgress -> "Đang ghép nối..."
-                else -> when {
-                    state.discoveredPairingPort != null -> "Đã tìm thấy cổng ghép nối: ${state.discoveredPairingPort}"
-                    state.discoveredConnectPort != null -> "Đã phát hiện cổng gỡ lỗi: ${state.discoveredConnectPort}"
-                    else -> null
-                }
-            }
-
             if (statusText != null) {
                 Surface(
                     color = if (isFailed) MaterialTheme.colorScheme.errorContainer else ext.statusConnectedContainer,
@@ -80,53 +82,21 @@ fun PairingSection(
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isFailed) MaterialTheme.colorScheme.error else ext.statusConnected,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+                Spacer(modifier = Modifier.height(20.dp))
             }
 
             PairingTutorialCarousel()
 
-            Spacer(modifier = Modifier.padding(top = 2.dp))
-
-            Button(
-                onClick = { onIntent(PairingUiIntent.StartNotificationPairing) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 50.dp),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Icon(AppIcons.LinkWireless, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Mở Cài đặt gỡ lỗi", style = MaterialTheme.typography.titleMedium, maxLines = 1)
-            }
-
-            if (state.effectiveConnectPort != null) {
-                OutlinedButton(
-                    onClick = { onIntent(PairingUiIntent.ActivateTcpip5555) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 46.dp),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Text("Bật lại ADB (Cổng ${state.effectiveConnectPort})", maxLines = 1)
-                }
-            }
-
-            TextButton(
-                onClick = { showManualInput = !showManualInput }
-            ) {
-                Text(
-                    text = if (showManualInput) "Ẩn nhập thủ công" else "Nhập mã thủ công (nâng cao)",
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-
             AnimatedVisibility(visible = showManualInput) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 18.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     OutlinedTextField(
@@ -150,8 +120,8 @@ fun PairingSection(
                         enabled = state.canSubmitPair,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 46.dp),
-                        shape = MaterialTheme.shapes.medium
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
                             if (state.pairingState is AdbPairingState.PairingInProgress) "Đang ghép nối..."
@@ -161,17 +131,52 @@ fun PairingSection(
                     }
                 }
             }
+        }
 
-            if (onSwitchToConnect != null) {
-                TextButton(
-                    onClick = onSwitchToConnect,
-                    modifier = Modifier.fillMaxWidth()
+        // Bottom Action Area: Primary action docked at the bottom
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 14.dp, bottom = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Button(
+                onClick = { onIntent(PairingUiIntent.StartNotificationPairing) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(AppIcons.LinkWireless, contentDescription = null, modifier = Modifier.size(19.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Mở Cài đặt gỡ lỗi",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1
+                )
+            }
+
+            if (state.effectiveConnectPort != null) {
+                OutlinedButton(
+                    onClick = { onIntent(PairingUiIntent.ActivateTcpip5555) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
-                    Text(
-                        text = "Vào màn hình Kết nối",
-                        style = MaterialTheme.typography.labelMedium
-                    )
+                    Text("Bật lại ADB (Cổng ${state.effectiveConnectPort})", maxLines = 1)
                 }
+            }
+
+            TextButton(
+                onClick = { showManualInput = !showManualInput }
+            ) {
+                Text(
+                    text = if (showManualInput) "Ẩn nhập thủ công" else "Nhập mã thủ công (nâng cao)",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

@@ -1,10 +1,7 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,18 +48,12 @@ fun WirelessPairingScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Box(
+        PairingSection(
+            state = state.pairing,
+            onIntent = onPairingIntent,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            PairingSection(
-                state = state.pairing,
-                onIntent = onPairingIntent,
-                onSwitchToConnect = onBack
-            )
-        }
+        )
     }
 }

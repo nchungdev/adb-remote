@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 private data class TutorialSlide(
     val stepLabel: String,
@@ -60,7 +61,7 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         HorizontalPager(
             state = pagerState,
@@ -70,7 +71,7 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
+                    .padding(horizontal = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 when (slide.illustrationType) {
@@ -79,7 +80,7 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
                     else -> SlideThreeScreenshotIllustration()
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
@@ -90,25 +91,30 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     text = slide.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp
+                    ),
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
                     text = slide.description,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 13.5.sp,
+                        lineHeight = 20.sp
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     minLines = 2
