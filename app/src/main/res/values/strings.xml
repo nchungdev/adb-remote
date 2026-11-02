@@ -31,6 +31,7 @@
 
     <!-- Wireless Pairing -->
     <string name="pairing_screen_title">Ghép đôi không dây</string>
+    <string name="pairing_steps_header">3 Bước thực hiện nhanh</string>
     <string name="pairing_step_1">Bấm nút bên dưới để mở Cài đặt, gạt bật \"Gỡ lỗi không dây\"</string>
     <string name="pairing_step_2">Chạm dòng \"Ghép nối bằng mã ghép nối\" để hiện mã 6 số</string>
     <string name="pairing_step_3">Nhấn Phím Nguồn + Giảm âm lượng để AI tự động ghép đôi</string>

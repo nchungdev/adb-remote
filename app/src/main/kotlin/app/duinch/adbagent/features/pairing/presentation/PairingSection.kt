@@ -118,6 +118,12 @@ fun PairingSection(
                     modifier = Modifier.padding(horizontal = dim.spacingL, vertical = dim.spacingMd),
                     verticalArrangement = Arrangement.spacedBy(dim.spacingS)
                 ) {
+                    Text(
+                        text = stringResource(R.string.pairing_steps_header),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
                     PairingStepRow(step = "1", text = stringResource(R.string.pairing_step_1))
                     PairingStepRow(step = "2", text = stringResource(R.string.pairing_step_2))
                     PairingStepRow(step = "3", text = stringResource(R.string.pairing_step_3))
