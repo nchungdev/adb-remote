@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# project-pro pre-push gate: Full Audit + CVE Check + Lint + Unit Tests
+set -euo pipefail
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+cd "$ROOT_DIR"
+if [ -f "/Users/chungnh/.gemini/config/skills/project-pro/scripts/project_pro.py" ]; then
+  echo "[pre-push] 1/3 Running full repository architecture, file-size & security audit..."
+  python3 "/Users/chungnh/.gemini/config/skills/project-pro/scripts/project_pro.py" audit --target "$ROOT_DIR" --fail-on-error
+fi
+if command -v gitleaks >/dev/null 2>&1; then
+  echo "[pre-push] Running gitleaks repository scan..."
+  gitleaks detect --source "$ROOT_DIR" --redact --no-banner
+fi
+echo "[pre-push] 2/3 Running adb-agent clean architecture & LOC check..."
+if [ -f "$ROOT_DIR/scripts/check_project.py" ]; then
+  python3 "$ROOT_DIR/scripts/check_project.py"
+fi
+echo "[pre-push] 3/3 Running unit test suite (Android app & Go server)..."
+if [ -x "./app/gradlew" ]; then
+  (cd app && ./gradlew testDebugUnitTest)
+elif [ -x "./gradlew" ]; then
+  ./gradlew testDebugUnitTest
+fi
+if [ -d "./server" ] && command -v go >/dev/null 2>&1; then
+  (cd server && go test -v -race ./...)
+fi
+echo "[pre-push] All security, architecture, lint, and test gates PASSED."

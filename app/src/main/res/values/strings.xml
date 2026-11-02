@@ -1,0 +1,75 @@
+<resources>
+    <string name="app_name">ADB Remote</string>
+
+    <!-- Navigation & Tabs -->
+    <string name="tab_connect">Kết nối</string>
+    <string name="tab_history">Nhật ký</string>
+    <string name="tab_settings">Cài đặt</string>
+    <string name="nav_back">Quay lại</string>
+
+    <!-- ADB Device Status Card -->
+    <string name="status_title">Trạng Thái ADB Thiết Bị</string>
+    <string name="status_usb_connected">Cáp USB đã kết nối phần cứng</string>
+    <string name="status_usb_desc">Quyền ADB đã sẵn sàng qua cáp máy tính</string>
+    <string name="status_wireless_ready">Gỡ lỗi không dây sẵn sàng</string>
+    <string name="status_wireless_desc">Sẵn sàng nhận lệnh nội bộ hoặc tạo đường truyền từ xa</string>
+    <string name="status_need_pairing">Chưa ghép nối ADB trên máy</string>
+    <string name="status_need_pairing_desc">Nhấn để ghép đôi không dây (hoặc cắm cáp USB)</string>
+    <string name="badge_usb">USB</string>
+    <string name="badge_paired">ĐÃ GHÉP NỐI</string>
+    <string name="badge_not_paired">CHƯA GHÉP</string>
+
+    <!-- Telemetry -->
+    <string name="telemetry_channel">KÊNH</string>
+    <string name="telemetry_ping">PING</string>
+    <string name="telemetry_uptime">UPTIME</string>
+    <string name="telemetry_transferred">ĐÃ TRUYỀN</string>
+    <string name="telemetry_speed">TỐC ĐỘ</string>
+    <string name="telemetry_port">CỔNG</string>
+    <string name="channel_usb">Cáp USB</string>
+    <string name="channel_wireless">Không dây</string>
+
+    <!-- Wireless Pairing -->
+    <string name="pairing_screen_title">Ghép đôi không dây</string>
+    <string name="pairing_steps_header">3 Bước thực hiện nhanh</string>
+    <string name="pairing_step_1">Bấm nút bên dưới để mở Cài đặt, gạt bật \"Gỡ lỗi không dây\"</string>
+    <string name="pairing_step_2">Chạm dòng \"Ghép nối bằng mã ghép nối\" để hiện mã 6 số</string>
+    <string name="pairing_step_3">Nhấn Phím Nguồn + Giảm âm lượng để AI tự động ghép đôi</string>
+    <string name="pairing_btn_open_settings">Mở Cài đặt gỡ lỗi</string>
+    <string name="pairing_btn_reactivate_tcpip">Bật lại ADB (Cổng %1$d)</string>
+    <string name="pairing_btn_manual_toggle_show">Nhập mã thủ công (nâng cao)</string>
+    <string name="pairing_btn_manual_toggle_hide">Ẩn nhập thủ công</string>
+    <string name="pairing_port_label">Cổng ghép nối</string>
+    <string name="pairing_code_label">Mã ghép nối (6 chữ số)</string>
+    <string name="pairing_btn_confirm">Xác nhận ghép nối</string>
+    <string name="pairing_in_progress">Đang ghép nối...</string>
+    <string name="pairing_port_found">Đã tìm thấy cổng ghép nối: %1$d</string>
+    <string name="pairing_connect_found">Đã phát hiện cổng gỡ lỗi: %1$d</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_group_network">ĐƯỜNG TRUYỀN &amp; MẠNG</string>
+    <string name="settings_group_system">DỊCH VỤ &amp; HỆ THỐNG</string>
+    <string name="settings_group_appearance">GIAO DIỆN &amp; GIAO TIẾP</string>
+    <string name="settings_group_info">THÔNG TIN &amp; CẬP NHẬT</string>
+
+    <string name="settings_p2p_title">Kết nối Máy tính (P2P WebRTC)</string>
+    <string name="settings_p2p_unset">Chưa đặt URL</string>
+    <string name="settings_home_wifi_title">Ưu tiên Wi-Fi nội bộ</string>
+    <string name="settings_home_wifi_off">Tắt (luôn duy trì P2P WebRTC)</string>
+    <string name="settings_wireless_pairing_title">Ghép đôi không dây</string>
+    <string name="settings_wireless_pairing_sub">Ghép đôi cổng ADB nội bộ trên thiết bị</string>
+
+    <string name="settings_run_in_background_title">Duy trì chạy ngầm</string>
+    <string name="settings_run_in_background_sub">Giữ tiến trình trên thông báo để nhận lệnh liên tục</string>
+    <string name="settings_auto_reconnect_title">Tự động kết nối lại</string>
+    <string name="settings_auto_reconnect_sub">Duy trì kết nối ngầm khi mạng thay đổi (Backoff)</string>
+    <string name="settings_termux_title">Embedded Termux Console</string>
+    <string name="settings_termux_sub">Mở shell nội bộ &amp; chẩn đoán ADB trên máy</string>
+
+    <string name="settings_notify_connection_change_title">Thông báo đổi trạng thái mạng</string>
+    <string name="settings_notify_connection_change_sub">Hiện Toast/Snackbar khi trong app và Notification khi ra ngoài</string>
+    <string name="settings_theme_mode_title">Chủ đề giao diện</string>
+    <string name="settings_theme_system">Theo hệ thống</string>
+    <string name="settings_theme_light">Chế độ Sáng</string>
+    <string name="settings_theme_dark">Chế độ Tối</string>
+</resources>

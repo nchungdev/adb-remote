@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADB Remote · Fast Pairing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #090d16;
+  --card-bg: rgba(18, 24, 38, 0.85);
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #38bdf8;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --danger: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  background-image: radial-gradient(circle at 50% 0%, rgba(56,189,248,0.12) 0%, transparent 60%);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.popup-card {
+  width: 100%; max-width: 440px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  border-radius: 24px; padding: 26px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6);
+  text-align: center;
+}
+.header-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 12px; border-radius: 999px;
+  background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);
+  color: var(--warning); font-size: 12px; font-weight: 600; margin-bottom: 14px;
+}
+.header-badge.connected { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: var(--success); }
+.header-badge.stopped { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: var(--danger); }
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+h1 { font-size: 21px; font-weight: 700; margin-bottom: 4px; }
+p.subtitle { font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.4; }
+.qr-box { background: #fff; padding: 14px; border-radius: 18px; display: inline-block; margin-bottom: 16px; }
+.qr-box img { display: block; width: 190px; height: 190px; border-radius: 6px; }
+.code-deck {
+  background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 14px;
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+}
+.code-val { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 600; color: var(--accent); letter-spacing: 1.5px; }
+.copy-btn {
+  background: rgba(255,255,255,0.08); border: 1px solid var(--border);
+  color: var(--text-main); padding: 5px 10px; border-radius: 6px; font-size: 11.5px; cursor: pointer;
+}
+.copy-btn:hover { background: rgba(255,255,255,0.15); }
+.action-btn {
+  width: 100%; padding: 12px; border-radius: 12px; border: none; font-size: 13.5px;
+  font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.stop-btn { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; }
+.resume-btn { background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.4); color: #7dd3fc; }
+.pair-card {
+  background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.4);
+  border-radius: 14px; padding: 14px; margin-bottom: 16px; text-align: left;
+}
+.pair-code { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: #34d399; letter-spacing: 2px; }
+</style>
+</head>
+<body>
+
+<div class="popup-card">
+  <div id="statusBadge" class="header-badge">
+    <div class="pulse-dot"></div>
+    <span id="statusText">Waiting for device to connect...</span>
+  </div>
+
+  <div id="pairPrompt" class="pair-card" style="display:none;">
+    <div style="font-size:13px;font-weight:700;color:#10b981;">🔔 Yêu Cầu Ghép Nối Mới</div>
+    <div id="pairDev" style="font-size:12px;color:var(--text-muted);margin:3px 0;"></div>
+    <div id="pairCode" class="pair-code" style="margin:6px 0;">--- ---</div>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button onclick="confirmPair(true)" class="action-btn" style="flex:1;padding:8px;background:#10b981;color:#fff;">Cho Phép</button>
+      <button onclick="confirmPair(false)" class="action-btn stop-btn" style="flex:1;padding:8px;">Từ Chối</button>
+    </div>
+  </div>
+
+  <div id="remotePrompt" class="pair-card" style="display:none;background:rgba(56,189,248,0.12);border-color:rgba(56,189,248,0.4);">
+    <div style="font-size:13px;font-weight:700;color:#38bdf8;">☁️ Yêu Cầu Mở Quick Tunnel Từ Xa</div>
+    <div id="remotePromptDev" style="font-size:12px;color:var(--text-muted);margin:3px 0;"></div>
+    <div style="font-size:12px;color:#cbd5e1;margin-bottom:8px;">Thiết bị yêu cầu mở Quick Tunnel để truy cập từ xa.</div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="approveRemoteRequest(true)" class="action-btn" style="flex:1;padding:8px;background:#38bdf8;color:#090d16;">Đồng Ý & Mở</button>
+      <button onclick="approveRemoteRequest(false)" class="action-btn stop-btn" style="flex:1;padding:8px;">Từ Chối</button>
+    </div>
+  </div>
+
+  <h1>ADB Remote Pairing</h1>
+  <p class="subtitle">Quét mã QR trên điện thoại hoặc nhập mã P2P để kết nối tức thì.</p>
+
+  <div class="qr-box" id="qrContainer">
+    <img id="qrImage" src="/api/remote/qr.png" alt="QR Code">
+  </div>
+
+  <div class="code-deck">
+    <span style="font-size:12px;color:var(--text-muted);">P2P Room Code:</span>
+    <span class="code-val" id="roomCodeDisplay">--- ---</span>
+    <button class="copy-btn" id="copyBtn">Copy</button>
+  </div>
+  <div class="code-deck" style="margin-top:-6px;">
+    <span style="font-size:12px;color:var(--text-muted);">Wi-Fi LAN:</span>
+    <span class="code-val" id="lanDisplay" style="font-size:13px;letter-spacing:0;">192.168.x.x:8080</span>
+    <button class="copy-btn" id="copyLanBtn">Copy</button>
+  </div>
+  <button class="action-btn stop-btn" id="toggleBtn">
+    <span>🛑</span> Stop Remote ADB
+  </button>
+</div>
+
+<script>
+let isActive = true;
+let pendingDev = null;
+const statusBadge = document.getElementById('statusBadge');
+const statusText = document.getElementById('statusText');
+const roomDisplay = document.getElementById('roomCodeDisplay');
+const lanDisplay = document.getElementById('lanDisplay');
+const toggleBtn = document.getElementById('toggleBtn');
+const copyBtn = document.getElementById('copyBtn');
+const copyLanBtn = document.getElementById('copyLanBtn');
+const qrContainer = document.getElementById('qrContainer');
+const qrImage = document.getElementById('qrImage');
+
+async function fetchStatus() {
+  try {
+    const res = await fetch('/api/remote/status');
+    if (!res.ok) return;
+    const data = await res.json();
+    isActive = data.active;
+    roomDisplay.textContent = data.room || '--- ---';
+    if (data.lan) lanDisplay.textContent = data.lan;
+
+    if (!isActive) {
+      statusBadge.className = 'header-badge stopped';
+      statusText.textContent = 'Remote ADB is Off';
+      qrContainer.style.opacity = '0.3';
+      toggleBtn.className = 'action-btn resume-btn';
+      toggleBtn.innerHTML = '<span>⚡</span> Turn on Remote ADB';
+    } else if (data.connected_device) {
+      statusBadge.className = 'header-badge connected';
+      statusText.textContent = 'Connected: ' + data.connected_device;
+      qrContainer.style.opacity = '1';
+      toggleBtn.className = 'action-btn stop-btn';
+      toggleBtn.innerHTML = '<span>🛑</span> Stop Remote ADB';
+    } else {
+      statusBadge.className = 'header-badge';
+      statusText.textContent = 'Waiting for device to connect...';
+      qrContainer.style.opacity = '1';
+      toggleBtn.className = 'action-btn stop-btn';
+      toggleBtn.innerHTML = '<span>🛑</span> Stop Remote ADB';
+    }
+  } catch (err) {}
+}
+
+async function checkPairing() {
+  try {
+    const res = await fetch('/api/pair/pending');
+    if (!res.ok) return;
+    const list = await res.json();
+    const prompt = document.getElementById('pairPrompt');
+    if (list && list.length > 0) {
+      pendingDev = list[0].device_id;
+      document.getElementById('pairDev').textContent = list[0].device_name || list[0].device_id;
+      document.getElementById('pairCode').textContent = list[0].code;
+      prompt.style.display = 'block';
+    } else {
+      prompt.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+async function confirmPair(approved) {
+  if (!pendingDev) return;
+  await fetch('/api/pair/confirm', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({device_id: pendingDev, approved: approved})
+  });
+  document.getElementById('pairPrompt').style.display = 'none';
+  pendingDev = null;
+}
+
+let pendingRemoteDev = null;
+async function checkRemoteRequests() {
+  try {
+    const res = await fetch('/api/remote/pending-requests');
+    if (!res.ok) return;
+    const list = await res.json();
+    const prompt = document.getElementById('remotePrompt');
+    if (list && list.length > 0) {
+      pendingRemoteDev = list[0].device_id;
+      document.getElementById('remotePromptDev').textContent = 'Thiết bị: ' + (list[0].device_name || list[0].device_id);
+      prompt.style.display = 'block';
+    } else {
+      prompt.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+async function approveRemoteRequest(approved) {
+  if (!pendingRemoteDev) return;
+  await fetch('/api/remote/approve-request', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({device_id: pendingRemoteDev, approved: approved})
+  });
+  document.getElementById('remotePrompt').style.display = 'none';
+  pendingRemoteDev = null;
+  await fetchStatus();
+}
+
+toggleBtn.addEventListener('click', async () => {
+  const nextState = !isActive;
+  try {
+    await fetch('/api/remote/toggle?active=' + nextState, { method: 'POST' });
+    qrImage.src = '/api/remote/qr.png?t=' + Date.now();
+    await fetchStatus();
+  } catch (err) {}
+});
+
+copyBtn.addEventListener('click', () => {
+  const code = roomDisplay.textContent.trim();
+  if (code && code !== '--- ---') {
+    navigator.clipboard.writeText(code);
+    copyBtn.textContent = 'Copied!';
+    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+  }
+});
+
+copyLanBtn.addEventListener('click', () => {
+  const lan = lanDisplay.textContent.trim();
+  if (lan && !lan.includes('x.x')) {
+    navigator.clipboard.writeText(lan);
+    copyLanBtn.textContent = 'Copied!';
+    setTimeout(() => { copyLanBtn.textContent = 'Copy'; }, 1500);
+  }
+});
+
+fetchStatus();
+checkPairing();
+checkRemoteRequests();
+setInterval(() => { fetchStatus(); checkPairing(); checkRemoteRequests(); }, 2000);
+</script>
+</body>
+</html>

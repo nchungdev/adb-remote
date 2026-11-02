@@ -1,0 +1,40 @@
+# Gradle & Android
+.gradle/
+build/
+**/build/
+dist/
+**/dist/
+local.properties
+.kotlin/
+app/src/main/jniLibs/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+._*
+Thumbs.db
+
+# Keystores & Secrets
+keystore/*.jks
+keystore/*.keystore
+!keystore/README.md
+*.env
+.local-artifacts/
+
+# Security & Secret Hygiene (managed by project-pro)
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+service-account*.json
