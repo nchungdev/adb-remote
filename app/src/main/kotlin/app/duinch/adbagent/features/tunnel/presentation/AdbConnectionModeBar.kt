@@ -129,7 +129,7 @@ fun AdbConnectionModeBar(
             ) {
                 ModeSegmentTab(
                     title = "Mạng từ xa",
-                    subtitle = "Quick Tunnel / P2P",
+                    subtitle = "Kết nối bảo mật",
                     icon = AppIcons.CloudLock,
                     isSelected = selectedMode == AdbConnectionMode.REMOTE,
                     modifier = Modifier.weight(1f),

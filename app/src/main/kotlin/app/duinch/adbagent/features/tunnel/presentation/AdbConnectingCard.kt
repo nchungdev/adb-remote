@@ -67,8 +67,8 @@ fun AdbConnectingCard(
         conn is TunnelConnectionState.Reconnecting -> conn.reason
         state.selectedMode == AdbConnectionMode.LAN -> "Đang bắt tay qua mạng Wi-Fi LAN..."
         state.remoteRoomCode.isNotBlank() -> "Đang kết nối phòng P2P: ${state.remoteRoomCode}"
-        state.serverUrlInput.isNotBlank() -> "Đang kết nối tới ${state.serverUrlInput}"
-        else -> "Đang định tuyến qua Cloudflare Quick Tunnel..."
+        state.serverUrlInput.isNotBlank() -> "Đang kết nối tới máy chủ..."
+        else -> "Đang định tuyến đường truyền từ xa..."
     }
 
     Card(

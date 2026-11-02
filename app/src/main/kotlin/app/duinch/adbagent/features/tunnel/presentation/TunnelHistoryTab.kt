@@ -57,7 +57,7 @@ fun TunnelHistoryTab(
     val totalBytes = state.history.sumOf { it.bytesBridged }
     val activeSessions = state.history.count { it.isActive }
     val isOnline = state.connectionState is TunnelConnectionState.Connected
-    val hostGroupTitle = "Mac mini (${state.serverUrlInput.ifBlank { "P2P WebRTC / Quick Tunnel" }.substringAfter("://")})"
+    val hostGroupTitle = "Mac mini (${state.serverUrlInput.ifBlank { "Kết nối từ xa" }.substringAfter("://")})"
 
     val hostCommands = state.hostCommands.filter { it.source != "Embedded Termux" }
     val termuxCommands = state.hostCommands.filter { it.source == "Embedded Termux" }

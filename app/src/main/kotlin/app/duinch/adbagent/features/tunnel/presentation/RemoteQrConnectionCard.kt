@@ -147,7 +147,7 @@ fun RemoteQrConnectionCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Tùy chọn: Nhập mã phòng hoặc Quick Tunnel",
+                            text = "Tùy chọn: Nhập mã phòng hoặc URL từ xa",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

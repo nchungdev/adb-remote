@@ -154,7 +154,14 @@ fun TunnelHomeTab(
                 onCopyText = { clipboard.setText(AnnotatedString(it)) }
             )
         } else {
-            // Unified Dual-Channel Profile Card (Cùng mạng LAN & Khác mạng Remote P2P song song)
+            // 2. Tier 1: Trạng thái ADB Thiết bị (USB / Không dây / Chưa bật)
+            AdbDeviceStatusCard(
+                isUsbConnected = state.isUsbConnected,
+                pairingState = state.pairing.pairingState,
+                onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
+            )
+
+            // 3. Tier 2: Kết nối Máy Chủ (Cùng Wi-Fi LAN / Khác mạng Từ Xa)
             DualChannelConnectContent(
                 initialLanAddress = state.serverUrlInput,
                 initialRemoteTarget = state.remoteRoomCode,
@@ -187,37 +194,6 @@ fun TunnelHomeTab(
                 onDisconnect = { onIntent(DashboardUiIntent.ToggleTunnel) },
                 onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) }
             )
-
-            // Subtle footer link to open dedicated Wireless Pairing screen
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
-                    .padding(vertical = 10.dp, horizontal = 12.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = AppIcons.LinkWireless,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Ghép đôi không dây",
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    imageVector = AppIcons.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(13.dp)
-                )
-            }
         }
     }
 }
