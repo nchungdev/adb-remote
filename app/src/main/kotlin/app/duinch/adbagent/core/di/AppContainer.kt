@@ -1,6 +1,7 @@
 package app.duinch.adbagent.core.di
 
 import android.content.Context
+import app.duinch.adbagent.AdbAgentApp
 import app.duinch.adbagent.features.pairing.application.ActivateTcpipModeUseCase
 import app.duinch.adbagent.features.pairing.application.PairLocalAdbUseCase
 import app.duinch.adbagent.features.pairing.data.AndroidMdnsAdbDiscoveryAdapter
@@ -18,9 +19,11 @@ import app.duinch.adbagent.features.tunnel.application.ComputeReconnectBackoffUs
 import app.duinch.adbagent.features.tunnel.application.ObserveTunnelHistoryUseCase
 import app.duinch.adbagent.features.tunnel.application.SaveTunnelConfigUseCase
 import app.duinch.adbagent.features.tunnel.application.ToggleReverseTunnelUseCase
+import app.duinch.adbagent.features.tunnel.data.AndroidConnectionAlertNotifier
 import app.duinch.adbagent.features.tunnel.data.SharedPrefsTunnelConfigRepository
 import app.duinch.adbagent.features.tunnel.data.SharedPrefsTunnelHistoryRepository
 import app.duinch.adbagent.features.tunnel.data.WebRtcReverseTunnelAdapter
+import app.duinch.adbagent.features.tunnel.domain.ConnectionAlertGateway
 import app.duinch.adbagent.features.tunnel.domain.ReverseTunnelGateway
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfigRepository
 import app.duinch.adbagent.features.tunnel.domain.TunnelHistoryRepository
@@ -65,6 +68,13 @@ class AppContainer(context: Context) {
             computeReconnectBackoff,
             tunnelHistoryRepository,
             hostActivityRepository
+        )
+
+    val connectionAlertNotifier: ConnectionAlertGateway =
+        AndroidConnectionAlertNotifier(
+            context = appContext,
+            reverseTunnelGateway = reverseTunnelGateway,
+            isForegroundProvider = { (appContext as? AdbAgentApp)?.isAppInForeground ?: false }
         )
 
     val ensureTermuxBootstrap = EnsureTermuxBootstrapUseCase(termuxRuntimeGateway)
