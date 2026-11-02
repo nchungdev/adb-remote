@@ -103,7 +103,7 @@ class TunnelForegroundService : Service() {
         val manager = getSystemService(NotificationManager::class.java) ?: return
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Dịch vụ chạy ngầm ADB Agent",
+            "Dịch vụ chạy ngầm ADB Remote",
             NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = "Duy trì kết nối ADB nội bộ và đường hầm từ xa về Mac mini"
@@ -145,17 +145,17 @@ class TunnelForegroundService : Service() {
         val (title, text) = when (state) {
             is TunnelConnectionState.Connected -> {
                 val mapped = state.mappedServerPort?.let { "127.0.0.1:$it" } ?: "Đã nhận cổng"
-                "ADB Agent • Đang trực tuyến" to "Mac mini: $mapped • Wi-Fi: ${wifiIp.ifBlank { "LAN" }}:$localPort"
+                "ADB Remote • Đang trực tuyến" to "Mac mini: $mapped • Wi-Fi: ${wifiIp.ifBlank { "LAN" }}:$localPort"
             }
             is TunnelConnectionState.Connecting ->
-                "ADB Agent • Đang kết nối..." to "Đang thiết lập kênh bảo mật..."
+                "ADB Remote • Đang kết nối..." to "Đang thiết lập kênh bảo mật..."
             is TunnelConnectionState.Reconnecting ->
-                "ADB Agent • Đang tự nối lại" to "Lần thử ${state.attempt} • Thử lại sau ${state.nextRetryDelayMs / 1000}s"
+                "ADB Remote • Đang tự nối lại" to "Lần thử ${state.attempt} • Thử lại sau ${state.nextRetryDelayMs / 1000}s"
             is TunnelConnectionState.Error ->
-                "ADB Agent • Gián đoạn kết nối" to (state.message.take(45))
+                "ADB Remote • Gián đoạn kết nối" to (state.message.take(45))
             TunnelConnectionState.Disconnected -> {
                 val ipDisplay = if (wifiIp.isNotBlank()) "Wi-Fi: $wifiIp:$localPort" else "Cổng ADB: $localPort"
-                "ADB Agent • Sẵn sàng chạy ngầm" to "$ipDisplay • Đang duy trì kết nối"
+                "ADB Remote • Sẵn sàng chạy ngầm" to "$ipDisplay • Đang duy trì kết nối"
             }
         }
 

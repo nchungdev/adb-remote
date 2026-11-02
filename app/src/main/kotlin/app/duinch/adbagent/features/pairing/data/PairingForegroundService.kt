@@ -97,7 +97,7 @@ class PairingForegroundService : Service() {
                     container.pairingNotificationGateway.reportPairingState(state)
                     notifyUpdated(
                         buildStatusNotification(
-                            "Ghép nối thành công! Đang mở ADB Agent...",
+                            "Ghép nối thành công! Đang mở ADB Remote...",
                             ongoing = false
                         )
                     )
@@ -190,7 +190,7 @@ class PairingForegroundService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         return baseBuilder()
-            .setContentTitle("ADB Agent • Ghép nối không dây")
+            .setContentTitle("ADB Remote • Ghép nối không dây")
             .setContentText(text)
             .setContentIntent(openApp)
             .setOngoing(ongoing)

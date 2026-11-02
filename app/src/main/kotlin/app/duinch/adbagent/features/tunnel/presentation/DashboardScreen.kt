@@ -63,7 +63,7 @@ fun DashboardScreen(
                 title = {
                     Column {
                         Text(
-                            text = "ADB Agent",
+                            text = "ADB Remote",
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis

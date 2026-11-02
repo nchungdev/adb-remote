@@ -70,7 +70,7 @@ fun UpdateBannerCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "ADB Agent",
+                            text = "ADB Remote",
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
