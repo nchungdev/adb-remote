@@ -3,7 +3,6 @@ package app.duinch.adbagent.features.pairing.data
 import android.content.Context
 import android.database.ContentObserver
 import android.net.Uri
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
@@ -15,11 +14,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 class ScreenshotPairingWatcher(
     private val context: Context,
     private val scope: CoroutineScope,
-    private val onCodeExtracted: (code: String, screenshotUri: Uri) -> Unit
+    private val onCodeExtracted: (code: String, port: Int?, screenshotUri: Uri) -> Unit
 ) {
     private val contentResolver = context.contentResolver
     private var observer: ContentObserver? = null
@@ -92,11 +92,14 @@ class ScreenshotPairingWatcher(
                 val dateAdded = cursor.getLong(dateIdx)
 
                 val nowSec = System.currentTimeMillis() / 1000L
-                // Check if screenshot was taken within the last 15 seconds
-                if (nowSec - dateAdded > 15) return
+                if (abs(nowSec - dateAdded) > 60) return
 
-                val isScreenshot = displayName.contains("screenshot", ignoreCase = true) ||
-                    displayName.contains("screen_shot", ignoreCase = true)
+                val lower = displayName.lowercase()
+                val isScreenshot = lower.contains("screenshot") ||
+                    lower.contains("screen_shot") ||
+                    lower.contains("ảnh_chụp_màn_hình") ||
+                    lower.contains("anh_chup_man_hinh") ||
+                    lower.contains("capture")
                 if (!isScreenshot) return
 
                 val targetUri = Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id.toString())
@@ -118,27 +121,40 @@ class ScreenshotPairingWatcher(
             .addOnSuccessListener { visionText ->
                 val fullText = visionText.text
                 val extractedCode = parsePairingCodeFromOcrText(fullText)
+                val extractedPort = parsePairingPortFromOcrText(fullText)
                 if (extractedCode != null) {
-                    onCodeExtracted(extractedCode, uri)
+                    onCodeExtracted(extractedCode, extractedPort, uri)
                 }
             }
     }
 
     companion object {
         fun parsePairingCodeFromOcrText(text: String): String? {
-            // Find 6 continuous digits (optionally with spaces, e.g., '123 456' or '123456')
-            val regexExact = Regex("\\b(\\d{6})\\b")
+            val regexExact = Regex("""\b(\d{6})\b""")
             val matchExact = regexExact.find(text)
             if (matchExact != null) {
                 return matchExact.groupValues[1]
             }
 
-            val regexSpaced = Regex("\\b(\\d{3})\\s+(\\d{3})\\b")
+            val regexSpaced = Regex("""\b(\d{3})\s+(\d{3})\b""")
             val matchSpaced = regexSpaced.find(text)
             if (matchSpaced != null) {
                 return "${matchSpaced.groupValues[1]}${matchSpaced.groupValues[2]}"
             }
+
+            val regexHyphen = Regex("""\b(\d{3})\s*-\s*(\d{3})\b""")
+            val matchHyphen = regexHyphen.find(text)
+            if (matchHyphen != null) {
+                return "${matchHyphen.groupValues[1]}${matchHyphen.groupValues[2]}"
+            }
             return null
+        }
+
+        fun parsePairingPortFromOcrText(text: String): Int? {
+            val regex = Regex("""\b(?:\d{1,3}\.){3}\d{1,3}\s*:\s*(\d{4,5})\b""")
+            val match = regex.find(text) ?: return null
+            val port = match.groupValues[1].toIntOrNull() ?: return null
+            return if (port in 1024..65535) port else null
         }
     }
 }

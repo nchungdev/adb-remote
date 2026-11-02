@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -26,6 +27,10 @@ fun WirelessPairingScreen(
     onBack: () -> Unit,
     onPairingIntent: (PairingUiIntent) -> Unit
 ) {
+    LaunchedEffect(Unit) {
+        onPairingIntent(PairingUiIntent.StartInteractiveWatcher)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(

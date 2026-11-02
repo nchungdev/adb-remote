@@ -18,7 +18,9 @@ class ScreenshotPairingWatcherTest {
         """.trimIndent()
 
         val code = ScreenshotPairingWatcher.parsePairingCodeFromOcrText(sampleOcrText)
+        val port = ScreenshotPairingWatcher.parsePairingPortFromOcrText(sampleOcrText)
         assertEquals("729401", code)
+        assertEquals(37599, port)
     }
 
     @Test
@@ -32,13 +34,17 @@ class ScreenshotPairingWatcherTest {
         """.trimIndent()
 
         val code = ScreenshotPairingWatcher.parsePairingCodeFromOcrText(sampleSpacedText)
+        val port = ScreenshotPairingWatcher.parsePairingPortFromOcrText(sampleSpacedText)
         assertEquals("491823", code)
+        assertEquals(41029, port)
     }
 
     @Test
     fun `returns null if no 6 digit code found`() {
         val sampleInvalid = "Cài đặt Wi-Fi không có mã"
         val code = ScreenshotPairingWatcher.parsePairingCodeFromOcrText(sampleInvalid)
+        val port = ScreenshotPairingWatcher.parsePairingPortFromOcrText(sampleInvalid)
         assertNull(code)
+        assertNull(port)
     }
 }

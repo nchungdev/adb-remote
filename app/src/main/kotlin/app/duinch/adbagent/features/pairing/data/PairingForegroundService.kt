@@ -30,6 +30,7 @@ class PairingForegroundService : Service() {
     private var latestPorts = DiscoveredAdbPorts()
     private var screenshotWatcher: ScreenshotPairingWatcher? = null
     private var latestScreenshotUri: android.net.Uri? = null
+    private var pendingOcrCode: String? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -61,11 +62,15 @@ class PairingForegroundService : Service() {
 
     private fun startScreenshotWatcher() {
         screenshotWatcher?.stop()
-        screenshotWatcher = ScreenshotPairingWatcher(this, scope) { code, uri ->
+        screenshotWatcher = ScreenshotPairingWatcher(this, scope) { code, extractedPort, uri ->
             latestScreenshotUri = uri
-            val pairPort = latestPorts.pairingPort
+            val pairPort = extractedPort ?: latestPorts.pairingPort
             if (pairPort != null && pairPort > 0) {
+                pendingOcrCode = null
                 handleSubmittedCode(pairPort, code, latestPorts.connectPort)
+            } else {
+                pendingOcrCode = code
+                notifyUpdated(buildStatusNotification("Đã nhận mã $code, đang tìm cổng...", ongoing = true))
             }
         }.apply { start() }
     }
@@ -79,7 +84,13 @@ class PairingForegroundService : Service() {
                 latestPorts = ports
                 val pairPort = ports.pairingPort
                 if (pairPort != null) {
-                    notifyUpdated(buildReplyNotification(pairPort, ports.connectPort))
+                    val code = pendingOcrCode
+                    if (code != null) {
+                        pendingOcrCode = null
+                        handleSubmittedCode(pairPort, code, ports.connectPort)
+                    } else {
+                        notifyUpdated(buildReplyNotification(pairPort, ports.connectPort))
+                    }
                 }
             }
         }

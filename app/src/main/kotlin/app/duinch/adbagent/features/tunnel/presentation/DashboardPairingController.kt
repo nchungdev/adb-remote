@@ -31,6 +31,9 @@ internal class DashboardPairingController(
                 container.pairingNotificationGateway.startInteractivePairing()
                 effects.tryEmit(DashboardUiEffect.LaunchDeveloperSettings)
             }
+            PairingUiIntent.StartInteractiveWatcher -> {
+                container.pairingNotificationGateway.startInteractivePairing()
+            }
             PairingUiIntent.ActivateTcpip5555 -> activateTcpipMode()
             PairingUiIntent.SubmitPair -> submitPairing()
         }

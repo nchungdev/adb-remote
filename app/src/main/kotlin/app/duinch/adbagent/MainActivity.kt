@@ -45,6 +45,10 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { /* User grant/deny handled gracefully by ForegroundService */ }
 
+    private val mediaPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* User grant/deny handled gracefully */ }
+
     private val unknownSourcesLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
@@ -128,13 +132,21 @@ class MainActivity : ComponentActivity() {
                 }
 
 
+                LaunchedEffect(uiState.forceShowPairing) {
+                    if (uiState.forceShowPairing) {
+                        requestMediaPermissionIfNeeded()
+                    }
+                }
+
                 LaunchedEffect(dashboardVm) {
                     dashboardVm.effects.collect { effect ->
                         when (effect) {
                             is DashboardUiEffect.ShowMessage ->
                                 snackbarHostState.showSnackbar(effect.text)
-                            DashboardUiEffect.LaunchDeveloperSettings ->
+                            DashboardUiEffect.LaunchDeveloperSettings -> {
+                                requestMediaPermissionIfNeeded()
                                 openDeveloperSettings()
+                            }
                             DashboardUiEffect.LaunchQrScanner ->
                                 openQrScanner(dashboardVm)
                         }
@@ -251,6 +263,18 @@ class MainActivity : ComponentActivity() {
             if (!granted) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
+        }
+    }
+
+    private fun requestMediaPermissionIfNeeded() {
+        val perm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        val granted = ContextCompat.checkSelfPermission(this, perm) == PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            mediaPermissionLauncher.launch(perm)
         }
     }
 
