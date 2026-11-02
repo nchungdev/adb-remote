@@ -64,7 +64,7 @@ class AppContainer(context: Context) {
 
     private val computeReconnectBackoff = ComputeReconnectBackoffUseCase()
 
-    val reverseTunnelGateway: ReverseTunnelGateway = run {
+    fun createReverseTunnelGateway(): ReverseTunnelGateway {
         val webRtc = WebRtcReverseTunnelAdapter(
             appContext,
             computeReconnectBackoff,
@@ -77,8 +77,10 @@ class AppContainer(context: Context) {
             tunnelHistoryRepository,
             hostActivityRepository
         )
-        HybridReverseTunnelGateway(webRtc, webSocket)
+        return HybridReverseTunnelGateway(webRtc, webSocket)
     }
+
+    val reverseTunnelGateway: ReverseTunnelGateway = createReverseTunnelGateway()
 
     val connectionAlertNotifier: ConnectionAlertGateway =
         AndroidConnectionAlertNotifier(

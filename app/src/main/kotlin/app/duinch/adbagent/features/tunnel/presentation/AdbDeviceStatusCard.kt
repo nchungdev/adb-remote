@@ -83,61 +83,60 @@ fun AdbDeviceStatusCard(
                 )
                 AdbStatusBadge(
                     isUsbConnected = isUsbConnected,
-                    isPaired = isPaired
+                    isPaired = isPaired,
+                    activePort = activePort
                 )
             }
 
-            when {
-                isUsbConnected -> {
-                    DeviceStatusRow(
-                        icon = AppIcons.Usb,
-                        iconTint = MaterialTheme.colorScheme.primary,
-                        title = "Cáp USB đã kết nối phần cứng",
-                        subtitle = "Quyền ADB đã sẵn sàng qua cáp máy tính"
-                    )
-                }
-                isPaired -> {
+            if (isUsbConnected) {
+                DeviceStatusRow(
+                    icon = AppIcons.Usb,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    title = "Cáp USB đã kết nối phần cứng",
+                    subtitle = "Quyền ADB đã sẵn sàng qua cáp máy tính"
+                )
+            }
+
+            if (isPaired) {
+                DeviceStatusRow(
+                    icon = AppIcons.LinkWireless,
+                    iconTint = Color(0xFF2E7D32),
+                    title = "ADB Không dây đã bật",
+                    subtitle = "Cổng kết nối ADB: $activePort (Sẵn sàng nhận lệnh)"
+                )
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable(onClick = onOpenPairing)
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     DeviceStatusRow(
                         icon = AppIcons.LinkWireless,
-                        iconTint = Color(0xFF2E7D32),
-                        title = "ADB Không dây đã bật",
-                        subtitle = "Cổng kết nối ADB: $activePort (Sẵn sàng nhận lệnh)"
+                        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        title = "Chưa bật ADB không dây",
+                        subtitle = if (isUsbConnected) "Ghép đôi để kết nối không dây tới máy chủ khác" else "Cần cắm cáp USB hoặc ghép đôi không dây",
+                        modifier = Modifier.weight(1f)
                     )
-                }
-                else -> {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .clickable(onClick = onOpenPairing)
-                            .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier.padding(start = 8.dp)
                     ) {
-                        DeviceStatusRow(
-                            icon = AppIcons.LinkWireless,
-                            iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            title = "Chưa bật ADB không dây",
-                            subtitle = "Cần cắm cáp USB hoặc ghép đôi không dây",
-                            modifier = Modifier.weight(1f)
+                        Text(
+                            text = "Ghép đôi",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.primary
                         )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(start = 8.dp)
-                        ) {
-                            Text(
-                                text = "Ghép đôi",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(2.dp))
-                            Icon(
-                                imageVector = AppIcons.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Icon(
+                            imageVector = AppIcons.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }
@@ -159,18 +158,25 @@ fun AdbDeviceStatusCard(
 @Composable
 private fun AdbStatusBadge(
     isUsbConnected: Boolean,
-    isPaired: Boolean
+    isPaired: Boolean,
+    activePort: Int = 5555
 ) {
-    val (label, bg, fg) = when {
-        isUsbConnected -> Triple("USB", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
-        isPaired -> Triple("Port 5555", Color(0xFFE8F5E9), Color(0xFF2E7D32))
-        else -> Triple("Chưa Bật", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (isUsbConnected) {
+            BadgePill("USB", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+        }
+        if (isPaired) {
+            BadgePill("Port $activePort", Color(0xFFE8F5E9), Color(0xFF2E7D32))
+        }
+        if (!isUsbConnected && !isPaired) {
+            BadgePill("Chưa Bật", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
+}
 
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = bg
-    ) {
+@Composable
+private fun BadgePill(label: String, bg: Color, fg: Color) {
+    Surface(shape = RoundedCornerShape(6.dp), color = bg) {
         Text(
             text = label,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),

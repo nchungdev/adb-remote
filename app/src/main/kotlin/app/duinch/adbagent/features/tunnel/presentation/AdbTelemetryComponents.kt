@@ -53,10 +53,15 @@ fun AdbTelemetryBentoGrid(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            val channelLabel = when {
+                isUsbConnected && isPaired -> "USB & Wi-Fi"
+                isUsbConnected -> "Cáp USB"
+                else -> "Không dây"
+            }
             MetricBox(
-                icon = if (isUsbConnected) AppIcons.Usb else AppIcons.LinkWireless,
+                icon = if (isUsbConnected && !isPaired) AppIcons.Usb else AppIcons.LinkWireless,
                 label = "KÊNH",
-                value = if (isUsbConnected) "Cáp USB" else "Không dây",
+                value = channelLabel,
                 modifier = Modifier.weight(1.2f)
             )
             MetricBox(
@@ -93,7 +98,7 @@ fun AdbTelemetryBentoGrid(
             MetricBox(
                 icon = AppIcons.Terminal,
                 label = "CỔNG ADB",
-                value = if (isUsbConnected) "5555" else activePort.toString(),
+                value = if (isPaired) activePort.toString() else "5555",
                 modifier = Modifier.weight(1.1f)
             )
         }

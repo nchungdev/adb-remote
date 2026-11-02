@@ -1,11 +1,41 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
+import app.duinch.adbagent.core.di.AppContainer
 import app.duinch.adbagent.features.termux.presentation.TermuxUiIntent
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+internal fun createInitialDashboardState(container: AppContainer): DashboardUiState {
+    val saved = container.tunnelConfigRepository.getConfig()
+    val usb = container.reverseTunnelGateway.isUsbConnected()
+    val initMode = when {
+        usb -> AdbConnectionMode.USB
+        container.reverseTunnelGateway.getLocalWifiIp()?.isNotBlank() == true -> AdbConnectionMode.LAN
+        else -> AdbConnectionMode.REMOTE
+    }
+    val firstTime = !container.tunnelConfigRepository.hasSeenOnboarding()
+    return DashboardUiState(
+        serverUrlInput = saved.serverUrl,
+        deviceAliasInput = saved.deviceAlias,
+        localAdbPortInput = saved.localAdbPort.toString(),
+        autoReconnect = saved.autoReconnectOnNetworkChange,
+        runInBackground = saved.runInBackground,
+        trustedHomeSsidInput = saved.trustedHomeSsid,
+        autoSwitchOnHomeWifi = saved.autoSwitchOnHomeWifi,
+        currentWifiSsid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty(),
+        localWifiIp = container.reverseTunnelGateway.getLocalWifiIp().orEmpty(),
+        isUsbConnected = usb,
+        usbConnectedAtEpochMs = if (usb) System.currentTimeMillis() else 0L,
+        selectedMode = initMode,
+        remoteRoomCode = saved.remoteRoomCode,
+        notifyConnectionChange = saved.notifyConnectionChange,
+        themeMode = saved.themeMode,
+        activeOnboardingStep = if (firstTime) OnboardingStep.STEP_ADB else null
+    )
+}
 
 internal fun buildDraftConfig(state: DashboardUiState) = TunnelConfig(
     serverUrl = state.serverUrlInput,

@@ -15,10 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +39,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import app.duinch.adbagent.core.designsystem.AdbAgentTheme
@@ -176,6 +180,7 @@ fun TunnelHomeTab(
 
         // Tier 2: Kết nối Máy Chủ (Cùng Wi-Fi LAN / Khác mạng Từ Xa)
         DualChannelConnectContent(
+            title = if (state.extraSlots.isNotEmpty()) "Máy Chủ 1" else "Kết Nối Máy Chủ",
             initialLanAddress = state.serverUrlInput,
             initialRemoteTarget = state.remoteRoomCode,
             telemetry = telemetry,
@@ -208,6 +213,50 @@ fun TunnelHomeTab(
             onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) },
             onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
         )
+
+        state.extraSlots.forEachIndexed { index, slot ->
+            val slotConnState = when {
+                slot.connectionState is TunnelConnectionState.Connecting ||
+                    slot.connectionState is TunnelConnectionState.Reconnecting -> RemoteConnectionState.Connecting
+                slot.connectionState is TunnelConnectionState.Connected -> RemoteConnectionState.Connected
+                else -> RemoteConnectionState.Disconnected
+            }
+            val slotTelemetry = remember(slot.connectionState, slot.serverUrlInput, slot.remoteRoomCode) {
+                RemoteTelemetryData(
+                    state = slotConnState,
+                    channel = if (slot.serverUrlInput.contains("trycloudflare.com")) RemoteTransportChannel.QuickTunnel else RemoteTransportChannel.WebRtcDirect,
+                    host = slot.serverUrlInput,
+                    roomCode = slot.remoteRoomCode
+                )
+            }
+            DualChannelConnectContent(
+                title = "Máy Chủ ${index + 2}",
+                initialLanAddress = slot.serverUrlInput,
+                initialRemoteTarget = slot.remoteRoomCode,
+                telemetry = slotTelemetry,
+                isWifiConnected = isWifiConnected,
+                onClose = { onIntent(DashboardUiIntent.RemoveConnectionSlot(slot.id)) },
+                onConnect = { lan, remote ->
+                    val isUrl = remote.startsWith("http://") || remote.startsWith("https://") || remote.contains("trycloudflare.com")
+                    val targetServer = if (lan.isNotBlank()) lan else if (isUrl) remote else ""
+                    val targetRoom = if (!isUrl && remote.isNotBlank()) remote else "default"
+                    onIntent(DashboardUiIntent.ConnectExtraSlot(slot.id, targetRoom, targetServer))
+                },
+                onDisconnect = { onIntent(DashboardUiIntent.DisconnectExtraSlot(slot.id)) },
+                onScanQr = { onIntent(DashboardUiIntent.ScanQrForSlot(slot.id)) },
+                onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
+            )
+        }
+
+        OutlinedButton(
+            onClick = { onIntent(DashboardUiIntent.AddConnectionSlot) },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Thêm máy chủ kết nối", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        }
     }
 }
 

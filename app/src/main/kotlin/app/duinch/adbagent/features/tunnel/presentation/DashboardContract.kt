@@ -20,6 +20,13 @@ enum class AdbConnectionMode(val label: String) {
     REMOTE("Mạng từ xa")
 }
 
+data class ServerConnectionSlot(
+    val id: String,
+    val serverUrlInput: String = "",
+    val remoteRoomCode: String = "",
+    val connectionState: TunnelConnectionState = TunnelConnectionState.Disconnected
+)
+
 data class DashboardUiState(
     val selectedTab: AppTab = AppTab.CONNECT,
     val serverUrlInput: String = "",
@@ -49,12 +56,18 @@ data class DashboardUiState(
     val usbConnectedAtEpochMs: Long = 0L,
     val activeOnboardingStep: OnboardingStep? = null,
     val notifyConnectionChange: Boolean = true,
-    val themeMode: String = "system"
+    val themeMode: String = "system",
+    val extraSlots: List<ServerConnectionSlot> = emptyList()
 ) {
     val isTunnelActive: Boolean
         get() = connectionState is TunnelConnectionState.Connected ||
             connectionState is TunnelConnectionState.Connecting ||
-            connectionState is TunnelConnectionState.Reconnecting
+            connectionState is TunnelConnectionState.Reconnecting ||
+            extraSlots.any {
+                it.connectionState is TunnelConnectionState.Connected ||
+                    it.connectionState is TunnelConnectionState.Connecting ||
+                    it.connectionState is TunnelConnectionState.Reconnecting
+            }
 
     val isAtHomeWifi: Boolean
         get() = autoSwitchOnHomeWifi &&
@@ -92,6 +105,11 @@ sealed interface DashboardUiIntent {
     data object NextOnboardingStep : DashboardUiIntent
     data object DismissOnboarding : DashboardUiIntent
     data object ShowOnboarding : DashboardUiIntent
+    data object AddConnectionSlot : DashboardUiIntent
+    data class RemoveConnectionSlot(val slotId: String) : DashboardUiIntent
+    data class ConnectExtraSlot(val slotId: String, val roomCode: String, val serverUrl: String) : DashboardUiIntent
+    data class DisconnectExtraSlot(val slotId: String) : DashboardUiIntent
+    data class ScanQrForSlot(val slotId: String) : DashboardUiIntent
 }
 
 sealed interface DashboardUiEffect {

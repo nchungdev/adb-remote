@@ -22,7 +22,7 @@ class DashboardViewModel(
     private val container: AppContainer
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(createInitialState())
+    private val _uiState = MutableStateFlow(createInitialDashboardState(container))
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     private val _effects = MutableSharedFlow<DashboardUiEffect>(extraBufferCapacity = 8)
@@ -36,6 +36,13 @@ class DashboardViewModel(
         onSaveConfig = { saveCurrentConfig(silent = true) }
     )
 
+    private val slotController = DashboardSlotController(
+        container = container,
+        scope = viewModelScope,
+        uiState = _uiState,
+        effects = _effects
+    )
+
     init {
         viewModelScope.launch { container.ensureTermuxBootstrap() }
         container.adbDiscoveryGateway.startDiscovery()
@@ -44,20 +51,13 @@ class DashboardViewModel(
 
     fun onIntent(intent: DashboardUiIntent) {
         when (intent) {
-            is DashboardUiIntent.SelectTab ->
-                _uiState.update { it.copy(selectedTab = intent.tab) }
-            is DashboardUiIntent.SelectConnectionMode ->
-                _uiState.update { it.copy(selectedMode = intent.mode) }
-            is DashboardUiIntent.UpdateServerUrl ->
-                _uiState.update { it.copy(serverUrlInput = intent.value) }
-            is DashboardUiIntent.UpdateRemoteRoomCode ->
-                _uiState.update { it.copy(remoteRoomCode = intent.value.trim()) }
-            is DashboardUiIntent.UpdateDeviceAlias ->
-                _uiState.update { it.copy(deviceAliasInput = intent.value) }
-            is DashboardUiIntent.UpdateLocalAdbPort ->
-                _uiState.update { it.copy(localAdbPortInput = intent.value.filter(Char::isDigit).take(5)) }
-            is DashboardUiIntent.ToggleAutoReconnect ->
-                _uiState.update { it.copy(autoReconnect = intent.enabled) }
+            is DashboardUiIntent.SelectTab -> _uiState.update { it.copy(selectedTab = intent.tab) }
+            is DashboardUiIntent.SelectConnectionMode -> _uiState.update { it.copy(selectedMode = intent.mode) }
+            is DashboardUiIntent.UpdateServerUrl -> _uiState.update { it.copy(serverUrlInput = intent.value) }
+            is DashboardUiIntent.UpdateRemoteRoomCode -> _uiState.update { it.copy(remoteRoomCode = intent.value.trim()) }
+            is DashboardUiIntent.UpdateDeviceAlias -> _uiState.update { it.copy(deviceAliasInput = intent.value) }
+            is DashboardUiIntent.UpdateLocalAdbPort -> _uiState.update { it.copy(localAdbPortInput = intent.value.filter(Char::isDigit).take(5)) }
+            is DashboardUiIntent.ToggleAutoReconnect -> _uiState.update { it.copy(autoReconnect = intent.enabled) }
             is DashboardUiIntent.ToggleRunInBackground -> {
                 _uiState.update { it.copy(runInBackground = intent.enabled) }
                 saveCurrentConfig(silent = true)
@@ -65,17 +65,13 @@ class DashboardViewModel(
                     TunnelForegroundService.start(container.appContext)
                     "Đã bật dịch vụ chạy ngầm trên thanh thông báo"
                 } else {
-                    if (!_uiState.value.isTunnelActive) {
-                        TunnelForegroundService.stop(container.appContext)
-                    }
+                    if (!_uiState.value.isTunnelActive) TunnelForegroundService.stop(container.appContext)
                     "Đã tắt dịch vụ chạy ngầm"
                 }
                 _effects.tryEmit(DashboardUiEffect.ShowMessage(msg))
             }
-            is DashboardUiIntent.UpdateTrustedHomeSsid ->
-                _uiState.update { it.copy(trustedHomeSsidInput = intent.value) }
-            is DashboardUiIntent.ToggleAutoSwitchHomeWifi ->
-                _uiState.update { it.copy(autoSwitchOnHomeWifi = intent.enabled) }
+            is DashboardUiIntent.UpdateTrustedHomeSsid -> _uiState.update { it.copy(trustedHomeSsidInput = intent.value) }
+            is DashboardUiIntent.ToggleAutoSwitchHomeWifi -> _uiState.update { it.copy(autoSwitchOnHomeWifi = intent.enabled) }
             is DashboardUiIntent.ToggleNotifyConnectionChange -> {
                 _uiState.update { it.copy(notifyConnectionChange = intent.enabled) }
                 saveCurrentConfig(silent = true)
@@ -96,28 +92,41 @@ class DashboardViewModel(
             }
             DashboardUiIntent.SaveConfig -> saveCurrentConfig()
             DashboardUiIntent.ToggleTunnel -> toggleTunnel()
-            DashboardUiIntent.ToggleHistoryExpand ->
-                _uiState.update { it.copy(showAllHistory = !it.showAllHistory) }
+            DashboardUiIntent.ToggleHistoryExpand -> _uiState.update { it.copy(showAllHistory = !it.showAllHistory) }
             DashboardUiIntent.ClearHistory -> {
                 container.clearTunnelHistory()
                 _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã xóa lịch sử kết nối cũ"))
             }
-            DashboardUiIntent.ToggleHostCommandsExpand ->
-                _uiState.update { it.copy(showAllHostCommands = !it.showAllHostCommands) }
+            DashboardUiIntent.ToggleHostCommandsExpand -> _uiState.update { it.copy(showAllHostCommands = !it.showAllHostCommands) }
             DashboardUiIntent.ClearHostCommands -> {
                 container.hostActivityRepository.clearCommands()
                 _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã xóa danh sách lệnh máy tính"))
             }
-            is DashboardUiIntent.SetForceShowPairing ->
-                _uiState.update { it.copy(selectedTab = AppTab.CONNECT, forceShowPairing = intent.force) }
-            DashboardUiIntent.ScanQrCode ->
+            is DashboardUiIntent.SetForceShowPairing -> _uiState.update { it.copy(selectedTab = AppTab.CONNECT, forceShowPairing = intent.force) }
+            DashboardUiIntent.ScanQrCode -> {
+                slotController.pendingQrSlotId = null
                 _effects.tryEmit(DashboardUiEffect.LaunchQrScanner)
-            is DashboardUiIntent.ApplyQrRemoteConfig -> {
-                val (finalServer, finalRoom) = resolveQrRemoteTarget(intent, _uiState.value.serverUrlInput, _uiState.value.remoteRoomCode)
-                _uiState.update { it.copy(remoteRoomCode = finalRoom, serverUrlInput = finalServer, selectedTab = AppTab.CONNECT) }
-                saveCurrentConfig(silent = true)
-                toggleTunnel()
             }
+            is DashboardUiIntent.ScanQrForSlot -> {
+                slotController.pendingQrSlotId = intent.slotId
+                _effects.tryEmit(DashboardUiEffect.LaunchQrScanner)
+            }
+            is DashboardUiIntent.ApplyQrRemoteConfig -> {
+                val targetSlotId = slotController.pendingQrSlotId
+                slotController.pendingQrSlotId = null
+                if (targetSlotId != null) {
+                    slotController.connectSlot(targetSlotId, intent.roomCode, intent.serverUrl.orEmpty())
+                } else {
+                    val (finalServer, finalRoom) = resolveQrRemoteTarget(intent, _uiState.value.serverUrlInput, _uiState.value.remoteRoomCode)
+                    _uiState.update { it.copy(remoteRoomCode = finalRoom, serverUrlInput = finalServer, selectedTab = AppTab.CONNECT) }
+                    saveCurrentConfig(silent = true)
+                    toggleTunnel()
+                }
+            }
+            DashboardUiIntent.AddConnectionSlot -> slotController.addSlot()
+            is DashboardUiIntent.RemoveConnectionSlot -> slotController.removeSlot(intent.slotId)
+            is DashboardUiIntent.ConnectExtraSlot -> slotController.connectSlot(intent.slotId, intent.roomCode, intent.serverUrl)
+            is DashboardUiIntent.DisconnectExtraSlot -> slotController.disconnectSlot(intent.slotId)
             is DashboardUiIntent.OnServerRemoteTunnelPushed -> {
                 _uiState.update { cur ->
                     cur.copy(
@@ -130,11 +139,8 @@ class DashboardViewModel(
             }
             is DashboardUiIntent.OnPairingIntent -> handlePairingIntent(intent.intent)
             is DashboardUiIntent.OnTermuxIntent -> handleTermuxAction(
-                intent = intent.intent,
-                scope = viewModelScope,
-                uiState = _uiState,
-                runCommand = container.runTermuxCommand::invoke,
-                clearLogs = container.termuxRuntimeGateway::clearConsoleLogs
+                intent = intent.intent, scope = viewModelScope, uiState = _uiState,
+                runCommand = container.runTermuxCommand::invoke, clearLogs = container.termuxRuntimeGateway::clearConsoleLogs
             )
             DashboardUiIntent.NextOnboardingStep -> {
                 val next = when (_uiState.value.activeOnboardingStep) {
@@ -149,8 +155,7 @@ class DashboardViewModel(
                 container.tunnelConfigRepository.setHasSeenOnboarding(true)
                 _uiState.update { it.copy(activeOnboardingStep = null) }
             }
-            DashboardUiIntent.ShowOnboarding ->
-                _uiState.update { it.copy(activeOnboardingStep = OnboardingStep.STEP_ADB) }
+            DashboardUiIntent.ShowOnboarding -> _uiState.update { it.copy(activeOnboardingStep = OnboardingStep.STEP_ADB) }
         }
     }
 
@@ -254,36 +259,8 @@ class DashboardViewModel(
         }
     }
 
-    private fun createInitialState(): DashboardUiState {
-        val saved = container.tunnelConfigRepository.getConfig()
-        val usb = container.reverseTunnelGateway.isUsbConnected()
-        val initMode = when {
-            usb -> AdbConnectionMode.USB
-            container.reverseTunnelGateway.getLocalWifiIp()?.isNotBlank() == true -> AdbConnectionMode.LAN
-            else -> AdbConnectionMode.REMOTE
-        }
-        val firstTime = !container.tunnelConfigRepository.hasSeenOnboarding()
-        return DashboardUiState(
-            serverUrlInput = saved.serverUrl,
-            deviceAliasInput = saved.deviceAlias,
-            localAdbPortInput = saved.localAdbPort.toString(),
-            autoReconnect = saved.autoReconnectOnNetworkChange,
-            runInBackground = saved.runInBackground,
-            trustedHomeSsidInput = saved.trustedHomeSsid,
-            autoSwitchOnHomeWifi = saved.autoSwitchOnHomeWifi,
-            currentWifiSsid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty(),
-            localWifiIp = container.reverseTunnelGateway.getLocalWifiIp().orEmpty(),
-            isUsbConnected = usb,
-            usbConnectedAtEpochMs = if (usb) System.currentTimeMillis() else 0L,
-            selectedMode = initMode,
-            remoteRoomCode = saved.remoteRoomCode,
-            notifyConnectionChange = saved.notifyConnectionChange,
-            themeMode = saved.themeMode,
-            activeOnboardingStep = if (firstTime) OnboardingStep.STEP_ADB else null
-        )
-    }
-
     override fun onCleared() {
+        slotController.clearAll()
         container.adbDiscoveryGateway.stopDiscovery()
         super.onCleared()
     }
