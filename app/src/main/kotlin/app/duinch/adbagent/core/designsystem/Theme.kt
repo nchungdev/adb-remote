@@ -112,6 +112,9 @@ private val AppShapes = Shapes(
 object AdbTheme {
     val colors: AdbExtendedColors
         @Composable get() = LocalAdbColors.current
+
+    val dimens: AdbDimens
+        @Composable get() = LocalAdbDimens.current
 }
 
 @Composable
@@ -120,7 +123,11 @@ fun AdbAgentTheme(
     content: @Composable () -> Unit
 ) {
     val extended = if (darkTheme) DarkExtended else LightExtended
-    CompositionLocalProvider(LocalAdbColors provides extended) {
+    val dimens = rememberAdbDimens()
+    CompositionLocalProvider(
+        LocalAdbColors provides extended,
+        LocalAdbDimens provides dimens
+    ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkPalette else LightPalette,
             typography = AppTypography,
