@@ -68,9 +68,10 @@ fun PairingSection(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
+                .padding(top = 16.dp, bottom = 8.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top
         ) {
             if (statusText != null) {
                 Surface(
@@ -87,7 +88,7 @@ fun PairingSection(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             PairingTutorialCarousel()

@@ -61,7 +61,7 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         HorizontalPager(
             state = pagerState,
@@ -71,7 +71,7 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 when (slide.illustrationType) {
@@ -80,7 +80,7 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
                     else -> SlideThreeScreenshotIllustration()
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
@@ -88,32 +88,32 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
                 ) {
                     Text(
                         text = slide.stepLabel,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 7.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
                 Text(
                     text = slide.title,
-                    style = MaterialTheme.typography.titleMedium.copy(
+                    style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
+                        fontSize = 23.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
                     text = slide.description,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 13.5.sp,
-                        lineHeight = 20.sp
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 15.5.sp,
+                        lineHeight = 24.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -122,6 +122,8 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
             }
         }
 
+        Spacer(modifier = Modifier.height(12.dp))
+
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
@@ -129,15 +131,15 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
         ) {
             repeat(SLIDES.size) { index ->
                 val isSelected = pagerState.currentPage == index
-                val width by animateDpAsState(targetValue = if (isSelected) 18.dp else 6.dp, label = "dotWidth")
+                val width by animateDpAsState(targetValue = if (isSelected) 24.dp else 8.dp, label = "dotWidth")
                 val dotColor by animateColorAsState(
                     targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                     label = "dotColor"
                 )
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 3.dp)
-                        .height(6.dp)
+                        .padding(horizontal = 4.dp)
+                        .height(8.dp)
                         .width(width)
                         .background(dotColor, CircleShape)
                 )
