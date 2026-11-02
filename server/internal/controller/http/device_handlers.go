@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+
+	"github.com/nchungdev/remote-tunnel/go/pairing"
 )
 
 const maxJSONBodyBytes = 64 * 1024
@@ -142,6 +144,10 @@ func (s *Server) handlePair(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleReboot(w http.ResponseWriter, r *http.Request) {
+	if !pairing.IsLoopbackRequest(r) {
+		http.Error(w, "Forbidden: host loopback required", http.StatusForbidden)
+		return
+	}
 	var req struct {
 		Serial string `json:"serial"`
 	}
@@ -155,6 +161,10 @@ func (s *Server) handleReboot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleShell(w http.ResponseWriter, r *http.Request) {
+	if !pairing.IsLoopbackRequest(r) {
+		http.Error(w, "Forbidden: host loopback required", http.StatusForbidden)
+		return
+	}
 	var req struct {
 		Serial string `json:"serial"`
 		Cmd    string `json:"cmd"`
@@ -169,6 +179,10 @@ func (s *Server) handleShell(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRestartServer(w http.ResponseWriter, r *http.Request) {
+	if !pairing.IsLoopbackRequest(r) {
+		http.Error(w, "Forbidden: host loopback required", http.StatusForbidden)
+		return
+	}
 	if err := s.devices.RestartServer(r.Context()); err != nil {
 		writeDomainError(w, err)
 		return

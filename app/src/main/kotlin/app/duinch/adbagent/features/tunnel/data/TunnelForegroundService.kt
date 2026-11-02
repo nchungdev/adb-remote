@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
 import app.duinch.adbagent.AdbAgentApp
@@ -26,6 +27,31 @@ class TunnelForegroundService : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var isObserving = false
+    private var wifiLock: WifiManager.WifiLock? = null
+
+    private fun updateWifiLock(isConnected: Boolean) {
+        if (isConnected) {
+            if (wifiLock == null) {
+                val wm = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+                @Suppress("DEPRECATION")
+                val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+                } else {
+                    WifiManager.WIFI_MODE_FULL_HIGH_PERF
+                }
+                wifiLock = wm?.createWifiLock(mode, "AdbRemote:TunnelWifiLock")?.apply {
+                    setReferenceCounted(false)
+                }
+            }
+            runCatching {
+                if (wifiLock?.isHeld == false) wifiLock?.acquire()
+            }
+        } else {
+            runCatching {
+                if (wifiLock?.isHeld == true) wifiLock?.release()
+            }
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -89,6 +115,7 @@ class TunnelForegroundService : Service() {
                 container.reverseTunnelGateway.observeConnectionState(),
                 container.reverseTunnelGateway.observeActiveNetwork()
             ) { conn, net -> conn to net }.collect { (conn, net) ->
+                updateWifiLock(conn is TunnelConnectionState.Connected)
                 val ip = container.reverseTunnelGateway.getLocalWifiIp().orEmpty()
                 val port = container.tunnelConfigRepository.getConfig().localAdbPort
                 val notification = buildNotification(conn, net, ip, port)
@@ -217,6 +244,7 @@ class TunnelForegroundService : Service() {
     }
 
     override fun onDestroy() {
+        updateWifiLock(false)
         serviceScope.cancel()
         super.onDestroy()
     }

@@ -26,7 +26,10 @@ class DataChannelStreamBridge(
             is TunnelStreamProtocol.Frame.Open -> openStream(dc, frame.streamId, localAdbPort)
             is TunnelStreamProtocol.Frame.Data -> {
                 bytesBridged.addAndGet(frame.payload.size.toLong())
-                streamWriteChannels[frame.streamId]?.trySend(frame.payload)
+                val ch = streamWriteChannels[frame.streamId] ?: return
+                if (ch.trySend(frame.payload).isFailure) {
+                    scope.launch { ch.send(frame.payload) }
+                }
             }
             is TunnelStreamProtocol.Frame.Close -> closeStream(frame.streamId)
             null -> Unit
@@ -35,7 +38,7 @@ class DataChannelStreamBridge(
 
     private fun openStream(dc: DataChannel, streamId: Int, localAdbPort: Int) {
         closeStream(streamId)
-        val channel = Channel<ByteArray>(Channel.UNLIMITED)
+        val channel = Channel<ByteArray>(capacity = 64)
         streamWriteChannels[streamId] = channel
 
         val job = scope.launch {
@@ -58,6 +61,9 @@ class DataChannelStreamBridge(
                 val buf = ByteArray(16384)
                 val input = socket.getInputStream()
                 while (isActive) {
+                    while (isActive && dc.state() == DataChannel.State.OPEN && dc.bufferedAmount() > MAX_BUFFERED_BYTES) {
+                        kotlinx.coroutines.delay(15L)
+                    }
                     val n = input.read(buf)
                     if (n <= 0) break
                     bytesBridged.addAndGet(n.toLong())
@@ -103,5 +109,9 @@ class DataChannelStreamBridge(
         streamWriteChannels.clear()
         activeStreams.values.forEach { runCatching { it.close() } }
         activeStreams.clear()
+    }
+
+    companion object {
+        private const val MAX_BUFFERED_BYTES = 1_048_576L // 1MB SCTP backpressure threshold
     }
 }

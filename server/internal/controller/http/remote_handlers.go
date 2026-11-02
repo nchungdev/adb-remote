@@ -73,6 +73,10 @@ func (s *Server) handleRemoteStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRemoteToggle(w http.ResponseWriter, r *http.Request) {
+	if !pairing.IsLoopbackRequest(r) {
+		http.Error(w, "Forbidden: host loopback required", http.StatusForbidden)
+		return
+	}
 	activeStr := r.URL.Query().Get("active")
 	active := activeStr == "true" || activeStr == "1"
 
@@ -164,6 +168,10 @@ func (s *Server) handlePairPending(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePairConfirm(w http.ResponseWriter, r *http.Request) {
+	if !pairing.IsLoopbackRequest(r) {
+		http.Error(w, "Forbidden: pairing confirmation must originate on host machine", http.StatusForbidden)
+		return
+	}
 	var req struct {
 		DeviceID string `json:"device_id"`
 		Approved bool   `json:"approved"`
@@ -208,6 +216,10 @@ func (s *Server) handleRemotePendingRequests(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Server) handleRemoteApproveRequest(w http.ResponseWriter, r *http.Request) {
+	if !pairing.IsLoopbackRequest(r) {
+		http.Error(w, "Forbidden: remote tunnel approval must originate on host machine", http.StatusForbidden)
+		return
+	}
 	var req struct {
 		DeviceID string `json:"device_id"`
 		Approved bool   `json:"approved"`
