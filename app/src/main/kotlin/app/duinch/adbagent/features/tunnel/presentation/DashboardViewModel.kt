@@ -183,6 +183,11 @@ class DashboardViewModel(
             }
         }
         viewModelScope.launch {
+            container.reverseTunnelGateway.observePingMs().collect { ping ->
+                _uiState.update { it.copy(serverPingMs = ping) }
+            }
+        }
+        viewModelScope.launch {
             container.reverseTunnelGateway.observeUsbConnected().collect { usb ->
                 val now = System.currentTimeMillis()
                 _uiState.update { cur ->

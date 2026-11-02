@@ -65,14 +65,14 @@ fun TunnelHomeTab(
             state = if (state.isUsbConnected) RemoteConnectionState.Connected else RemoteConnectionState.Disconnected,
             channel = RemoteTransportChannel.UsbCable,
             host = state.usbHostName,
-            pingMs = if (state.isUsbConnected) (1L..3L).random() else null,
+            pingMs = if (state.isUsbConnected) 1L else null,
             uptimeSec = uptimeSec,
             bytesTransferred = trafficState.first,
             transferSpeedBps = trafficState.second
         )
     }
 
-    val serverTelemetry = remember(state.connectionState, state.serverUrlInput, state.remoteRoomCode, state.primarySlotMode, nowEpochMs, trafficState) {
+    val serverTelemetry = remember(state.connectionState, state.serverUrlInput, state.remoteRoomCode, state.primarySlotMode, state.serverPingMs, nowEpochMs, trafficState) {
         val connState = when {
             state.connectionState is TunnelConnectionState.Connecting ||
                 state.connectionState is TunnelConnectionState.Reconnecting -> RemoteConnectionState.Connecting
@@ -91,12 +91,13 @@ fun TunnelHomeTab(
         } else {
             0L
         }
+        val actualPing = if (connState == RemoteConnectionState.Connected) state.serverPingMs ?: 3L else null
         RemoteTelemetryData(
             state = connState,
             channel = channel,
             host = state.serverUrlInput,
             roomCode = state.remoteRoomCode,
-            pingMs = if (connState == RemoteConnectionState.Connected) (2L..15L).random() else null,
+            pingMs = actualPing,
             uptimeSec = uptimeSec,
             bytesTransferred = trafficState.first,
             transferSpeedBps = trafficState.second

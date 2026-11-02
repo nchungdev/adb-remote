@@ -148,6 +148,14 @@ func (s *Server) handleRemoteQrPng(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePairRequest(w http.ResponseWriter, r *http.Request) {
+	clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if clientIP == "" {
+		clientIP = r.RemoteAddr
+	}
+	if !s.pairHub.CheckRateLimit(clientIP) {
+		http.Error(w, "Too many pairing requests: rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
 	var req struct {
 		DeviceID   string `json:"device_id"`
 		DeviceName string `json:"device_name"`
@@ -160,7 +168,11 @@ func (s *Server) handlePairRequest(w http.ResponseWriter, r *http.Request) {
 	if req.DeviceID == "" {
 		req.DeviceID = "android-device"
 	}
-	s.pairHub.SubmitRequest(req.DeviceID, req.DeviceName, req.Code)
+	res := s.pairHub.SubmitRequest(req.DeviceID, req.DeviceName, req.Code)
+	if res == nil {
+		http.Error(w, "Too many pending requests in queue", http.StatusTooManyRequests)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{"status": "pending"})
 }
@@ -197,6 +209,14 @@ func (s *Server) handlePairCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRemoteRequestEnable(w http.ResponseWriter, r *http.Request) {
+	clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if clientIP == "" {
+		clientIP = r.RemoteAddr
+	}
+	if !s.pairHub.CheckRateLimit(clientIP) {
+		http.Error(w, "Too many pairing requests: rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
 	var req struct {
 		DeviceID   string `json:"device_id"`
 		DeviceName string `json:"device_name"`
@@ -208,7 +228,11 @@ func (s *Server) handleRemoteRequestEnable(w http.ResponseWriter, r *http.Reques
 	if req.DeviceID == "" {
 		req.DeviceID = "android-device"
 	}
-	s.pairHub.SubmitRemoteTunnelRequest(req.DeviceID, req.DeviceName)
+	res := s.pairHub.SubmitRemoteTunnelRequest(req.DeviceID, req.DeviceName)
+	if res == nil {
+		http.Error(w, "Too many pending requests in queue", http.StatusTooManyRequests)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{"status": "pending"})
 }

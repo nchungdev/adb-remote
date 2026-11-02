@@ -63,7 +63,8 @@ data class DashboardUiState(
     val hasPrimarySlot: Boolean = false,
     val primarySlotMode: ConnectMode = ConnectMode.Lan,
     val extraSlots: List<ServerConnectionSlot> = emptyList(),
-    val discoveredServers: List<app.duinch.adbagent.features.pairing.domain.DiscoveredServer> = emptyList()
+    val discoveredServers: List<app.duinch.adbagent.features.pairing.domain.DiscoveredServer> = emptyList(),
+    val serverPingMs: Long? = null
 ) {
     val isTunnelActive: Boolean
         get() = connectionState is TunnelConnectionState.Connected ||

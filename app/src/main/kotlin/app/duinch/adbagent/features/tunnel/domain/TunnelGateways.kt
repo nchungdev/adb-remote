@@ -14,6 +14,7 @@ interface ReverseTunnelGateway {
     fun observeConnectionState(): Flow<TunnelConnectionState>
     fun observeActiveNetwork(): Flow<NetworkType>
     fun observeUsbConnected(): Flow<Boolean> = kotlinx.coroutines.flow.emptyFlow()
+    fun observePingMs(): Flow<Long?> = kotlinx.coroutines.flow.flowOf(null)
     fun getLocalWifiIp(): String? = null
     fun getCurrentWifiSsid(): String? = null
     fun isUsbConnected(): Boolean = false
