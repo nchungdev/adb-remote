@@ -43,16 +43,26 @@ fun AdbDeviceStatusCard(
     val isPaired = pairingState is AdbPairingState.PairedAndConnected
     val activePort = (pairingState as? AdbPairingState.PairedAndConnected)?.connectPort ?: 5555
 
+    val cardBg = when {
+        isUsbConnected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
+        isPaired -> Color(0xFFE8F5E9).copy(alpha = 0.75f)
+        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+    }
+    val cardBorder = when {
+        isUsbConnected -> BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
+        isPaired -> BorderStroke(1.2.dp, Color(0xFF4CAF50).copy(alpha = 0.35f))
+        else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-        )
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        border = cardBorder
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -179,8 +189,8 @@ private fun MetricBox(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp)

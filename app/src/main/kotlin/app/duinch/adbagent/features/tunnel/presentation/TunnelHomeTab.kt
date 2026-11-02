@@ -129,7 +129,7 @@ fun TunnelHomeTab(
         state.activeNetwork == NetworkType.WIFI || state.localWifiIp.isNotBlank()
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         if (isTunnelOnline) {
             // Active session switchboard (State 3: Đã kết nối)
             TunnelSwitchboardCard(
