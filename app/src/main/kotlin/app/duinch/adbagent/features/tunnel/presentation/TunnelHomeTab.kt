@@ -205,7 +205,8 @@ fun TunnelHomeTab(
                 onIntent(DashboardUiIntent.ApplyQrRemoteConfig(roomCode = targetRoom, serverUrl = targetServer))
             },
             onDisconnect = { onIntent(DashboardUiIntent.ToggleTunnel) },
-            onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) }
+            onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) },
+            onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
         )
     }
 }
