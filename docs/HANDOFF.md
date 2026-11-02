@@ -107,12 +107,12 @@ cd "/Volumes/512GB/AI Workspace/adb-remote/server" && go test -race ./...
 # 1. Kiểm tra kiến trúc, giới hạn <= 450 LOC & quét Secret/IP
 python3 "/Volumes/512GB/AI Workspace/agent-remote/scripts/check_project.py"
 
-# 2. Build APK & chạy Unit Test (KMP Android + Go Server)
-cd "/Volumes/512GB/AI Workspace/agent-remote/app" && ./gradlew assembleDebug testDebugUnitTest
+# 2. Build Release APK (Store R8 Obfuscated + Debug Key) & chạy Unit Test
+cd "/Volumes/512GB/AI Workspace/agent-remote/app" && ./gradlew assembleRelease testDebugUnitTest
 cd "/Volumes/512GB/AI Workspace/agent-remote/server" && go test -race ./...
 
 # 3. Đường dẫn file APK sau khi build
-# /Volumes/512GB/AI Workspace/agent-remote/app/build/outputs/apk/debug/agent-remote-app-debug.apk
+# /Volumes/512GB/AI Workspace/agent-remote/app/build/outputs/apk/release/agent-remote-release.apk
 ```
 
 ---
