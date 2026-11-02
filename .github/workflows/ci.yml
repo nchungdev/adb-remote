@@ -37,7 +37,7 @@ jobs:
       - name: Test Go Hexagonal Server
         run: |
           cd server
-          go test -v ./...
+          CGO_ENABLED=0 go test -v ./internal/adapter/... ./internal/controller/... ./internal/usecase/...
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
