@@ -166,64 +166,47 @@ fun TunnelHomeTab(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        if (isTunnelOnline) {
-            // Active session switchboard (State 3: Đã kết nối)
-            TunnelSwitchboardCard(
-                state = state,
-                connected = connected,
-                animatedContainer = animatedContainer,
-                animatedTint = animatedTint,
-                icon = visual.icon,
-                badgeLabel = visual.badge,
-                headline = visual.headline,
-                subtitle = visual.subtitle,
-                nowEpochMs = nowEpochMs,
-                onIntent = onIntent,
-                onCopyText = { clipboard.setText(AnnotatedString(it)) }
-            )
-        } else {
-            // Tier 1: Trạng thái ADB Thiết bị gộp Telemetry (USB / Không dây / Chưa bật)
-            AdbDeviceStatusCard(
-                isUsbConnected = state.isUsbConnected,
-                pairingState = state.pairing.pairingState,
-                telemetry = telemetry,
-                onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
-            )
+        // Tier 1: Trạng thái ADB Thiết bị gộp Telemetry (USB / Không dây / Chưa bật)
+        AdbDeviceStatusCard(
+            isUsbConnected = state.isUsbConnected,
+            pairingState = state.pairing.pairingState,
+            telemetry = telemetry,
+            onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
+        )
 
-            // Tier 2: Kết nối Máy Chủ (Cùng Wi-Fi LAN / Khác mạng Từ Xa)
-            DualChannelConnectContent(
-                initialLanAddress = state.serverUrlInput,
-                initialRemoteTarget = state.remoteRoomCode,
-                telemetry = telemetry,
-                isUsbConnected = state.isUsbConnected,
-                isWifiConnected = isWifiConnected,
-                serverRemoteUrl = state.serverQuickTunnelUrl,
-                isServerRemoteActive = state.isServerRemoteActive,
-                recentTunnels = remember(state.serverQuickTunnelUrl, state.serverUrlInput, state.recentTunnelUrls) {
-                    (state.recentTunnelUrls + listOf(state.serverQuickTunnelUrl, state.serverUrlInput))
-                        .filter { it.isNotBlank() && (it.contains("trycloudflare.com") || it.startsWith("http")) }
-                        .distinct()
-                        .take(3)
-                },
-                onConnect = { lan, remote ->
-                    val isUrl = remote.startsWith("http://") || remote.startsWith("https://") || remote.contains("trycloudflare.com")
-                    val targetServer = when {
-                        lan.isNotBlank() -> lan
-                        isUrl -> remote
-                        state.serverQuickTunnelUrl.isNotBlank() -> state.serverQuickTunnelUrl
-                        else -> state.serverUrlInput
-                    }
-                    val targetRoom = when {
-                        !isUrl && remote.isNotBlank() -> remote
-                        state.remoteRoomCode.isNotBlank() -> state.remoteRoomCode
-                        else -> "default"
-                    }
-                    onIntent(DashboardUiIntent.ApplyQrRemoteConfig(roomCode = targetRoom, serverUrl = targetServer))
-                },
-                onDisconnect = { onIntent(DashboardUiIntent.ToggleTunnel) },
-                onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) }
-            )
-        }
+        // Tier 2: Kết nối Máy Chủ (Cùng Wi-Fi LAN / Khác mạng Từ Xa)
+        DualChannelConnectContent(
+            initialLanAddress = state.serverUrlInput,
+            initialRemoteTarget = state.remoteRoomCode,
+            telemetry = telemetry,
+            isUsbConnected = state.isUsbConnected,
+            isWifiConnected = isWifiConnected,
+            serverRemoteUrl = state.serverQuickTunnelUrl,
+            isServerRemoteActive = state.isServerRemoteActive,
+            recentTunnels = remember(state.serverQuickTunnelUrl, state.serverUrlInput, state.recentTunnelUrls) {
+                (state.recentTunnelUrls + listOf(state.serverQuickTunnelUrl, state.serverUrlInput))
+                    .filter { it.isNotBlank() && (it.contains("trycloudflare.com") || it.startsWith("http")) }
+                    .distinct()
+                    .take(3)
+            },
+            onConnect = { lan, remote ->
+                val isUrl = remote.startsWith("http://") || remote.startsWith("https://") || remote.contains("trycloudflare.com")
+                val targetServer = when {
+                    lan.isNotBlank() -> lan
+                    isUrl -> remote
+                    state.serverQuickTunnelUrl.isNotBlank() -> state.serverQuickTunnelUrl
+                    else -> state.serverUrlInput
+                }
+                val targetRoom = when {
+                    !isUrl && remote.isNotBlank() -> remote
+                    state.remoteRoomCode.isNotBlank() -> state.remoteRoomCode
+                    else -> "default"
+                }
+                onIntent(DashboardUiIntent.ApplyQrRemoteConfig(roomCode = targetRoom, serverUrl = targetServer))
+            },
+            onDisconnect = { onIntent(DashboardUiIntent.ToggleTunnel) },
+            onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) }
+        )
     }
 }
 
