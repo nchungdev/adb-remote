@@ -1,5 +1,6 @@
 package app.duinch.adbagent.features.tunnel.data
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -9,6 +10,9 @@ import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
 import app.duinch.adbagent.core.model.NetworkType
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import java.net.Inet4Address
 import java.net.NetworkInterface
 
@@ -66,6 +70,19 @@ class NetworkConnectivityObserver(private val context: Context) {
             return raw.removePrefix("\"").removeSuffix("\"")
         }
         return null
+    }
+
+    fun observeUsbConnection(): Flow<Boolean> = callbackFlow {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val plugged = intent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) ?: -1
+                trySend(plugged == BatteryManager.BATTERY_PLUGGED_USB)
+            }
+        }
+        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        context.applicationContext.registerReceiver(receiver, filter)
+        trySend(isUsbConnected())
+        awaitClose { context.applicationContext.unregisterReceiver(receiver) }
     }
 
     fun isUsbConnected(): Boolean {

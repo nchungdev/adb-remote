@@ -45,6 +45,15 @@ class WebRtcReverseTunnelAdapter(
     private val connectionState = MutableStateFlow<TunnelConnectionState>(TunnelConnectionState.Disconnected)
     private val activeNetwork = MutableStateFlow(networkObserver.detectCurrentNetwork())
 
+    init {
+        networkObserver.register { net ->
+            activeNetwork.value = net
+            if (net == NetworkType.NONE && connectionState.value is TunnelConnectionState.Connected) {
+                handleConnectionLoss("Mất kết nối mạng Internet/Wi-Fi")
+            }
+        }
+    }
+
     private val userWantsConnected = AtomicBoolean(false)
     private val bytesBridged = AtomicLong(0L)
     private val streamBridge = DataChannelStreamBridge(scope, bytesBridged)
@@ -71,6 +80,7 @@ class WebRtcReverseTunnelAdapter(
 
     override fun observeConnectionState(): Flow<TunnelConnectionState> = connectionState.asStateFlow()
     override fun observeActiveNetwork(): Flow<NetworkType> = activeNetwork.asStateFlow()
+    override fun observeUsbConnected(): Flow<Boolean> = networkObserver.observeUsbConnection()
     override fun getLocalWifiIp(): String? = networkObserver.findWifiIpAddress()
     override fun getCurrentWifiSsid(): String? = networkObserver.detectCurrentWifiSsid()
     override fun isUsbConnected(): Boolean = networkObserver.isUsbConnected()
