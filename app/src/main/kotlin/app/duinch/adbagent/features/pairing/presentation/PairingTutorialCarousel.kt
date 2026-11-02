@@ -36,6 +36,12 @@ private data class TutorialSlide(
 
 private val SLIDES = listOf(
     TutorialSlide(
+        stepLabel = "HƯỚNG DẪN ĐỘNG",
+        title = "Thao tác trên Android",
+        description = "Xem ảnh động trực quan các bước: Bật Gỡ lỗi không dây, mở mã ghép nối và chụp màn hình.",
+        illustrationType = 0
+    ),
+    TutorialSlide(
         stepLabel = "BƯỚC 1 / 3",
         title = "Bật Gỡ lỗi không dây",
         description = "Bấm nút bên dưới để mở Cài đặt, sau đó bật công tắc \"Gỡ lỗi không dây\".",
@@ -61,7 +67,7 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         HorizontalPager(
             state = pagerState,
@@ -71,16 +77,17 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 when (slide.illustrationType) {
+                    0 -> PairingGifGuide(modifier = Modifier.fillMaxWidth())
                     1 -> SlideOneToggleIllustration()
                     2 -> SlideTwoDialogIllustration()
                     else -> SlideThreeScreenshotIllustration()
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
@@ -91,29 +98,29 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 7.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
                     text = slide.title,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 23.sp
+                        fontSize = 22.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
                     text = slide.description,
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 15.5.sp,
-                        lineHeight = 24.sp
+                        fontSize = 15.sp,
+                        lineHeight = 22.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -121,8 +128,6 @@ internal fun PairingTutorialCarousel(modifier: Modifier = Modifier) {
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         Row(
             horizontalArrangement = Arrangement.Center,
