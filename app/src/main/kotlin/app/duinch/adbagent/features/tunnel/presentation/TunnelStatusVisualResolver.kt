@@ -40,8 +40,8 @@ internal fun resolveStatusVisual(
         container = ext.statusWarningContainer
     )
     is TunnelConnectionState.Reconnecting -> StatusVisual(
-        badge = "ĐANG NỐI LẠI (${conn.attempt})",
-        headline = "Đang tự động nối lại",
+        badge = "ĐANG KẾT NỐI LẠI (${conn.attempt})",
+        headline = "Đang tự động kết nối lại",
         subtitle = "Thử lại sau ${conn.nextRetryDelayMs / 1000}s",
         icon = AppIcons.Refresh,
         tint = ext.statusWarning,

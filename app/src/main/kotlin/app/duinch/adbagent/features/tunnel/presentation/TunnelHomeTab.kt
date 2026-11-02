@@ -254,6 +254,10 @@ fun TunnelHomeTab(
             onSelectMode = { mode ->
                 onIntent(DashboardUiIntent.AddConnectionSlot(mode))
                 showAddSlotPicker = false
+            },
+            onScanQrNow = {
+                showAddSlotPicker = false
+                onIntent(DashboardUiIntent.ScanQrCode)
             }
         )
     }

@@ -90,7 +90,7 @@ fun UsbConnectionCard(
                     color = Color(0xFFE8F5E9)
                 ) {
                     Text(
-                        text = "ĐÃ NỐI",
+                        text = "ĐÃ KẾT NỐI",
                         modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,

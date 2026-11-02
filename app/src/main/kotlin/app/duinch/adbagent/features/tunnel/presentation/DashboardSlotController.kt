@@ -42,7 +42,7 @@ internal class DashboardSlotController(
                 extraSlots = cur.extraSlots + ServerConnectionSlot(
                     id = slotId,
                     mode = mode,
-                    remoteRoomCode = if (mode == ConnectMode.Remote) "default" else "",
+                    remoteRoomCode = "",
                     serverUrlInput = ""
                 )
             )

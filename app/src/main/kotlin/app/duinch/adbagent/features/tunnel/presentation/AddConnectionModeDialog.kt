@@ -1,5 +1,6 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,7 +32,8 @@ import app.duinch.remotetunnel.ui.ConnectMode
 @Composable
 fun AddConnectionModeDialog(
     onDismissRequest: () -> Unit,
-    onSelectMode: (ConnectMode) -> Unit
+    onSelectMode: (ConnectMode) -> Unit,
+    onScanQrNow: (() -> Unit)? = null
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -51,20 +53,29 @@ fun AddConnectionModeDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "Chọn phương thức kết nối tới máy chủ:",
+                    text = "Chọn phương thức để thiết lập ngay:",
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(2.dp))
+                if (onScanQrNow != null) {
+                    ModeOptionTile(
+                        title = "Quét Mã QR Nhanh",
+                        description = "Mở camera quét mã QR trên màn hình máy tính để kết nối ngay",
+                        icon = AppIcons.QrCode,
+                        isHighlighted = true,
+                        onClick = onScanQrNow
+                    )
+                }
                 ModeOptionTile(
                     title = "Cùng Mạng Wi-Fi (LAN)",
-                    description = "Quét tự động hoặc nhập IP máy chủ trong mạng nội bộ",
+                    description = "Tự động dò tìm hoặc nhập trực tiếp địa chỉ IP nội bộ",
                     icon = AppIcons.LinkWireless,
                     onClick = { onSelectMode(ConnectMode.Lan) }
                 )
                 ModeOptionTile(
-                    title = "Mạng Từ Xa (Remote)",
-                    description = "Quét mã QR hoặc kết nối qua Cloudflare Tunnel / P2P",
+                    title = "Mạng Từ Xa (Remote URL)",
+                    description = "Dán đường dẫn Cloudflare Tunnel hoặc nhập mã phòng P2P",
                     icon = AppIcons.CloudLock,
                     onClick = { onSelectMode(ConnectMode.Remote) }
                 )
@@ -73,7 +84,7 @@ fun AddConnectionModeDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismissRequest) {
-                Text("Hủy", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text("Đóng", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
             }
         }
     )
@@ -84,6 +95,7 @@ private fun ModeOptionTile(
     title: String,
     description: String,
     icon: ImageVector,
+    isHighlighted: Boolean = false,
     onClick: () -> Unit
 ) {
     Surface(
@@ -92,7 +104,16 @@ private fun ModeOptionTile(
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        color = if (isHighlighted) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        },
+        border = if (isHighlighted) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f))
+        } else {
+            null
+        }
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -100,13 +121,13 @@ private fun ModeOptionTile(
         ) {
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
+                color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.size(36.dp)
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = if (isHighlighted) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(8.dp)
                 )
             }
