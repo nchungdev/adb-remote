@@ -35,6 +35,8 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.tooling.preview.Preview
+import app.duinch.adbagent.core.designsystem.AdbAgentTheme
 import app.duinch.adbagent.core.designsystem.AdbExtendedColors
 import app.duinch.adbagent.core.designsystem.AdbTheme
 import app.duinch.adbagent.core.designsystem.AppIcons
@@ -188,5 +190,17 @@ fun TunnelHomeTab(
                 onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) }
             )
         }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+fun TunnelHomeTabPreview() {
+    AdbAgentTheme(darkTheme = false) {
+        TunnelHomeTab(
+            state = DashboardUiState(),
+            onIntent = {},
+            onPairingIntent = {}
+        )
     }
 }

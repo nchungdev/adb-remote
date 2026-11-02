@@ -12,7 +12,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import app.duinch.adbagent.core.designsystem.AdbAgentTheme
 import app.duinch.adbagent.core.designsystem.AppIcons
 import app.duinch.adbagent.features.pairing.presentation.PairingSection
 import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
@@ -54,6 +56,18 @@ fun WirelessPairingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+fun WirelessPairingScreenPreview() {
+    AdbAgentTheme(darkTheme = false) {
+        WirelessPairingScreen(
+            state = DashboardUiState(),
+            onBack = {},
+            onPairingIntent = {}
         )
     }
 }
