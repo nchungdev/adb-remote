@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"app.duinch/adb-device-manager/internal/adapter/adb"
+	zeroconfadv "app.duinch/adb-device-manager/internal/adapter/discovery"
 	"app.duinch/adb-device-manager/internal/adapter/signaling"
 	"app.duinch/adb-device-manager/internal/adapter/storage"
 	"app.duinch/adb-device-manager/internal/adapter/tracker"
@@ -98,6 +99,9 @@ func main() {
 
 	qt := quicktunnel.New(port)
 	defer qt.Stop()
+
+	mdnsAdv := zeroconfadv.Start("_adb-remote._tcp", port, logger)
+	defer mdnsAdv.Stop()
 
 	handler := httpctrl.NewRouter(deviceSvc, tunnelSvc, otaSvc, hub, sigHandler, qt, logger)
 
