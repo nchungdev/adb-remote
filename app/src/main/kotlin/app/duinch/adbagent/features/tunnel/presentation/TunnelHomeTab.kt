@@ -112,7 +112,11 @@ fun TunnelHomeTab(
 
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         if (!state.isUsbConnected && !showPrimarySlot && state.extraSlots.isEmpty()) {
-            EmptyConnectionCard(modifier = Modifier.fillMaxWidth())
+            EmptyConnectionCard(
+                modifier = Modifier.fillMaxWidth(),
+                suggestedServer = state.discoveredServers.firstOrNull(),
+                onConnectSuggested = { onIntent(DashboardUiIntent.ConnectDiscoveredServer(it)) }
+            )
         }
 
         if (state.isUsbConnected) {
@@ -175,6 +179,7 @@ fun TunnelHomeTab(
                 },
                 onDisconnect = { onIntent(DashboardUiIntent.ToggleTunnel) },
                 onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) },
+                onMdnsScan = { onIntent(DashboardUiIntent.ScanLanServers) },
                 onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
             )
         }

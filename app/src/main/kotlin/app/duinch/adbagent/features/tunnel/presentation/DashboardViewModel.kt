@@ -9,6 +9,8 @@ import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
 import app.duinch.adbagent.features.termux.presentation.TermuxUiIntent
 import app.duinch.adbagent.features.tunnel.data.TunnelForegroundService
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfig
+import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
+import app.duinch.remotetunnel.ui.ConnectMode
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -50,46 +52,16 @@ class DashboardViewModel(
     }
 
     fun onIntent(intent: DashboardUiIntent) {
+        if (handleDashboardSettingsIntent(
+                intent = intent,
+                uiState = _uiState,
+                container = container,
+                onSave = { saveCurrentConfig(silent = it) },
+                onMessage = { _effects.tryEmit(DashboardUiEffect.ShowMessage(it)) }
+            )
+        ) return
+
         when (intent) {
-            is DashboardUiIntent.SelectTab -> _uiState.update { it.copy(selectedTab = intent.tab) }
-            is DashboardUiIntent.SelectConnectionMode -> _uiState.update { it.copy(selectedMode = intent.mode) }
-            is DashboardUiIntent.UpdateServerUrl -> _uiState.update { it.copy(serverUrlInput = intent.value) }
-            is DashboardUiIntent.UpdateRemoteRoomCode -> _uiState.update { it.copy(remoteRoomCode = intent.value.trim()) }
-            is DashboardUiIntent.UpdateDeviceAlias -> _uiState.update { it.copy(deviceAliasInput = intent.value) }
-            is DashboardUiIntent.UpdateLocalAdbPort -> _uiState.update { it.copy(localAdbPortInput = intent.value.filter(Char::isDigit).take(5)) }
-            is DashboardUiIntent.ToggleAutoReconnect -> _uiState.update { it.copy(autoReconnect = intent.enabled) }
-            is DashboardUiIntent.ToggleRunInBackground -> {
-                _uiState.update { it.copy(runInBackground = intent.enabled) }
-                saveCurrentConfig(silent = true)
-                val msg = if (intent.enabled) {
-                    TunnelForegroundService.start(container.appContext)
-                    "Đã bật dịch vụ chạy ngầm trên thanh thông báo"
-                } else {
-                    if (!_uiState.value.isTunnelActive) TunnelForegroundService.stop(container.appContext)
-                    "Đã tắt dịch vụ chạy ngầm"
-                }
-                _effects.tryEmit(DashboardUiEffect.ShowMessage(msg))
-            }
-            is DashboardUiIntent.UpdateTrustedHomeSsid -> _uiState.update { it.copy(trustedHomeSsidInput = intent.value) }
-            is DashboardUiIntent.ToggleAutoSwitchHomeWifi -> _uiState.update { it.copy(autoSwitchOnHomeWifi = intent.enabled) }
-            is DashboardUiIntent.ToggleNotifyConnectionChange -> {
-                _uiState.update { it.copy(notifyConnectionChange = intent.enabled) }
-                saveCurrentConfig(silent = true)
-            }
-            is DashboardUiIntent.SelectThemeMode -> {
-                _uiState.update { it.copy(themeMode = intent.mode) }
-                saveCurrentConfig(silent = true)
-            }
-            DashboardUiIntent.UseCurrentWifiAsHome -> {
-                val currentSsid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty()
-                if (currentSsid.isNotBlank()) {
-                    _uiState.update { it.copy(trustedHomeSsidInput = currentSsid) }
-                    saveCurrentConfig(silent = true)
-                    _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã đặt Wi-Fi '$currentSsid' làm Wi-Fi nhà"))
-                } else {
-                    _effects.tryEmit(DashboardUiEffect.ShowMessage("Chưa phát hiện tên Wi-Fi hiện tại"))
-                }
-            }
             DashboardUiIntent.SaveConfig -> saveCurrentConfig()
             DashboardUiIntent.ToggleTunnel -> toggleTunnel()
             DashboardUiIntent.ToggleHistoryExpand -> _uiState.update { it.copy(showAllHistory = !it.showAllHistory) }
@@ -110,6 +82,20 @@ class DashboardViewModel(
             is DashboardUiIntent.ScanQrForSlot -> {
                 slotController.pendingQrSlotId = intent.slotId
                 _effects.tryEmit(DashboardUiEffect.LaunchQrScanner)
+            }
+            DashboardUiIntent.ScanLanServers -> container.adbDiscoveryGateway.startDiscovery()
+            is DashboardUiIntent.ConnectDiscoveredServer -> {
+                _uiState.update {
+                    it.copy(
+                        hasPrimarySlot = true,
+                        primarySlotMode = ConnectMode.Lan,
+                        serverUrlInput = intent.server.address,
+                        selectedMode = AdbConnectionMode.LAN,
+                        selectedTab = AppTab.CONNECT
+                    )
+                }
+                saveCurrentConfig(silent = true)
+                toggleTunnel()
             }
             is DashboardUiIntent.ApplyQrRemoteConfig -> {
                 val targetSlotId = slotController.pendingQrSlotId
@@ -171,13 +157,22 @@ class DashboardViewModel(
                 _uiState.update { it.copy(activeOnboardingStep = null) }
             }
             DashboardUiIntent.ShowOnboarding -> _uiState.update { it.copy(activeOnboardingStep = OnboardingStep.STEP_ADB) }
+            else -> Unit
         }
     }
 
     private fun observeFlows() {
         viewModelScope.launch {
             container.reverseTunnelGateway.observeConnectionState().collect { conn ->
+                val prevConn = _uiState.value.connectionState
                 _uiState.update { it.copy(connectionState = conn) }
+                if (prevConn !is TunnelConnectionState.Connected && conn is TunnelConnectionState.Connected) {
+                    val isPaired = _uiState.value.pairing.pairingState is AdbPairingState.PairedAndConnected
+                    if (!isPaired && !_uiState.value.isUsbConnected) {
+                        _uiState.update { it.copy(forceShowPairing = true) }
+                        _effects.emit(DashboardUiEffect.ShowMessage("Đã nối máy chủ! Hãy ghép đôi ADB không dây để sử dụng."))
+                    }
+                }
             }
         }
         viewModelScope.launch {
@@ -220,6 +215,11 @@ class DashboardViewModel(
                         )
                     )
                 }
+            }
+        }
+        viewModelScope.launch {
+            container.adbDiscoveryGateway.observeDiscoveredServers().collect { servers ->
+                _uiState.update { it.copy(discoveredServers = servers) }
             }
         }
         viewModelScope.launch {

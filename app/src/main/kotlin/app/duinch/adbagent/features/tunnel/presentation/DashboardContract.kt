@@ -62,7 +62,8 @@ data class DashboardUiState(
     val themeMode: String = "system",
     val hasPrimarySlot: Boolean = false,
     val primarySlotMode: ConnectMode = ConnectMode.Lan,
-    val extraSlots: List<ServerConnectionSlot> = emptyList()
+    val extraSlots: List<ServerConnectionSlot> = emptyList(),
+    val discoveredServers: List<app.duinch.adbagent.features.pairing.domain.DiscoveredServer> = emptyList()
 ) {
     val isTunnelActive: Boolean
         get() = connectionState is TunnelConnectionState.Connected ||
@@ -116,6 +117,8 @@ sealed interface DashboardUiIntent {
     data class ConnectExtraSlot(val slotId: String, val roomCode: String, val serverUrl: String) : DashboardUiIntent
     data class DisconnectExtraSlot(val slotId: String) : DashboardUiIntent
     data class ScanQrForSlot(val slotId: String) : DashboardUiIntent
+    data object ScanLanServers : DashboardUiIntent
+    data class ConnectDiscoveredServer(val server: app.duinch.adbagent.features.pairing.domain.DiscoveredServer) : DashboardUiIntent
 }
 
 sealed interface DashboardUiEffect {

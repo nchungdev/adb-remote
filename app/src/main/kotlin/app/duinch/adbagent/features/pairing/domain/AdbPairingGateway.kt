@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface AdbDiscoveryGateway {
     fun observeDiscoveredPorts(): Flow<DiscoveredAdbPorts>
+    fun observeDiscoveredServers(): Flow<List<DiscoveredServer>> = kotlinx.coroutines.flow.emptyFlow()
     fun startDiscovery()
     fun stopDiscovery()
 }

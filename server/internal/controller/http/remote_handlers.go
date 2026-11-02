@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -62,12 +63,15 @@ func (s *Server) handleRemoteStatus(w http.ResponseWriter, r *http.Request) {
 		active = s.qt.IsActive()
 		url = s.qt.GetURL()
 	}
+	hostName, _ := os.Hostname()
+	hostName = strings.TrimSuffix(hostName, ".local")
 
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"active":           active,
 		"url":              url,
 		"lan":              lan,
 		"room":             room,
+		"hostname":         hostName,
 		"connected_device": dev,
 	})
 }
