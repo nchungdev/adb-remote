@@ -2,6 +2,7 @@ package app.duinch.adbagent.features.tunnel.presentation
 
 import app.duinch.adbagent.core.di.AppContainer
 import app.duinch.adbagent.features.tunnel.domain.ReverseTunnelGateway
+import app.duinch.remotetunnel.ui.ConnectMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -20,7 +21,7 @@ internal class DashboardSlotController(
     private var nextSlotIndex = 2
     var pendingQrSlotId: String? = null
 
-    fun addSlot() {
+    fun addSlot(mode: ConnectMode = ConnectMode.Remote) {
         val slotId = "slot-${nextSlotIndex++}"
         val gateway = container.createReverseTunnelGateway()
         slotGateways[slotId] = gateway
@@ -29,7 +30,9 @@ internal class DashboardSlotController(
             cur.copy(
                 extraSlots = cur.extraSlots + ServerConnectionSlot(
                     id = slotId,
-                    remoteRoomCode = "default"
+                    mode = mode,
+                    remoteRoomCode = if (mode == ConnectMode.Remote) "default" else "",
+                    serverUrlInput = ""
                 )
             )
         }

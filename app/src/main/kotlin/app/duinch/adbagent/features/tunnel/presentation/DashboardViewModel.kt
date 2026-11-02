@@ -123,7 +123,7 @@ class DashboardViewModel(
                     toggleTunnel()
                 }
             }
-            DashboardUiIntent.AddConnectionSlot -> slotController.addSlot()
+            is DashboardUiIntent.AddConnectionSlot -> slotController.addSlot(intent.mode)
             is DashboardUiIntent.RemoveConnectionSlot -> slotController.removeSlot(intent.slotId)
             is DashboardUiIntent.ConnectExtraSlot -> slotController.connectSlot(intent.slotId, intent.roomCode, intent.serverUrl)
             is DashboardUiIntent.DisconnectExtraSlot -> slotController.disconnectSlot(intent.slotId)

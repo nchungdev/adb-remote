@@ -7,6 +7,7 @@ import app.duinch.adbagent.features.termux.presentation.TermuxUiIntent
 import app.duinch.adbagent.features.termux.presentation.TermuxUiState
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
 import app.duinch.adbagent.features.tunnel.domain.TunnelHistoryEntry
+import app.duinch.remotetunnel.ui.ConnectMode
 
 enum class AppTab(val title: String) {
     CONNECT("Kết nối"),
@@ -22,6 +23,7 @@ enum class AdbConnectionMode(val label: String) {
 
 data class ServerConnectionSlot(
     val id: String,
+    val mode: ConnectMode = ConnectMode.Remote,
     val serverUrlInput: String = "",
     val remoteRoomCode: String = "",
     val connectionState: TunnelConnectionState = TunnelConnectionState.Disconnected
@@ -105,7 +107,7 @@ sealed interface DashboardUiIntent {
     data object NextOnboardingStep : DashboardUiIntent
     data object DismissOnboarding : DashboardUiIntent
     data object ShowOnboarding : DashboardUiIntent
-    data object AddConnectionSlot : DashboardUiIntent
+    data class AddConnectionSlot(val mode: ConnectMode = ConnectMode.Remote) : DashboardUiIntent
     data class RemoveConnectionSlot(val slotId: String) : DashboardUiIntent
     data class ConnectExtraSlot(val slotId: String, val roomCode: String, val serverUrl: String) : DashboardUiIntent
     data class DisconnectExtraSlot(val slotId: String) : DashboardUiIntent

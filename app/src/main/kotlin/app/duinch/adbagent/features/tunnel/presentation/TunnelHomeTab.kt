@@ -1,63 +1,38 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
-import android.net.TrafficStats
-import android.os.Process
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.tooling.preview.Preview
 import app.duinch.adbagent.core.designsystem.AdbAgentTheme
-import app.duinch.adbagent.core.designsystem.AdbExtendedColors
-import app.duinch.adbagent.core.designsystem.AdbTheme
-import app.duinch.adbagent.core.designsystem.AppIcons
 import app.duinch.adbagent.core.model.NetworkType
 import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
-import app.duinch.remotetunnel.parser.RemoteQrPayloadParser
-import app.duinch.remotetunnel.ui.ConnectionTelemetryBar
+import app.duinch.remotetunnel.ui.ConnectMode
 import app.duinch.remotetunnel.ui.DualChannelConnectContent
-import app.duinch.remotetunnel.ui.RemoteConnectContent
 import app.duinch.remotetunnel.ui.RemoteConnectionState
 import app.duinch.remotetunnel.ui.RemoteTelemetryData
 import app.duinch.remotetunnel.ui.RemoteTransportChannel
-import kotlinx.coroutines.delay
 
 @Composable
 fun TunnelHomeTab(
@@ -65,10 +40,8 @@ fun TunnelHomeTab(
     onIntent: (DashboardUiIntent) -> Unit,
     onPairingIntent: (PairingUiIntent) -> Unit
 ) {
-    val ext = AdbTheme.colors
-    val clipboard = LocalClipboardManager.current
     val connected = state.connectionState as? TunnelConnectionState.Connected
-    val isTunnelOnline = state.connectionState is TunnelConnectionState.Connected
+    var showAddSlotPicker by remember { mutableStateOf(false) }
 
     val activeConnectedEpoch = when {
         connected != null -> connected.connectedAtEpochMs
@@ -76,51 +49,11 @@ fun TunnelHomeTab(
         else -> 0L
     }
 
-    val nowEpochMs by produceState(
-        initialValue = System.currentTimeMillis(),
-        key1 = activeConnectedEpoch
-    ) {
-        if (activeConnectedEpoch > 0L) {
-            while (true) {
-                value = System.currentTimeMillis()
-                delay(1_000L)
-            }
-        }
-    }
-
-    val trafficState by produceState(
-        initialValue = 0L to 0L,
-        key1 = activeConnectedEpoch
-    ) {
-        if (activeConnectedEpoch > 0L) {
-            var lastBytes = 0L
-            while (true) {
-                val currentBytes = runCatching {
-                    val uid = Process.myUid()
-                    val rx = TrafficStats.getUidRxBytes(uid)
-                    val tx = TrafficStats.getUidTxBytes(uid)
-                    val socketBytes = if (rx >= 0 && tx >= 0) rx + tx else 0L
-                    val bridgeBytes = (state.connectionState as? TunnelConnectionState.Connected)?.bytesBridged ?: 0L
-                    maxOf(socketBytes, bridgeBytes)
-                }.getOrDefault(0L)
-
-                val speed = if (lastBytes > 0L && currentBytes >= lastBytes) {
-                    currentBytes - lastBytes
-                } else {
-                    0L
-                }
-                lastBytes = currentBytes
-                value = currentBytes to speed
-                delay(1_000L)
-            }
-        } else {
-            value = 0L to 0L
-        }
-    }
-
-    val visual = resolveStatusVisual(state = state, ext = ext)
-    val animatedContainer by animateColorAsState(targetValue = visual.container, label = "orbContainer")
-    val animatedTint by animateColorAsState(targetValue = visual.tint, label = "orbTint")
+    val nowEpochMs by produceConnectedEpochNow(activeConnectedEpoch)
+    val trafficState by produceTunnelTrafficMetrics(
+        activeConnectedEpoch = activeConnectedEpoch,
+        bridgeBytes = connected?.bytesBridged ?: 0L
+    )
 
     val telemetry = remember(state.connectionState, state.serverUrlInput, state.remoteRoomCode, state.isUsbConnected, nowEpochMs, trafficState) {
         val isTunnelActive = state.connectionState is TunnelConnectionState.Connecting ||
@@ -144,10 +77,6 @@ fun TunnelHomeTab(
             state.remoteRoomCode.isNotBlank() -> RemoteTransportChannel.WebRtcDirect
             else -> RemoteTransportChannel.None
         }
-        val ping = when {
-            state.isUsbConnected -> (1L..3L).random() // USB direct low latency ping
-            else -> null
-        }
         val uptimeSec = if (activeConnectedEpoch > 0L && nowEpochMs > activeConnectedEpoch) {
             (nowEpochMs - activeConnectedEpoch) / 1000
         } else {
@@ -158,7 +87,7 @@ fun TunnelHomeTab(
             channel = channel,
             host = if (state.isUsbConnected) "" else state.serverUrlInput,
             roomCode = state.remoteRoomCode,
-            pingMs = ping,
+            pingMs = if (state.isUsbConnected) (1L..3L).random() else null,
             uptimeSec = uptimeSec ?: 0L,
             bytesTransferred = trafficState.first,
             transferSpeedBps = trafficState.second
@@ -168,17 +97,17 @@ fun TunnelHomeTab(
     val isWifiConnected = remember(state.activeNetwork, state.localWifiIp) {
         state.activeNetwork == NetworkType.WIFI || state.localWifiIp.isNotBlank()
     }
+    val isPaired = state.pairing.pairingState is AdbPairingState.PairedAndConnected
+    val activePort = (state.pairing.pairingState as? AdbPairingState.PairedAndConnected)?.connectPort ?: 5555
 
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        // Tier 1: Trạng thái ADB Thiết bị gộp Telemetry (USB / Không dây / Chưa bật)
-        AdbDeviceStatusCard(
-            isUsbConnected = state.isUsbConnected,
-            pairingState = state.pairing.pairingState,
-            telemetry = telemetry,
-            onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
-        )
+        if (state.isUsbConnected) {
+            UsbConnectionCard(
+                telemetry = telemetry,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
-        // Tier 2: Kết nối Máy Chủ (Cùng Wi-Fi LAN / Khác mạng Từ Xa)
         DualChannelConnectContent(
             title = if (state.extraSlots.isNotEmpty()) "Máy Chủ 1" else "Kết Nối Máy Chủ",
             initialLanAddress = state.serverUrlInput,
@@ -193,6 +122,23 @@ fun TunnelHomeTab(
                     .filter { it.isNotBlank() && (it.contains("trycloudflare.com") || it.startsWith("http")) }
                     .distinct()
                     .take(3)
+            },
+            adbStatusContent = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    WirelessAdbStatusRow(
+                        isPaired = isPaired,
+                        activePort = activePort,
+                        onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
+                    )
+                    if (state.connectionState is TunnelConnectionState.Connected) {
+                        AdbTelemetryBentoGrid(
+                            isUsbConnected = false,
+                            isPaired = isPaired,
+                            activePort = activePort,
+                            telemetry = telemetry
+                        )
+                    }
+                }
             },
             onConnect = { lan, remote ->
                 val isUrl = remote.startsWith("http://") || remote.startsWith("https://") || remote.contains("trycloudflare.com")
@@ -231,10 +177,28 @@ fun TunnelHomeTab(
             }
             DualChannelConnectContent(
                 title = "Máy Chủ ${index + 2}",
+                dedicatedMode = slot.mode,
                 initialLanAddress = slot.serverUrlInput,
                 initialRemoteTarget = slot.remoteRoomCode,
                 telemetry = slotTelemetry,
                 isWifiConnected = isWifiConnected,
+                adbStatusContent = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        WirelessAdbStatusRow(
+                            isPaired = isPaired,
+                            activePort = activePort,
+                            onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
+                        )
+                        if (slot.connectionState is TunnelConnectionState.Connected) {
+                            AdbTelemetryBentoGrid(
+                                isUsbConnected = false,
+                                isPaired = isPaired,
+                                activePort = activePort,
+                                telemetry = slotTelemetry
+                            )
+                        }
+                    }
+                },
                 onClose = { onIntent(DashboardUiIntent.RemoveConnectionSlot(slot.id)) },
                 onConnect = { lan, remote ->
                     val isUrl = remote.startsWith("http://") || remote.startsWith("https://") || remote.contains("trycloudflare.com")
@@ -249,7 +213,7 @@ fun TunnelHomeTab(
         }
 
         OutlinedButton(
-            onClick = { onIntent(DashboardUiIntent.AddConnectionSlot) },
+            onClick = { showAddSlotPicker = true },
             modifier = Modifier.fillMaxWidth().height(48.dp),
             shape = RoundedCornerShape(14.dp)
         ) {
@@ -257,6 +221,16 @@ fun TunnelHomeTab(
             Spacer(modifier = Modifier.width(8.dp))
             Text("Thêm máy chủ kết nối", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
         }
+    }
+
+    if (showAddSlotPicker) {
+        AddConnectionModeDialog(
+            onDismissRequest = { showAddSlotPicker = false },
+            onSelectMode = { mode ->
+                onIntent(DashboardUiIntent.AddConnectionSlot(mode))
+                showAddSlotPicker = false
+            }
+        )
     }
 }
 
