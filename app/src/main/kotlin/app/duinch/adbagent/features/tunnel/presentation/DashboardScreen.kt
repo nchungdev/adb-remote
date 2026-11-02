@@ -78,15 +78,6 @@ fun DashboardScreen(
                             modifier = Modifier.size(22.dp)
                         )
                     }
-                    IconButton(
-                        onClick = { onIntent(DashboardUiIntent.OnTermuxIntent(TermuxUiIntent.OpenConsole)) }
-                    ) {
-                        Icon(
-                            imageVector = AppIcons.Terminal,
-                            contentDescription = "Mở Terminal nội bộ",
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
                     var menuExpanded by remember { mutableStateOf(false) }
                     Box {
                         IconButton(onClick = { menuExpanded = true }) {
@@ -115,7 +106,7 @@ fun DashboardScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Ghép đôi lại ADB") },
+                                text = { Text("Ghép đôi không dây (Android 11+)") },
                                 onClick = {
                                     menuExpanded = false
                                     onIntent(DashboardUiIntent.SetForceShowPairing(true))

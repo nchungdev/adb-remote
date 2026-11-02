@@ -95,6 +95,15 @@ fun TunnelSettingsTab(
                         } else "Tắt (luôn duy trì P2P WebRTC)",
                         onClick = { showHomeWifiSheet = true }
                     )
+
+                    HorizontalDivider(color = ext.cardBorder, thickness = 0.5.dp)
+
+                    SettingsNavigationRow(
+                        icon = AppIcons.LinkWireless,
+                        title = "Ghép đôi không dây (Android 11+)",
+                        subtitle = "Ghép đôi cổng ADB nội bộ trên thiết bị",
+                        onClick = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
+                    )
                 }
             }
         }

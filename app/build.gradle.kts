@@ -29,8 +29,7 @@ val localProps = Properties().apply {
         localPropsFile.inputStream().use { load(it) }
     }
 }
-val defaultGithubToken = System.getenv("GITHUB_TOKEN")
-    ?: localProps.getProperty("github.token", "")
+val defaultGithubToken = System.getenv("GITHUB_TOKEN") ?: ""
 
 android {
     namespace = "app.duinch.adbagent"
