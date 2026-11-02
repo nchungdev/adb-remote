@@ -216,9 +216,15 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openDeveloperSettings() {
-        val wirelessIntent = Intent("android.settings.WIRELESS_DEBUGGING_SETTINGS")
-        val devIntent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
-        val fallbackIntent = Intent(Settings.ACTION_SETTINGS)
+        val wirelessIntent = Intent("android.settings.WIRELESS_DEBUGGING_SETTINGS").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val devIntent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val fallbackIntent = Intent(Settings.ACTION_SETTINGS).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
         runCatching { startActivity(wirelessIntent) }
             .onFailure {
                 runCatching { startActivity(devIntent) }
