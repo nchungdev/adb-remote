@@ -67,15 +67,21 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            AdbAgentTheme {
-                val dashboardVm: DashboardViewModel = viewModel(
-                    factory = DashboardViewModel.factory(appContainer)
-                )
-                val updaterVm: UpdaterViewModel = viewModel(
-                    factory = UpdaterViewModel.factory(appContainer)
-                )
-                val uiState by dashboardVm.uiState.collectAsStateWithLifecycle()
-                val updaterState by updaterVm.uiState.collectAsStateWithLifecycle()
+            val dashboardVm: DashboardViewModel = viewModel(
+                factory = DashboardViewModel.factory(appContainer)
+            )
+            val updaterVm: UpdaterViewModel = viewModel(
+                factory = UpdaterViewModel.factory(appContainer)
+            )
+            val uiState by dashboardVm.uiState.collectAsStateWithLifecycle()
+            val updaterState by updaterVm.uiState.collectAsStateWithLifecycle()
+            val isDark = when (uiState.themeMode) {
+                "dark" -> true
+                "light" -> false
+                else -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+
+            AdbAgentTheme(darkTheme = isDark) {
                 val snackbarHostState = remember { SnackbarHostState() }
 
                 onUnknownSourcesReturned = {

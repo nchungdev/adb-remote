@@ -32,6 +32,7 @@ class AndroidConnectionAlertNotifier(
     private val context: Context,
     private val reverseTunnelGateway: ReverseTunnelGateway,
     private val isForegroundProvider: () -> Boolean,
+    private val isEnabledProvider: () -> Boolean = { true },
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 ) : ConnectionAlertGateway {
 
@@ -91,6 +92,7 @@ class AndroidConnectionAlertNotifier(
     }
 
     override fun notifyAlert(message: String) {
+        if (!isEnabledProvider()) return
         _alertsFlow.tryEmit(message)
         if (isForegroundProvider()) {
             showInAppToast(message)

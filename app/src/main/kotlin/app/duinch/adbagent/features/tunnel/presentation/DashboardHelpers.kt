@@ -15,7 +15,9 @@ internal fun buildDraftConfig(state: DashboardUiState) = TunnelConfig(
     runInBackground = state.runInBackground,
     trustedHomeSsid = state.trustedHomeSsidInput,
     autoSwitchOnHomeWifi = state.autoSwitchOnHomeWifi,
-    remoteRoomCode = state.remoteRoomCode
+    remoteRoomCode = state.remoteRoomCode,
+    notifyConnectionChange = state.notifyConnectionChange,
+    themeMode = state.themeMode
 )
 
 internal fun resolveQrRemoteTarget(

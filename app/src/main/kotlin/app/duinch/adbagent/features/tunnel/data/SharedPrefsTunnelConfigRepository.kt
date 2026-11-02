@@ -25,7 +25,9 @@ class SharedPrefsTunnelConfigRepository(
             runInBackground = prefs.getBoolean(KEY_RUN_IN_BACKGROUND, true),
             remoteRoomCode = (prefs.getString(KEY_REMOTE_ROOM_CODE, "") ?: "").let {
                 if (it.contains("://") || it.contains("trycloudflare.com")) "" else it
-            }
+            },
+            notifyConnectionChange = prefs.getBoolean(KEY_NOTIFY_CONNECTION_CHANGE, true),
+            themeMode = prefs.getString(KEY_THEME_MODE, "system") ?: "system"
         )
     }
 
@@ -40,6 +42,8 @@ class SharedPrefsTunnelConfigRepository(
             .putBoolean(KEY_AUTO_SWITCH_HOME_WIFI, config.autoSwitchOnHomeWifi)
             .putBoolean(KEY_RUN_IN_BACKGROUND, config.runInBackground)
             .putString(KEY_REMOTE_ROOM_CODE, cleanRoom)
+            .putBoolean(KEY_NOTIFY_CONNECTION_CHANGE, config.notifyConnectionChange)
+            .putString(KEY_THEME_MODE, config.themeMode)
             .apply()
     }
 
@@ -59,6 +63,8 @@ class SharedPrefsTunnelConfigRepository(
         private const val KEY_AUTO_SWITCH_HOME_WIFI = "auto_switch_home_wifi"
         private const val KEY_RUN_IN_BACKGROUND = "run_in_background"
         private const val KEY_REMOTE_ROOM_CODE = "remote_room_code"
+        private const val KEY_NOTIFY_CONNECTION_CHANGE = "notify_connection_change"
+        private const val KEY_THEME_MODE = "app_theme_mode"
         private const val KEY_HAS_SEEN_ONBOARDING = "has_seen_onboarding_guide"
     }
 }

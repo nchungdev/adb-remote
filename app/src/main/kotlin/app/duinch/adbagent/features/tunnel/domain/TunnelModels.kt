@@ -10,7 +10,9 @@ data class TunnelConfig(
     val trustedHomeSsid: String = "",
     val autoSwitchOnHomeWifi: Boolean = true,
     val runInBackground: Boolean = true,
-    val remoteRoomCode: String = ""
+    val remoteRoomCode: String = "",
+    val notifyConnectionChange: Boolean = true,
+    val themeMode: String = "system"
 ) {
     fun validate(): Result<TunnelConfig> {
         val raw = serverUrl.trim()

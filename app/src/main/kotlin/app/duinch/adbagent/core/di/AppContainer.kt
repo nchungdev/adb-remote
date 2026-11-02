@@ -74,7 +74,8 @@ class AppContainer(context: Context) {
         AndroidConnectionAlertNotifier(
             context = appContext,
             reverseTunnelGateway = reverseTunnelGateway,
-            isForegroundProvider = { (appContext as? AdbAgentApp)?.isAppInForeground ?: false }
+            isForegroundProvider = { (appContext as? AdbAgentApp)?.isAppInForeground ?: false },
+            isEnabledProvider = { tunnelConfigRepository.getConfig().notifyConnectionChange }
         )
 
     val ensureTermuxBootstrap = EnsureTermuxBootstrapUseCase(termuxRuntimeGateway)

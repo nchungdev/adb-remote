@@ -76,6 +76,14 @@ class DashboardViewModel(
                 _uiState.update { it.copy(trustedHomeSsidInput = intent.value) }
             is DashboardUiIntent.ToggleAutoSwitchHomeWifi ->
                 _uiState.update { it.copy(autoSwitchOnHomeWifi = intent.enabled) }
+            is DashboardUiIntent.ToggleNotifyConnectionChange -> {
+                _uiState.update { it.copy(notifyConnectionChange = intent.enabled) }
+                saveCurrentConfig(silent = true)
+            }
+            is DashboardUiIntent.SelectThemeMode -> {
+                _uiState.update { it.copy(themeMode = intent.mode) }
+                saveCurrentConfig(silent = true)
+            }
             DashboardUiIntent.UseCurrentWifiAsHome -> {
                 val currentSsid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty()
                 if (currentSsid.isNotBlank()) {
@@ -249,7 +257,6 @@ class DashboardViewModel(
     private fun createInitialState(): DashboardUiState {
         val saved = container.tunnelConfigRepository.getConfig()
         val usb = container.reverseTunnelGateway.isUsbConnected()
-        val net = container.reverseTunnelGateway.observeActiveNetwork()
         val initMode = when {
             usb -> AdbConnectionMode.USB
             container.reverseTunnelGateway.getLocalWifiIp()?.isNotBlank() == true -> AdbConnectionMode.LAN
@@ -270,6 +277,8 @@ class DashboardViewModel(
             usbConnectedAtEpochMs = if (usb) System.currentTimeMillis() else 0L,
             selectedMode = initMode,
             remoteRoomCode = saved.remoteRoomCode,
+            notifyConnectionChange = saved.notifyConnectionChange,
+            themeMode = saved.themeMode,
             activeOnboardingStep = if (firstTime) OnboardingStep.STEP_ADB else null
         )
     }

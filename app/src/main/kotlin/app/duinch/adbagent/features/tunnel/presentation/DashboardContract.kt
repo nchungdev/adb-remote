@@ -47,7 +47,9 @@ data class DashboardUiState(
     val isServerRemoteActive: Boolean = false,
     val recentTunnelUrls: List<String> = emptyList(),
     val usbConnectedAtEpochMs: Long = 0L,
-    val activeOnboardingStep: OnboardingStep? = null
+    val activeOnboardingStep: OnboardingStep? = null,
+    val notifyConnectionChange: Boolean = true,
+    val themeMode: String = "system"
 ) {
     val isTunnelActive: Boolean
         get() = connectionState is TunnelConnectionState.Connected ||
@@ -73,6 +75,8 @@ sealed interface DashboardUiIntent {
     data class UpdateTrustedHomeSsid(val value: String) : DashboardUiIntent
     data class ToggleAutoSwitchHomeWifi(val enabled: Boolean) : DashboardUiIntent
     data object UseCurrentWifiAsHome : DashboardUiIntent
+    data class ToggleNotifyConnectionChange(val enabled: Boolean) : DashboardUiIntent
+    data class SelectThemeMode(val mode: String) : DashboardUiIntent
     data object SaveConfig : DashboardUiIntent
     data object ToggleTunnel : DashboardUiIntent
     data object ToggleHistoryExpand : DashboardUiIntent
