@@ -1,5 +1,7 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
+import android.net.TrafficStats
+import android.os.Process
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -82,11 +84,41 @@ fun TunnelHomeTab(
         }
     }
 
+    val trafficState by produceState(
+        initialValue = 0L to 0L,
+        key1 = activeConnectedEpoch
+    ) {
+        if (activeConnectedEpoch > 0L) {
+            var lastBytes = 0L
+            while (true) {
+                val currentBytes = runCatching {
+                    val uid = Process.myUid()
+                    val rx = TrafficStats.getUidRxBytes(uid)
+                    val tx = TrafficStats.getUidTxBytes(uid)
+                    val socketBytes = if (rx >= 0 && tx >= 0) rx + tx else 0L
+                    val bridgeBytes = (state.connectionState as? TunnelConnectionState.Connected)?.bytesBridged ?: 0L
+                    maxOf(socketBytes, bridgeBytes)
+                }.getOrDefault(0L)
+
+                val speed = if (lastBytes > 0L && currentBytes >= lastBytes) {
+                    currentBytes - lastBytes
+                } else {
+                    0L
+                }
+                lastBytes = currentBytes
+                value = currentBytes to speed
+                delay(1_000L)
+            }
+        } else {
+            value = 0L to 0L
+        }
+    }
+
     val visual = resolveStatusVisual(state = state, ext = ext)
     val animatedContainer by animateColorAsState(targetValue = visual.container, label = "orbContainer")
     val animatedTint by animateColorAsState(targetValue = visual.tint, label = "orbTint")
 
-    val telemetry = remember(state.connectionState, state.serverUrlInput, state.remoteRoomCode, state.isUsbConnected, nowEpochMs) {
+    val telemetry = remember(state.connectionState, state.serverUrlInput, state.remoteRoomCode, state.isUsbConnected, nowEpochMs, trafficState) {
         val isTunnelActive = state.connectionState is TunnelConnectionState.Connecting ||
             state.connectionState is TunnelConnectionState.Reconnecting ||
             state.connectionState is TunnelConnectionState.Connected
@@ -123,7 +155,9 @@ fun TunnelHomeTab(
             host = if (state.isUsbConnected) "" else state.serverUrlInput,
             roomCode = state.remoteRoomCode,
             pingMs = ping,
-            uptimeSec = uptimeSec ?: 0L
+            uptimeSec = uptimeSec ?: 0L,
+            bytesTransferred = trafficState.first,
+            transferSpeedBps = trafficState.second
         )
     }
 

@@ -161,11 +161,5 @@ internal fun formatDurationVi(durationMs: Long): String {
     }
 }
 
-internal fun formatBytesVi(bytes: Long): String = when {
-    bytes < 1024L -> "$bytes B"
-    bytes < 1024L * 1024L -> "${bytes / 1024L} KB"
-    else -> "%.1f MB".format(bytes / (1024.0 * 1024.0))
-}
-
 private fun formatTimestampVi(epochMs: Long): String =
     SimpleDateFormat("dd/MM HH:mm:ss", Locale.getDefault()).format(Date(epochMs))

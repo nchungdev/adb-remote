@@ -26,11 +26,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.duinch.adbagent.core.designsystem.AdbAgentTheme
 import app.duinch.adbagent.core.designsystem.AppIcons
 import app.duinch.adbagent.features.pairing.domain.AdbPairingState
+import app.duinch.remotetunnel.ui.RemoteConnectionState
 import app.duinch.remotetunnel.ui.RemoteTelemetryData
+import app.duinch.remotetunnel.ui.RemoteTransportChannel
 
 @Composable
 fun AdbDeviceStatusCard(
@@ -138,91 +142,16 @@ fun AdbDeviceStatusCard(
                 }
             }
 
-            // Gộp 3 ô Bento Telemetry (KÊNH, PING, UPTIME) vào chung Card khi có kết nối phần cứng/ADB
+            // Gộp 6 chỉ số Bento Telemetry (KÊNH, PING, UPTIME, ĐÃ TRUYỀN, TỐC ĐỘ, CỔNG ADB) vào chung Card khi có kết nối
             if (isUsbConnected || isPaired) {
                 Spacer(modifier = Modifier.height(2.dp))
-                val pingText = if (telemetry.pingMs != null) "${telemetry.pingMs}ms" else "<2ms"
-                val uptimeText = if (telemetry.uptimeSec > 0) {
-                    val h = telemetry.uptimeSec / 3600
-                    val m = (telemetry.uptimeSec % 3600) / 60
-                    val s = telemetry.uptimeSec % 60
-                    "%02d:%02d:%02d".format(h, m, s)
-                } else {
-                    "00:00:00"
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    MetricBox(
-                        icon = AppIcons.Usb,
-                        label = "KÊNH",
-                        value = if (isUsbConnected) "Cáp USB" else "Không dây",
-                        modifier = Modifier.weight(1.2f)
-                    )
-                    MetricBox(
-                        icon = AppIcons.Refresh,
-                        label = "PING",
-                        value = pingText,
-                        modifier = Modifier.weight(1f)
-                    )
-                    MetricBox(
-                        icon = AppIcons.Clock,
-                        label = "UPTIME",
-                        value = uptimeText,
-                        modifier = Modifier.weight(1.1f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MetricBox(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(12.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                AdbTelemetryBentoGrid(
+                    isUsbConnected = isUsbConnected,
+                    isPaired = isPaired,
+                    activePort = activePort,
+                    telemetry = telemetry
                 )
             }
-            Spacer(modifier = Modifier.height(3.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
         }
     }
 }
@@ -289,5 +218,26 @@ private fun DeviceStatusRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 390)
+@Composable
+fun AdbDeviceStatusCardPreview() {
+    AdbAgentTheme(darkTheme = false) {
+        AdbDeviceStatusCard(
+            isUsbConnected = true,
+            pairingState = AdbPairingState.Idle,
+            telemetry = RemoteTelemetryData(
+                state = RemoteConnectionState.Connected,
+                channel = RemoteTransportChannel.UsbCable,
+                pingMs = 2L,
+                uptimeSec = 47L,
+                bytesTransferred = 14_850_000L,
+                transferSpeedBps = 128_000L
+            ),
+            onOpenPairing = {},
+            modifier = Modifier.padding(16.dp)
+        )
     }
 }

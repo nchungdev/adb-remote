@@ -264,4 +264,20 @@ object AppIcons {
             lineTo(12f, 5f)
         }
     }
+
+    val ArrowUpDown: ImageVector by lazy {
+        strokeIcon("ArrowUpDown") {
+            moveTo(7f, 20f); verticalLineTo(4f)
+            moveTo(3f, 8f); lineTo(7f, 4f); lineTo(11f, 8f)
+            moveTo(17f, 4f); verticalLineTo(20f)
+            moveTo(13f, 16f); lineTo(17f, 20f); lineTo(21f, 16f)
+        }
+    }
+
+    val Activity: ImageVector by lazy {
+        strokeIcon("Activity") {
+            moveTo(22f, 12f); lineTo(18f, 12f); lineTo(15f, 6f)
+            lineTo(9f, 18f); lineTo(6f, 12f); lineTo(2f, 12f)
+        }
+    }
 }
