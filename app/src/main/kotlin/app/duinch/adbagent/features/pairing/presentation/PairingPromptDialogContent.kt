@@ -20,6 +20,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.font.FontFamily
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import app.duinch.adbagent.core.designsystem.AdbTheme
 import app.duinch.adbagent.core.designsystem.AppIcons
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun PairingPromptCard(
     pairingCode: String,
@@ -41,6 +43,7 @@ fun PairingPromptCard(
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+@Suppress("DEPRECATION")
     val clipboard = LocalClipboardManager.current
 
     Surface(

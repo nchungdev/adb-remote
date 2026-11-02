@@ -64,6 +64,7 @@ class NetworkConnectivityObserver(private val context: Context) {
         }
 
         val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
+        @Suppress("DEPRECATION")
         val info = runCatching { wm?.connectionInfo }.getOrNull()
         val raw = info?.ssid
         if (!raw.isNullOrBlank() && raw != "<unknown ssid>") {
