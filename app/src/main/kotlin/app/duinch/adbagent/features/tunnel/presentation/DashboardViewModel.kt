@@ -122,8 +122,6 @@ class DashboardViewModel(
                 }
                 saveCurrentConfig(silent = true)
                 toggleTunnel()
-                val displayMsg = if (finalRoom.isNotBlank()) "Đã kết nối phòng: $finalRoom" else "Đang thiết lập kết nối..."
-                _effects.tryEmit(DashboardUiEffect.ShowMessage(displayMsg))
             }
             is DashboardUiIntent.OnServerRemoteTunnelPushed -> {
                 _uiState.update { cur ->
@@ -133,9 +131,6 @@ class DashboardViewModel(
                         remoteRoomCode = if (intent.active && intent.roomCode.isNotBlank()) intent.roomCode else cur.remoteRoomCode,
                         serverUrlInput = if (intent.active && intent.url.isNotBlank()) intent.url else cur.serverUrlInput
                     )
-                }
-                if (intent.active && intent.url.isNotBlank()) {
-                    _effects.tryEmit(DashboardUiEffect.ShowMessage("Máy chủ đã mở Quick Tunnel qua cáp USB!"))
                 }
             }
             is DashboardUiIntent.OnPairingIntent -> handlePairingIntent(intent.intent)

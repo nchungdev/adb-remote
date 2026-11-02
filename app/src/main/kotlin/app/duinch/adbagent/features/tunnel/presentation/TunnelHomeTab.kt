@@ -179,11 +179,13 @@ fun TunnelHomeTab(
                     val targetServer = when {
                         lan.isNotBlank() -> lan
                         isUrl -> remote
+                        state.serverQuickTunnelUrl.isNotBlank() -> state.serverQuickTunnelUrl
                         else -> state.serverUrlInput
                     }
                     val targetRoom = when {
                         !isUrl && remote.isNotBlank() -> remote
-                        else -> state.remoteRoomCode
+                        state.remoteRoomCode.isNotBlank() -> state.remoteRoomCode
+                        else -> "default"
                     }
                     onIntent(DashboardUiIntent.ApplyQrRemoteConfig(roomCode = targetRoom, serverUrl = targetServer))
                 },
