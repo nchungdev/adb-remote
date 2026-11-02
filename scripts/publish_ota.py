@@ -40,8 +40,10 @@ def sha256_file(path: pathlib.Path) -> str:
 
 def find_apk_src() -> pathlib.Path | None:
     candidates = [
+        ROOT / "app/build/outputs/apk/debug/adb-remote-debug.apk",
         ROOT / "app/build/outputs/apk/debug/adb-agent-debug.apk",
         ROOT / "app/build/outputs/apk/debug/app-debug.apk",
+        ROOT / "build/outputs/apk/debug/adb-remote-debug.apk",
         ROOT / "build/outputs/apk/debug/adb-agent-debug.apk",
         ROOT / "build/outputs/apk/debug/app-debug.apk",
     ]
@@ -83,7 +85,7 @@ def main() -> int:
         manifest = {
             "versionCode": version_code,
             "versionName": version_name,
-            "downloadUrl": f"https://github.com/nchungdev/adb-agent/releases/download/{tag}/{apk_src.name}",
+            "downloadUrl": f"https://github.com/nchungdev/adb-remote/releases/download/{tag}/{apk_src.name}",
             "sha256": sha,
             "changelog": changelog,
         }

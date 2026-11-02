@@ -174,6 +174,12 @@ fun TunnelHomeTab(
                 isWifiConnected = isWifiConnected,
                 serverRemoteUrl = state.serverQuickTunnelUrl,
                 isServerRemoteActive = state.isServerRemoteActive,
+                recentTunnels = remember(state.serverQuickTunnelUrl, state.serverUrlInput, state.recentTunnelUrls) {
+                    (state.recentTunnelUrls + listOf(state.serverQuickTunnelUrl, state.serverUrlInput))
+                        .filter { it.isNotBlank() && (it.contains("trycloudflare.com") || it.startsWith("http")) }
+                        .distinct()
+                        .take(3)
+                },
                 onConnect = { lan, remote ->
                     val isUrl = remote.startsWith("http://") || remote.startsWith("https://") || remote.contains("trycloudflare.com")
                     val targetServer = when {

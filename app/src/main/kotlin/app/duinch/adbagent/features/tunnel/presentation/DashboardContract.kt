@@ -45,6 +45,7 @@ data class DashboardUiState(
     val remoteRoomCode: String = "",
     val serverQuickTunnelUrl: String = "",
     val isServerRemoteActive: Boolean = false,
+    val recentTunnelUrls: List<String> = emptyList(),
     val usbConnectedAtEpochMs: Long = 0L
 ) {
     val isTunnelActive: Boolean
