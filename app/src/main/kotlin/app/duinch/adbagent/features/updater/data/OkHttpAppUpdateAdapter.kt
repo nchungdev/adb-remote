@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
 import app.duinch.adbagent.BuildConfig
+import app.duinch.adbagent.core.security.KeystoreCipher
 import app.duinch.adbagent.features.updater.domain.AppReleaseInfo
 import app.duinch.adbagent.features.updater.domain.AppUpdateGateway
 import kotlinx.coroutines.Dispatchers
@@ -25,12 +26,14 @@ class OkHttpAppUpdateAdapter(
 
     override fun getGitHubToken(): String {
         val saved = prefs.getString(KEY_GITHUB_TOKEN, null)
-        if (!saved.isNullOrBlank()) return saved
-        return BuildConfig.GITHUB_TOKEN.trim()
+        if (!saved.isNullOrBlank()) return KeystoreCipher.decrypt(saved).trim()
+        return ""
     }
 
     override fun setGitHubToken(token: String) {
-        prefs.edit().putString(KEY_GITHUB_TOKEN, token.trim()).apply()
+        val cleaned = token.trim()
+        val encrypted = if (cleaned.isEmpty()) "" else KeystoreCipher.encrypt(cleaned)
+        prefs.edit().putString(KEY_GITHUB_TOKEN, encrypted).apply()
     }
 
     private val httpClient = OkHttpClient.Builder()

@@ -2,6 +2,7 @@ package app.duinch.adbagent.features.tunnel.data
 
 import android.content.Context
 import android.os.Build
+import app.duinch.adbagent.core.security.KeystoreCipher
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfig
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfigRepository
 
@@ -13,16 +14,18 @@ class SharedPrefsTunnelConfigRepository(
 
     override fun getConfig(): TunnelConfig {
         val defaultAlias = "${Build.MANUFACTURER}-${Build.MODEL}".replace(" ", "-")
-        val rawUrl = prefs.getString(KEY_SERVER_URL, "") ?: ""
+        val rawUrl = KeystoreCipher.decrypt(prefs.getString(KEY_SERVER_URL, "") ?: "")
+        val rawSsid = KeystoreCipher.decrypt(prefs.getString(KEY_TRUSTED_HOME_SSID, "") ?: "")
+        val rawRoom = KeystoreCipher.decrypt(prefs.getString(KEY_REMOTE_ROOM_CODE, "") ?: "")
         return TunnelConfig(
             serverUrl = rawUrl,
             deviceAlias = prefs.getString(KEY_DEVICE_ALIAS, defaultAlias) ?: defaultAlias,
             localAdbPort = prefs.getInt(KEY_LOCAL_PORT, 5555),
             autoReconnectOnNetworkChange = prefs.getBoolean(KEY_AUTO_RECONNECT, true),
-            trustedHomeSsid = prefs.getString(KEY_TRUSTED_HOME_SSID, "") ?: "",
+            trustedHomeSsid = rawSsid,
             autoSwitchOnHomeWifi = prefs.getBoolean(KEY_AUTO_SWITCH_HOME_WIFI, true),
             runInBackground = prefs.getBoolean(KEY_RUN_IN_BACKGROUND, true),
-            remoteRoomCode = (prefs.getString(KEY_REMOTE_ROOM_CODE, "") ?: "").let {
+            remoteRoomCode = rawRoom.let {
                 if (it.contains("://") || it.contains("trycloudflare.com")) "" else it
             },
             notifyConnectionChange = prefs.getBoolean(KEY_NOTIFY_CONNECTION_CHANGE, true),
@@ -33,14 +36,14 @@ class SharedPrefsTunnelConfigRepository(
     override fun saveConfig(config: TunnelConfig) {
         val cleanRoom = if (config.remoteRoomCode.contains("://") || config.remoteRoomCode.contains("trycloudflare.com")) "" else config.remoteRoomCode
         prefs.edit()
-            .putString(KEY_SERVER_URL, config.serverUrl)
+            .putString(KEY_SERVER_URL, KeystoreCipher.encrypt(config.serverUrl))
             .putString(KEY_DEVICE_ALIAS, config.deviceAlias)
             .putInt(KEY_LOCAL_PORT, config.localAdbPort)
             .putBoolean(KEY_AUTO_RECONNECT, config.autoReconnectOnNetworkChange)
-            .putString(KEY_TRUSTED_HOME_SSID, config.trustedHomeSsid)
+            .putString(KEY_TRUSTED_HOME_SSID, KeystoreCipher.encrypt(config.trustedHomeSsid))
             .putBoolean(KEY_AUTO_SWITCH_HOME_WIFI, config.autoSwitchOnHomeWifi)
             .putBoolean(KEY_RUN_IN_BACKGROUND, config.runInBackground)
-            .putString(KEY_REMOTE_ROOM_CODE, cleanRoom)
+            .putString(KEY_REMOTE_ROOM_CODE, KeystoreCipher.encrypt(cleanRoom))
             .putBoolean(KEY_NOTIFY_CONNECTION_CHANGE, config.notifyConnectionChange)
             .putString(KEY_THEME_MODE, config.themeMode)
             .apply()

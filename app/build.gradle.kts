@@ -29,7 +29,6 @@ val localProps = Properties().apply {
         localPropsFile.inputStream().use { load(it) }
     }
 }
-val defaultGithubToken = System.getenv("GITHUB_TOKEN") ?: ""
 
 android {
     namespace = "app.duinch.adbagent"
@@ -42,7 +41,6 @@ android {
         versionCode = appVersionCode
         versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "GITHUB_TOKEN", "\"$defaultGithubToken\"")
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -60,6 +58,9 @@ android {
         }
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
