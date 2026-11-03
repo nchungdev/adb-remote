@@ -112,3 +112,6 @@ fun rememberAdbTabVisual(
         )
     }
 }
+
+internal fun withStandbySuffix(title: String, connection: TunnelConnectionState): String =
+    if ((connection as? TunnelConnectionState.Connected)?.isStandby == true) "$title • Dự phòng" else title

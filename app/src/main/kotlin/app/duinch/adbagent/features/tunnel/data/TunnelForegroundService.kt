@@ -1,5 +1,6 @@
 package app.duinch.adbagent.features.tunnel.data
 
+import java.util.concurrent.ConcurrentHashMap
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -257,6 +258,19 @@ class TunnelForegroundService : Service() {
         const val ACTION_CONNECT = "app.duinch.adbagent.ACTION_CONNECT"
         const val ACTION_DISCONNECT = "app.duinch.adbagent.ACTION_DISCONNECT"
         const val ACTION_RESTORE_NOTIFICATION = "app.duinch.adbagent.ACTION_RESTORE_NOTIFICATION"
+
+        private val owners = ConcurrentHashMap.newKeySet<Any>()
+
+        /** Starts the service on behalf of a tunnel; it stays up until every owner released it. */
+        fun acquire(context: Context, owner: Any) {
+            owners.add(owner)
+            start(context)
+        }
+
+        fun release(context: Context, owner: Any, keepRunning: Boolean) {
+            owners.remove(owner)
+            if (!keepRunning && owners.isEmpty()) stop(context)
+        }
 
         fun start(context: Context) {
             val intent = Intent(context, TunnelForegroundService::class.java).apply {

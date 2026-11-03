@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"app.duinch/adb-device-manager/internal/adapter/tunnel"
 	"app.duinch/adb-device-manager/internal/controller/http/ui"
 	"app.duinch/adb-device-manager/internal/domain"
 	"app.duinch/adb-device-manager/internal/usecase"
@@ -18,7 +19,7 @@ import (
 )
 
 type WebSocketUpgrader interface {
-	ServeWebSocket(rawConn net.Conn, rw *bufio.ReadWriter, alias string, localPort int)
+	ServeWebSocket(rawConn net.Conn, rw *bufio.ReadWriter, alias string, localPort int, path tunnel.PathKind)
 }
 
 type Server struct {

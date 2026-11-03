@@ -145,7 +145,7 @@ fun TunnelHomeTab(
 
         if (showPrimarySlot) {
             DualChannelConnectContent(
-                title = if (state.extraSlots.isNotEmpty()) "Máy Chủ 1" else "Kết Nối Máy Chủ",
+                title = withStandbySuffix(if (state.extraSlots.isNotEmpty()) "Máy Chủ 1" else "Kết Nối Máy Chủ", state.connectionState),
                 dedicatedMode = state.primarySlotMode,
                 initialLanAddress = state.serverUrlInput,
                 initialRemoteTarget = state.remoteRoomCode,
@@ -222,7 +222,7 @@ fun TunnelHomeTab(
                 )
             }
             DualChannelConnectContent(
-                title = slotTitle,
+                title = withStandbySuffix(slotTitle, slot.connectionState),
                 dedicatedMode = slot.mode,
                 initialLanAddress = slot.serverUrlInput,
                 initialRemoteTarget = slot.remoteRoomCode,

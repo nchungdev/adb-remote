@@ -49,3 +49,27 @@ func detectServerSSID() string {
 	}
 	return ""
 }
+
+// PathKind ranks how a device reaches the server; a higher value is preferred.
+type PathKind int
+
+const (
+	PathRemote PathKind = iota
+	PathLAN
+)
+
+func (p PathKind) String() string {
+	if p == PathLAN {
+		return "lan"
+	}
+	return "remote"
+}
+
+// PathForHost treats private addresses as LAN. Loopback is the local cloudflared
+// forwarding a Quick Tunnel client, so it counts as remote.
+func PathForHost(host string) PathKind {
+	if ip := net.ParseIP(host); ip != nil && ip.IsPrivate() {
+		return PathLAN
+	}
+	return PathRemote
+}

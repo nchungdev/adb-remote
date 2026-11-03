@@ -46,3 +46,15 @@ open class SimplePeerConnectionObserver : PeerConnection.Observer {
     override fun onDataChannel(dc: org.webrtc.DataChannel) {}
     override fun onRenegotiationNeeded() {}
 }
+
+internal fun buildTunnelRtcConfiguration(): PeerConnection.RTCConfiguration {
+    val iceServers = listOf(
+        PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+        PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
+        PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer()
+    )
+    return PeerConnection.RTCConfiguration(iceServers).apply {
+        sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
+        continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
+    }
+}

@@ -26,6 +26,8 @@ type Session struct {
 	ConnectedAt  int64
 
 	transport    Transport
+	path         PathKind
+	standby      atomic.Bool
 	localAdbPort atomic.Int32
 	bytesBridged atomic.Int64
 	nextStreamID atomic.Uint32
@@ -80,6 +82,14 @@ func (s *Session) SendWelcome(serverLanIP, serverSSID string) error {
 		return err
 	}
 	return s.transport.WriteText(payload)
+}
+
+func (s *Session) sendRole(standby bool) {
+	role := "active"
+	if standby {
+		role = "standby"
+	}
+	_ = s.transport.WriteText([]byte(`{"type":"path_role","role":"` + role + `"}`))
 }
 
 func (s *Session) WriteText(payload []byte) error {

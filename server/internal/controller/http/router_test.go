@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"app.duinch/adb-device-manager/internal/adapter/tunnel"
 	httpctrl "app.duinch/adb-device-manager/internal/controller/http"
 	"app.duinch/adb-device-manager/internal/domain"
 	"app.duinch/adb-device-manager/internal/usecase"
@@ -57,11 +58,11 @@ func (stubAdb) RestartServer(_ context.Context) error { return nil }
 
 type stubTunnel struct{}
 
-func (stubTunnel) ListActiveTunnels() []domain.TunnelInfo                         { return nil }
-func (stubTunnel) ServeWebSocket(net.Conn, *bufio.ReadWriter, string, int)        {}
-func (stubTunnel) ListClosed() ([]domain.TunnelHistoryEntry, error)               { return nil, nil }
-func (stubTunnel) AppendClosed(domain.TunnelHistoryEntry) error                   { return nil }
-func (stubTunnel) ClearClosed() error                                             { return nil }
+func (stubTunnel) ListActiveTunnels() []domain.TunnelInfo                                   { return nil }
+func (stubTunnel) ServeWebSocket(net.Conn, *bufio.ReadWriter, string, int, tunnel.PathKind) {}
+func (stubTunnel) ListClosed() ([]domain.TunnelHistoryEntry, error)                         { return nil, nil }
+func (stubTunnel) AppendClosed(domain.TunnelHistoryEntry) error                             { return nil }
+func (stubTunnel) ClearClosed() error                                                       { return nil }
 
 type stubOta struct{}
 

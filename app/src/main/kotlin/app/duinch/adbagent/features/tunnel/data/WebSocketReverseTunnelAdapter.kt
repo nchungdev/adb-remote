@@ -53,6 +53,7 @@ class WebSocketReverseTunnelAdapter(
 
     private val userWantsConnected = AtomicBoolean(false)
     private val bytesBridged = AtomicLong(0L)
+    private val sessionGeneration = AtomicLong(0L)
     private val streamBridge = WebSocketStreamBridge(scope, bytesBridged)
 
     @Volatile private var currentConfig: TunnelConfig? = null
@@ -85,7 +86,7 @@ class WebSocketReverseTunnelAdapter(
             currentConfig = valid
             retryAttempt = 0
             reconnectJob?.cancel()
-            TunnelForegroundService.start(appContext)
+            TunnelForegroundService.acquire(appContext, this)
             openWebSocketSession(valid)
         }
     }
@@ -96,15 +97,14 @@ class WebSocketReverseTunnelAdapter(
         finishHistorySession("Chủ động ngắt kết nối")
         closeActiveSession()
         connectionState.value = TunnelConnectionState.Disconnected
-        if (currentConfig?.runInBackground != true) {
-            TunnelForegroundService.stop(appContext)
-        }
+        TunnelForegroundService.release(appContext, this, keepRunning = currentConfig?.runInBackground == true)
     }
 
     private fun openWebSocketSession(config: TunnelConfig) {
         finishHistorySession("Mở lại kết nối")
         closeActiveSession()
         mappedServerPort = null
+        val generation = sessionGeneration.get()
         val targetWsUrl = resolveWebSocketTunnelEndpoint(config.serverUrl)
         connectionState.value = TunnelConnectionState.Connecting(targetWsUrl)
 
@@ -116,6 +116,7 @@ class WebSocketReverseTunnelAdapter(
 
         activeWebSocket = httpClient.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
+                if (generation != sessionGeneration.get()) return
                 retryAttempt = 0
                 bytesBridged.set(0L)
                 val now = System.currentTimeMillis().also { connectedAtEpochMs = it }
@@ -141,18 +142,22 @@ class WebSocketReverseTunnelAdapter(
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
+                if (generation != sessionGeneration.get()) return
                 handleTextMessage(text)
             }
 
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+                if (generation != sessionGeneration.get()) return
                 streamBridge.handleBinaryFrame(webSocket, bytes, config.localAdbPort)
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                if (generation != sessionGeneration.get()) return
                 handleConnectionLoss("Đường hầm đóng ($code)")
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                if (generation != sessionGeneration.get()) return
                 val code = response?.code
                 val reason = if (code != null) "Lỗi máy chủ ($code)" else (t.message ?: "Mất kết nối mạng")
                 handleConnectionLoss(reason)
@@ -161,6 +166,13 @@ class WebSocketReverseTunnelAdapter(
     }
 
     private fun handleTextMessage(text: String) {
+        TunnelStreamProtocol.parsePathRoleIsStandby(text)?.let { standby ->
+            val cur = connectionState.value
+            if (cur is TunnelConnectionState.Connected) {
+                connectionState.value = cur.copy(isStandby = standby)
+            }
+            return
+        }
         TunnelStreamProtocol.parseWelcomeServerInfo(text)?.let { info ->
             mappedServerPort = info.mappedPort
             val cur = connectionState.value
@@ -207,6 +219,7 @@ class WebSocketReverseTunnelAdapter(
     }
 
     private fun closeActiveSession() {
+        sessionGeneration.incrementAndGet()
         streamBridge.closeAll()
         runCatching { activeWebSocket?.close(1000, "Normal closure") }
         activeWebSocket = null

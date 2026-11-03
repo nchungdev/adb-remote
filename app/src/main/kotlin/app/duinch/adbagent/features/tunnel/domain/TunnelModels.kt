@@ -59,7 +59,8 @@ sealed interface TunnelConnectionState {
         val networkType: NetworkType,
         val bytesBridged: Long = 0L,
         val mappedServerPort: Int? = null,
-        val connectedAtEpochMs: Long = System.currentTimeMillis()
+        val connectedAtEpochMs: Long = System.currentTimeMillis(),
+        val isStandby: Boolean = false
     ) : TunnelConnectionState
     data class Reconnecting(
         val attempt: Int,

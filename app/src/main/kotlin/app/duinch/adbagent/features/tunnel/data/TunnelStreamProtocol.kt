@@ -79,6 +79,12 @@ object TunnelStreamProtocol {
         } else null
     }.getOrNull()
 
+    /** True/false when this is a path_role message (standby or not), null otherwise. */
+    fun parsePathRoleIsStandby(jsonText: String): Boolean? = runCatching {
+        val obj = JSONObject(jsonText)
+        if (obj.optString("type") == "path_role") obj.optString("role") == "standby" else null
+    }.getOrNull()
+
     fun parseWelcomePort(jsonText: String): Int? = runCatching {
         val obj = JSONObject(jsonText)
         if (obj.optString("type") == "welcome") obj.optInt("mapped_port").takeIf { it > 0 } else null

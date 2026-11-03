@@ -3,6 +3,7 @@ package httpctrl
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -56,7 +57,8 @@ func (s *Server) handleTunnel(w http.ResponseWriter, r *http.Request) {
 		localPort = 5555
 	}
 
-	s.wsHub.ServeWebSocket(rawConn, rw, alias, localPort)
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	s.wsHub.ServeWebSocket(rawConn, rw, alias, localPort, tunnel.PathForHost(host))
 }
 
 func (s *Server) handleClearHistory(w http.ResponseWriter, _ *http.Request) {

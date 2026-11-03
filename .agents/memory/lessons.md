@@ -26,3 +26,12 @@
 ## 2026-11-03: Suspended Snackbar Blocks Navigation
 - `showSnackbar` suspends until dismissal. `DashboardScreen` returns early for fullscreen pairing, so its SnackbarHost is absent and an existing message can wait indefinitely. Serial effect collection then blocks Settings/QR navigation even though the Settings intent works.
 - Process cancellable dashboard effects with `collectLatest`; regression-test navigation with a message callback that calls `awaitCancellation()`. Check the actual resumed Settings activity on debug and R8 release, not merely whether Settings appears anywhere in dumpsys.
+
+## 2026-11-03: Same-Alias Connection Slots Ping-Pong
+- The server allows one session per device alias, and every slot on a phone sends the same alias. An evicted client that treats the close as a network loss reconnects and evicts the other slot, forever. `retryAttempt` resets on open, so backoff never grows and the loop runs at ~1s.
+- Do not evict: keep every path alive in the device slot and route ADB through the best one (LAN > remote, then newest). Only touch adb when the active path changes. Guard transport callbacks with a session generation: closing a session fires callbacks that otherwise tear down its successor.
+- `WSConn.ReadMessage` swallows pings in its own loop, so a deadline set by the caller never extends while idle. Set the deadline per frame.
+
+## 2026-11-03: Quick Tunnel URL Is Printed Before It Resolves
+- cloudflared logs the trycloudflare URL ~1.5s before the DNS record exists. Any client resolving it then gets NXDOMAIN, and the OS caches that for 60s+ while 1.1.1.1 recovers instantly, so it looks like a slow or broken first start.
+- Publish only after "Registered tunnel connection" and a successful lookup against a public resolver. Polling through the system resolver would poison the very cache being protected.

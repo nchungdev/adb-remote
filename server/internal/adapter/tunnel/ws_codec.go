@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 )
 
 const wsGUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
@@ -29,6 +30,12 @@ type WSConn struct {
 	reader    *bufio.Reader
 	writeMu   sync.Mutex
 	closed    bool
+	idle      time.Duration
+}
+
+// SetIdleTimeout makes every received frame, pings included, extend the read deadline.
+func (w *WSConn) SetIdleTimeout(d time.Duration) {
+	w.idle = d
 }
 
 func NewWSConn(conn net.Conn, rw *bufio.ReadWriter) *WSConn {
@@ -51,6 +58,9 @@ func (w *WSConn) ReadMessage() (byte, []byte, error) {
 	var fragments []byte
 
 	for {
+		if w.idle > 0 {
+			_ = w.conn.SetReadDeadline(time.Now().Add(w.idle))
+		}
 		var hdr [2]byte
 		if _, err := io.ReadFull(w.reader, hdr[:]); err != nil {
 			return 0, nil, err

@@ -17,44 +17,8 @@ import (
 type AutoConnectFunc func(ctx context.Context, mappedAddr string)
 type AutoDisconnectFunc func(ctx context.Context, mappedAddr string)
 
-type deviceSlot struct {
-	alias      string
-	mappedPort int
-	listener   net.Listener
-	mu         sync.RWMutex
-	session    *Session
-}
-
-func newDeviceSlot(alias string, ln net.Listener, mappedPort int) *deviceSlot {
-	slot := &deviceSlot{
-		alias:      alias,
-		mappedPort: mappedPort,
-		listener:   ln,
-	}
-	go slot.acceptLoop()
-	return slot
-}
-
-func (d *deviceSlot) acceptLoop() {
-	for {
-		conn, err := d.listener.Accept()
-		if err != nil {
-			if errorsIsClosed(err) {
-				return
-			}
-			time.Sleep(150 * time.Millisecond)
-			continue
-		}
-		d.mu.RLock()
-		sess := d.session
-		d.mu.RUnlock()
-		if sess != nil && sess.Alive() {
-			sess.AttachLocalClient(conn)
-		} else {
-			_ = conn.Close()
-		}
-	}
-}
+// wsIdleTimeout covers two missed client pings (20s interval), so a dead Wi-Fi path fails over quickly.
+const wsIdleTimeout = 45 * time.Second
 
 type Hub struct {
 	mu             sync.Mutex
@@ -82,9 +46,10 @@ func (h *Hub) SetAutoDisconnect(fn AutoDisconnectFunc) {
 	h.autoDisconnect = fn
 }
 
-func (h *Hub) ServeWebSocket(rawConn net.Conn, rw *bufio.ReadWriter, alias string, localPort int) {
+func (h *Hub) ServeWebSocket(rawConn net.Conn, rw *bufio.ReadWriter, alias string, localPort int, path PathKind) {
 	ws := NewWSConn(rawConn, rw)
-	session, err := h.RegisterSession(ws, alias, localPort)
+	ws.SetIdleTimeout(wsIdleTimeout)
+	session, err := h.RegisterSession(ws, alias, localPort, path)
 	if err != nil {
 		h.logger.Error("failed to allocate loopback slot", "alias", alias, "err", err)
 		_ = ws.Close()
@@ -96,7 +61,6 @@ func (h *Hub) ServeWebSocket(rawConn net.Conn, rw *bufio.ReadWriter, alias strin
 	serverSSID := detectServerSSID()
 	_ = session.SendWelcome(serverIP, serverSSID)
 	for session.Alive() {
-		_ = rawConn.SetReadDeadline(time.Now().Add(90 * time.Second))
 		opcode, payload, err := ws.ReadMessage()
 		if err != nil || opcode == OpcodeClose {
 			return
@@ -157,11 +121,9 @@ func (h *Hub) BroadcastCommand(serial string, record domain.DeviceCommandRecord)
 	h.mu.Unlock()
 
 	for _, slot := range slots {
-		slot.mu.RLock()
-		sess := slot.session
+		sess := slot.activeSession()
 		mappedAddr := fmt.Sprintf("127.0.0.1:%d", slot.mappedPort)
 		alias := slot.alias
-		slot.mu.RUnlock()
 
 		if sess != nil && sess.Alive() {
 			if serial == "global" || serial == mappedAddr || serial == alias {
@@ -181,9 +143,7 @@ func (h *Hub) ListActiveTunnels() []domain.TunnelInfo {
 
 	var out []domain.TunnelInfo
 	for _, slot := range slots {
-		slot.mu.RLock()
-		sess := slot.session
-		slot.mu.RUnlock()
+		sess := slot.activeSession()
 		if sess != nil && sess.Alive() {
 			out = append(out, domain.TunnelInfo{
 				SessionID:    sess.SessionID,
@@ -207,19 +167,17 @@ func (h *Hub) CloseAll() {
 	h.mu.Unlock()
 
 	for _, slot := range slots {
-		slot.mu.Lock()
-		sess := slot.session
-		slot.session = nil
-		slot.mu.Unlock()
-		if sess != nil && sess.Alive() {
-			sess.Shutdown()
-			h.recordClosed(sess, "Dịch vụ khởi động lại")
+		for _, sess := range slot.drain() {
+			if sess.Alive() {
+				sess.Shutdown()
+				h.recordClosed(sess, "Dịch vụ khởi động lại")
+			}
 		}
 		_ = slot.listener.Close()
 	}
 }
 
-func (h *Hub) RegisterSession(transport Transport, rawAlias string, rawPort int) (*Session, error) {
+func (h *Hub) RegisterSession(transport Transport, rawAlias string, rawPort int, path PathKind) (*Session, error) {
 	alias := domain.SanitizeAlias(rawAlias)
 	localPort := domain.SanitizePort(rawPort)
 
@@ -238,26 +196,14 @@ func (h *Hub) RegisterSession(transport Transport, rawAlias string, rawPort int)
 
 	newSess := NewSession(transport, alias, localPort, slot.mappedPort)
 
-	slot.mu.Lock()
-	oldSess := slot.session
-	slot.session = newSess
-	slot.mu.Unlock()
+	newSess.path = path
+	activeChanged := slot.add(newSess)
+	slot.publishRoles()
 
-	if oldSess != nil && oldSess != newSess && oldSess.Alive() {
-		oldSess.Shutdown()
-		h.recordClosed(oldSess, "Phiên mới thay thế")
-	}
+	h.logger.Info("tunnel connected", "alias", alias, "local_port", localPort, "mapped_port", slot.mappedPort, "path", path.String(), "active", activeChanged)
 
-	h.logger.Info("tunnel connected", "alias", alias, "local_port", localPort, "mapped_port", slot.mappedPort)
-
-	if h.autoConnect != nil {
-		addr := fmt.Sprintf("127.0.0.1:%d", slot.mappedPort)
-		go func() {
-			time.Sleep(350 * time.Millisecond)
-			ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
-			defer cancel()
-			h.autoConnect(ctx, addr)
-		}()
+	if activeChanged {
+		h.reconnectAdb(slot, 350*time.Millisecond)
 	}
 	return newSess, nil
 }
@@ -271,12 +217,14 @@ func (h *Hub) UnregisterSession(sess *Session) {
 	autoDis := h.autoDisconnect
 	h.mu.Unlock()
 	if slot != nil {
-		slot.mu.Lock()
-		if slot.session == sess {
-			slot.session = nil
-		}
-		slot.mu.Unlock()
-		if autoDis != nil {
+		activeChanged := slot.remove(sess)
+		slot.publishRoles()
+		switch {
+		case !activeChanged:
+		case slot.activeSession() != nil:
+			h.logger.Info("tunnel failover", "alias", sess.Alias, "path", slot.activeSession().path.String())
+			h.reconnectAdb(slot, 0)
+		case autoDis != nil:
 			addr := fmt.Sprintf("127.0.0.1:%d", slot.mappedPort)
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -289,4 +237,19 @@ func (h *Hub) UnregisterSession(sess *Session) {
 		h.recordClosed(sess, "Đã ngắt kết nối")
 		h.logger.Info("tunnel disconnected", "alias", sess.Alias, "bytes_bridged", sess.BytesBridged())
 	}
+}
+
+// reconnectAdb re-attaches adb after the active path changed: its connection to
+// the mapped port is bound to the previous path's streams.
+func (h *Hub) reconnectAdb(slot *deviceSlot, delay time.Duration) {
+	if h.autoConnect == nil {
+		return
+	}
+	addr := fmt.Sprintf("127.0.0.1:%d", slot.mappedPort)
+	go func() {
+		time.Sleep(delay)
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		defer cancel()
+		h.autoConnect(ctx, addr)
+	}()
 }

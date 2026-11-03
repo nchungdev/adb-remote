@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 
 	"github.com/pion/webrtc/v4"
@@ -106,7 +107,9 @@ func (w *WebRtcHub) handleOffer(room string, msg signaling.SignalMessage) {
 	}
 
 	w.mu.Lock()
-	if oldPC, exists := w.peers[peerID]; exists && oldPC != nil {
+	// A connected peer keeps serving until its client closes it, so a retry that
+	// never completes does not cost the working path.
+	if oldPC := w.peers[peerID]; oldPC != nil && oldPC.ConnectionState() != webrtc.PeerConnectionStateConnected {
 		_ = oldPC.Close()
 		delete(w.peers, peerID)
 	}
@@ -149,7 +152,9 @@ func (w *WebRtcHub) handleOffer(room string, msg signaling.SignalMessage) {
 		w.logger.Info("webrtc connection state changed", "peer", peerID, "state", s.String())
 		if s == webrtc.PeerConnectionStateFailed || s == webrtc.PeerConnectionStateClosed {
 			w.mu.Lock()
-			delete(w.peers, peerID)
+			if w.peers[peerID] == pc {
+				delete(w.peers, peerID)
+			}
 			w.mu.Unlock()
 			_ = pc.Close()
 		}
@@ -164,7 +169,8 @@ func (w *WebRtcHub) handleOffer(room string, msg signaling.SignalMessage) {
 		d.OnOpen(func() {
 			w.logger.Info("webrtc adb datachannel opened", "peer", peerID)
 			transport := NewDataChannelTransport(d)
-			sess, err := w.hub.RegisterSession(transport, peerID, 5555)
+			alias, _, _ := strings.Cut(peerID, peerConnectionIDSeparator)
+			sess, err := w.hub.RegisterSession(transport, alias, 5555, selectedPath(pc))
 			if err != nil {
 				w.logger.Error("failed to register webrtc tunnel session", "peer", peerID, "err", err)
 				_ = d.Close()
@@ -186,6 +192,7 @@ func (w *WebRtcHub) handleOffer(room string, msg signaling.SignalMessage) {
 			d.OnClose(func() {
 				w.logger.Info("webrtc adb datachannel closed", "peer", peerID)
 				w.hub.UnregisterSession(sess)
+				go func() { _ = pc.Close() }()
 			})
 		})
 	})
@@ -260,4 +267,20 @@ func (w *WebRtcHub) CloseAll() {
 		}
 		delete(w.peers, id)
 	}
+}
+
+// peerConnectionIDSeparator splits "<alias>~<connection id>": each app slot signals
+// as its own peer while sharing the device's alias and mapped port.
+const peerConnectionIDSeparator = "~"
+
+func selectedPath(pc *webrtc.PeerConnection) PathKind {
+	sctp := pc.SCTP()
+	if sctp == nil {
+		return PathRemote
+	}
+	pair, err := sctp.Transport().ICETransport().GetSelectedCandidatePair()
+	if err != nil || pair == nil || pair.Remote == nil {
+		return PathRemote
+	}
+	return PathForHost(pair.Remote.Address)
 }
