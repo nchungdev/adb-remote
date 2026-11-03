@@ -43,19 +43,25 @@ fun TunnelHomeTab(
     val connected = state.connectionState as? TunnelConnectionState.Connected
     var showAddSlotPicker by remember { mutableStateOf(false) }
 
-    val activeConnectedEpoch = when {
-        connected != null -> connected.connectedAtEpochMs
-        state.isUsbConnected -> state.usbConnectedAtEpochMs
-        else -> 0L
-    }
+    val usbEpoch = if (state.isUsbConnected) state.usbConnectedAtEpochMs else 0L
+    val serverEpoch = connected?.connectedAtEpochMs ?: 0L
+    val activeConnectedEpoch = maxOf(usbEpoch, serverEpoch)
 
     val nowEpochMs by produceConnectedEpochNow(activeConnectedEpoch)
-    val trafficState by produceTunnelTrafficMetrics(
-        activeConnectedEpoch = activeConnectedEpoch,
-        bridgeBytes = connected?.bytesBridged ?: 0L
+    val usbTrafficState by produceTunnelTrafficMetrics(
+        activeConnectedEpoch = usbEpoch,
+        bridgeBytes = 0L,
+        isRealSocketActive = state.isUsbConnected
+    )
+    val isServerConnected = state.connectionState is TunnelConnectionState.Connected
+    val isPaired = state.pairing.pairingState is AdbPairingState.PairedAndConnected
+    val serverTrafficState by produceTunnelTrafficMetrics(
+        activeConnectedEpoch = if (isServerConnected) serverEpoch else 0L,
+        bridgeBytes = connected?.bytesBridged ?: 0L,
+        isRealSocketActive = isServerConnected && isPaired
     )
 
-    val usbTelemetry = remember(state.isUsbConnected, state.usbConnectedAtEpochMs, state.usbHostName, nowEpochMs, trafficState) {
+    val usbTelemetry = remember(state.isUsbConnected, state.usbConnectedAtEpochMs, state.usbHostName, nowEpochMs, usbTrafficState) {
         val uptimeSec = if (state.usbConnectedAtEpochMs > 0L && nowEpochMs > state.usbConnectedAtEpochMs) {
             (nowEpochMs - state.usbConnectedAtEpochMs) / 1000
         } else {
@@ -67,12 +73,12 @@ fun TunnelHomeTab(
             host = state.usbHostName,
             pingMs = if (state.isUsbConnected) 1L else null,
             uptimeSec = uptimeSec,
-            bytesTransferred = trafficState.first,
-            transferSpeedBps = trafficState.second
+            bytesTransferred = if (state.isUsbConnected) usbTrafficState.first else 0L,
+            transferSpeedBps = if (state.isUsbConnected) usbTrafficState.second else 0L
         )
     }
 
-    val serverTelemetry = remember(state.connectionState, state.serverUrlInput, state.remoteRoomCode, state.primarySlotMode, state.serverPingMs, nowEpochMs, trafficState) {
+    val serverTelemetry = remember(state.connectionState, state.serverUrlInput, state.remoteRoomCode, state.primarySlotMode, state.serverPingMs, nowEpochMs, serverTrafficState, isPaired) {
         val connState = when {
             state.connectionState is TunnelConnectionState.Connecting ||
                 state.connectionState is TunnelConnectionState.Reconnecting -> RemoteConnectionState.Connecting
@@ -85,8 +91,7 @@ fun TunnelHomeTab(
             state.remoteRoomCode.isNotBlank() -> RemoteTransportChannel.WebRtcDirect
             else -> RemoteTransportChannel.WebRtcDirect
         }
-        val serverEpoch = connected?.connectedAtEpochMs ?: 0L
-        val uptimeSec = if (serverEpoch > 0L && nowEpochMs > serverEpoch) {
+        val uptimeSec = if (serverEpoch > 0L && nowEpochMs > serverEpoch && connState == RemoteConnectionState.Connected) {
             (nowEpochMs - serverEpoch) / 1000
         } else {
             0L
@@ -99,15 +104,14 @@ fun TunnelHomeTab(
             roomCode = state.remoteRoomCode,
             pingMs = actualPing,
             uptimeSec = uptimeSec,
-            bytesTransferred = trafficState.first,
-            transferSpeedBps = trafficState.second
+            bytesTransferred = if (connState == RemoteConnectionState.Connected && isPaired) serverTrafficState.first else 0L,
+            transferSpeedBps = if (connState == RemoteConnectionState.Connected && isPaired) serverTrafficState.second else 0L
         )
     }
 
     val isWifiConnected = remember(state.activeNetwork, state.localWifiIp) {
         state.activeNetwork == NetworkType.WIFI || state.localWifiIp.isNotBlank()
     }
-    val isPaired = state.pairing.pairingState is AdbPairingState.PairedAndConnected
     val activePort = (state.pairing.pairingState as? AdbPairingState.PairedAndConnected)?.connectPort ?: 5555
     val showPrimarySlot = state.hasPrimarySlot || state.connectionState !is TunnelConnectionState.Disconnected
 

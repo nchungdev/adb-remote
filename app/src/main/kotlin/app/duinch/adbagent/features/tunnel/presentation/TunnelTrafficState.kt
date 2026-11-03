@@ -23,19 +23,25 @@ fun produceConnectedEpochNow(activeConnectedEpoch: Long): State<Long> = produceS
 @Composable
 fun produceTunnelTrafficMetrics(
     activeConnectedEpoch: Long,
-    bridgeBytes: Long
+    bridgeBytes: Long,
+    isRealSocketActive: Boolean = true
 ): State<Pair<Long, Long>> = produceState(
     initialValue = 0L to 0L,
-    key1 = activeConnectedEpoch
+    key1 = activeConnectedEpoch,
+    key2 = isRealSocketActive
 ) {
     if (activeConnectedEpoch > 0L) {
         var lastBytes = 0L
         while (true) {
             val currentBytes = runCatching {
-                val uid = Process.myUid()
-                val rx = TrafficStats.getUidRxBytes(uid)
-                val tx = TrafficStats.getUidTxBytes(uid)
-                val socketBytes = if (rx >= 0 && tx >= 0) rx + tx else 0L
+                val socketBytes = if (isRealSocketActive) {
+                    val uid = Process.myUid()
+                    val rx = TrafficStats.getUidRxBytes(uid)
+                    val tx = TrafficStats.getUidTxBytes(uid)
+                    if (rx >= 0 && tx >= 0) rx + tx else 0L
+                } else {
+                    0L
+                }
                 maxOf(socketBytes, bridgeBytes)
             }.getOrDefault(0L)
 

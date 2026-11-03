@@ -56,7 +56,8 @@ fun AdbTelemetryBentoGrid(
             val channelLabel = when {
                 isUsbConnected && isPaired -> "USB & Wi-Fi"
                 isUsbConnected -> "Cáp USB"
-                else -> "Không dây"
+                isPaired -> "Wi-Fi"
+                else -> "Chưa bật"
             }
             MetricBox(
                 icon = if (isUsbConnected && !isPaired) AppIcons.Usb else AppIcons.LinkWireless,
@@ -95,10 +96,15 @@ fun AdbTelemetryBentoGrid(
                 value = formatSpeedVi(telemetry.transferSpeedBps),
                 modifier = Modifier.weight(1f)
             )
+            val adbPortValue = when {
+                isPaired -> activePort.toString()
+                isUsbConnected -> "5555"
+                else -> "--"
+            }
             MetricBox(
                 icon = AppIcons.Terminal,
                 label = "CỔNG ADB",
-                value = if (isPaired) activePort.toString() else "5555",
+                value = adbPortValue,
                 modifier = Modifier.weight(1.1f)
             )
         }

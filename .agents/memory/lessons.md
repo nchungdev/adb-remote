@@ -22,3 +22,7 @@
 - If `check_project.py` sets `MAX_LINES = 350` or only matches `("*.kt", "*.py")`, files in Go/Web UI or files between 301 and 350 lines will silently bypass the hook.
 - `project_pro audit --fail-on-error` only fails on God-files > 450 LOC (issuing WARN for 301-450 LOC). To enforce strict <= 300 LOC, `check_project.py` must enforce `MAX_LINES = 300` across all source types (`.kt`, `.py`, `.go`, `.html`, `.js`, `.css`).
 
+
+## 2026-11-03: Suspended Snackbar Blocks Navigation
+- `showSnackbar` suspends until dismissal. `DashboardScreen` returns early for fullscreen pairing, so its SnackbarHost is absent and an existing message can wait indefinitely. Serial effect collection then blocks Settings/QR navigation even though the Settings intent works.
+- Process cancellable dashboard effects with `collectLatest`; regression-test navigation with a message callback that calls `awaitCancellation()`. Check the actual resumed Settings activity on debug and R8 release, not merely whether Settings appears anywhere in dumpsys.

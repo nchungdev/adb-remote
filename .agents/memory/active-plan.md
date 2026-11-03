@@ -15,3 +15,9 @@
 - [x] 4. Create `scripts/package_macos.sh` to build macOS `.app` bundle (`~/Applications/ADB Device Manager.app`).
 - [x] 5. Run tests (`go test ./...`, `./gradlew testDebugUnitTest`, `python3 scripts/check_project.py`).
 - [x] 6. Build and launch status bar app, verify menu items and dynamic room code generation (`XXX-XXX`).
+
+## 2026-11-03: Debugging Settings no-op (Codex)
+- [x] Reproduced on Samsung 0.5.50: watcher starts, no Settings navigation; direct official Settings intent works.
+- [x] Root cause: serial effect collection waits forever on showSnackbar while pairing screen has no SnackbarHost. Extracted collectDashboardEffects using collectLatest and removed duplicate permission prompt during navigation. Existing Settings fallback retained.
+- [x] Added 2 regression tests with an indefinitely suspended snackbar; Settings and QR navigation cancel it and run immediately.
+- [x] All 41 JVM tests, lintDebug, debug/R8 release builds, project gate and audit passed. Both APK variants opened actual DevelopmentSettingsActivity on emulator. Samsung reconnected via USB; exact fixed APK installed, button verified twice against actual Developer Options activity, installed hash matched. APK/evidence: workspace `_reports/adb-settings-fix-2026-11-03/`.
