@@ -23,14 +23,29 @@ type WebSocketUpgrader interface {
 }
 
 type Server struct {
-	devices   *usecase.DeviceService
-	tunnels   *usecase.TunnelService
-	ota       *usecase.OtaService
-	wsHub     WebSocketUpgrader
-	signaling http.Handler
-	qt        *quicktunnel.QuickTunnel
-	pairHub   *pairing.Hub
-	logger    *slog.Logger
+	devices    *usecase.DeviceService
+	tunnels    *usecase.TunnelService
+	ota        *usecase.OtaService
+	wsHub      WebSocketUpgrader
+	signaling  http.Handler
+	qt         *quicktunnel.QuickTunnel
+	pairHub    *pairing.Hub
+	paired     *pairedDevices
+	notifyPair func(deviceName, code string)
+	logger     *slog.Logger
+}
+
+// RouterOption configures optional router behaviour.
+type RouterOption func(*Server)
+
+// WithPairedDevicesFile persists approved devices across restarts.
+func WithPairedDevicesFile(path string) RouterOption {
+	return func(s *Server) { s.paired = newPairedDevices(path) }
+}
+
+// WithPairRequestNotifier alerts the host owner that a device awaits approval.
+func WithPairRequestNotifier(notify func(deviceName, code string)) RouterOption {
+	return func(s *Server) { s.notifyPair = notify }
 }
 
 func NewRouter(
@@ -41,6 +56,7 @@ func NewRouter(
 	signaling http.Handler,
 	qt *quicktunnel.QuickTunnel,
 	logger *slog.Logger,
+	opts ...RouterOption,
 ) http.Handler {
 	s := &Server{
 		devices:   devices,
@@ -50,7 +66,11 @@ func NewRouter(
 		signaling: signaling,
 		qt:        qt,
 		pairHub:   pairing.NewHub(3 * time.Minute),
+		paired:    newPairedDevices(""),
 		logger:    logger,
+	}
+	for _, opt := range opts {
+		opt(s)
 	}
 
 	mux := http.NewServeMux()
@@ -85,22 +105,22 @@ func NewRouter(
 	mux.HandleFunc("HEAD /adb-agent.apk", s.handleHeadApk)
 	mux.HandleFunc("GET /api/app-version", s.handleAppVersion)
 
-	mux.HandleFunc("GET /api/tunnel", s.handleTunnel)
-	mux.HandleFunc("/api/webrtc/signal", s.handleSignaling)
-	mux.HandleFunc("/api/signal", s.handleSignaling)
-	mux.HandleFunc("GET /api/devices", s.handleListDevices)
-	mux.HandleFunc("GET /api/screenshot", s.handleScreenshot)
-	mux.HandleFunc("GET /api/logcat", s.handleLogcat)
-	mux.HandleFunc("GET /api/mdns-scan", s.handleMdnsScan)
+	mux.HandleFunc("GET /api/tunnel", s.requireApprovedDevice(s.handleTunnel))
+	mux.HandleFunc("/api/webrtc/signal", s.requireApprovedDevice(s.handleSignaling))
+	mux.HandleFunc("/api/signal", s.requireApprovedDevice(s.handleSignaling))
+	mux.HandleFunc("GET /api/devices", s.blockUnapprovedTunnelClients(s.handleListDevices))
+	mux.HandleFunc("GET /api/screenshot", s.blockUnapprovedTunnelClients(s.handleScreenshot))
+	mux.HandleFunc("GET /api/logcat", s.blockUnapprovedTunnelClients(s.handleLogcat))
+	mux.HandleFunc("GET /api/mdns-scan", s.blockUnapprovedTunnelClients(s.handleMdnsScan))
 
-	mux.HandleFunc("POST /api/connect", s.handleConnect)
-	mux.HandleFunc("POST /api/disconnect", s.handleDisconnect)
-	mux.HandleFunc("POST /api/tcpip", s.handleTcpip)
-	mux.HandleFunc("POST /api/pair", s.handlePair)
+	mux.HandleFunc("POST /api/connect", s.blockUnapprovedTunnelClients(s.handleConnect))
+	mux.HandleFunc("POST /api/disconnect", s.blockUnapprovedTunnelClients(s.handleDisconnect))
+	mux.HandleFunc("POST /api/tcpip", s.blockUnapprovedTunnelClients(s.handleTcpip))
+	mux.HandleFunc("POST /api/pair", s.blockUnapprovedTunnelClients(s.handlePair))
 	mux.HandleFunc("POST /api/reboot", s.handleReboot)
 	mux.HandleFunc("POST /api/shell", s.handleShell)
 	mux.HandleFunc("POST /api/restart-server", s.handleRestartServer)
-	mux.HandleFunc("POST /api/clear-history", s.handleClearHistory)
+	mux.HandleFunc("POST /api/clear-history", s.blockUnapprovedTunnelClients(s.handleClearHistory))
 
 	return s.securityHeadersMiddleware(mux)
 }

@@ -5,7 +5,9 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -103,7 +105,9 @@ func main() {
 	mdnsAdv := zeroconfadv.Start("_adb-remote._tcp", port, logger)
 	defer mdnsAdv.Stop()
 
-	handler := httpctrl.NewRouter(deviceSvc, tunnelSvc, otaSvc, hub, sigHandler, qt, logger)
+	handler := httpctrl.NewRouter(deviceSvc, tunnelSvc, otaSvc, hub, sigHandler, qt, logger,
+		httpctrl.WithPairedDevicesFile(filepath.Join(cfg.DataDir, "paired_devices.json")),
+		httpctrl.WithPairRequestNotifier(notifyPairRequest))
 
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,
@@ -140,4 +144,17 @@ func main() {
 		os.Exit(1)
 	}
 	logger.Info("adb-device-manager stopped cleanly")
+}
+
+// notifyPairRequest shows a macOS notification: the phone waits on the host owner,
+// who may not have the dashboard open. Values go through argv, never into the script.
+func notifyPairRequest(deviceName, code string) {
+	if runtime.GOOS != "darwin" {
+		return
+	}
+	const script = `on run argv
+display notification (item 2 of argv) with title (item 1 of argv)
+end run`
+	_ = exec.Command("osascript", "-e", script, "Yêu cầu ghép nối thiết bị",
+		deviceName+" • Mã "+code+" • Mở Dashboard để duyệt").Run()
 }

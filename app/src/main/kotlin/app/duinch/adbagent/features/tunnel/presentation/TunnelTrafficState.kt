@@ -5,6 +5,7 @@ import android.os.Process
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.rememberUpdatedState
 import kotlinx.coroutines.delay
 
 @Composable
@@ -25,7 +26,9 @@ fun produceTunnelTrafficMetrics(
     activeConnectedEpoch: Long,
     bridgeBytes: Long,
     isRealSocketActive: Boolean = true
-): State<Pair<Long, Long>> = produceState(
+): State<Pair<Long, Long>> {
+    val latestBridgeBytes = rememberUpdatedState(bridgeBytes)
+    return produceState(
     initialValue = 0L to 0L,
     key1 = activeConnectedEpoch,
     key2 = isRealSocketActive
@@ -42,7 +45,7 @@ fun produceTunnelTrafficMetrics(
                 } else {
                     0L
                 }
-                maxOf(socketBytes, bridgeBytes)
+                maxOf(socketBytes, latestBridgeBytes.value)
             }.getOrDefault(0L)
 
             val speed = if (lastBytes > 0L && currentBytes >= lastBytes) currentBytes - lastBytes else 0L
@@ -53,4 +56,5 @@ fun produceTunnelTrafficMetrics(
     } else {
         value = 0L to 0L
     }
+}
 }

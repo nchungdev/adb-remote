@@ -20,7 +20,8 @@ class HttpTunnelSignalingChannel(
     private val signalUrl: String,
     private val room: String,
     private val peer: String,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val authToken: String = ""
 ) : TunnelSignalingChannel {
     private var pollJob: Job? = null
 
@@ -28,7 +29,7 @@ class HttpTunnelSignalingChannel(
         pollJob?.cancel()
         pollJob = scope.launch {
             while (isActive) {
-                val signal = client.pollSignal(signalUrl, room, peer).getOrNull()
+                val signal = client.pollSignal(signalUrl, room, peer, authToken).getOrNull()
                 if (signal != null) {
                     val type = signal.optString("type")
                     val payload = signal.optJSONObject("payload")
@@ -44,7 +45,7 @@ class HttpTunnelSignalingChannel(
     override fun sendOffer(sdp: String) {
         scope.launch {
             val offerObj = JSONObject().apply { put("sdp", sdp) }
-            client.sendSignal(signalUrl, room, peer, "offer", offerObj)
+            client.sendSignal(signalUrl, room, peer, "offer", offerObj, authToken)
         }
     }
 
@@ -55,7 +56,7 @@ class HttpTunnelSignalingChannel(
                 put("sdpMid", candidate.sdpMid)
                 put("sdpMLineIndex", candidate.sdpMLineIndex)
             }
-            client.sendSignal(signalUrl, room, peer, "candidate", candObj)
+            client.sendSignal(signalUrl, room, peer, "candidate", candObj, authToken)
         }
     }
 

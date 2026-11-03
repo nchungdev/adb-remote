@@ -44,8 +44,7 @@ fun TunnelHomeTab(
     var showAddSlotPicker by remember { mutableStateOf(false) }
 
     val usbEpoch = if (state.isUsbConnected) state.usbConnectedAtEpochMs else 0L
-    val serverEpoch = connected?.connectedAtEpochMs ?: 0L
-    val activeConnectedEpoch = maxOf(usbEpoch, serverEpoch)
+    val activeConnectedEpoch = usbEpoch
 
     val nowEpochMs by produceConnectedEpochNow(activeConnectedEpoch)
     val usbTrafficState by produceTunnelTrafficMetrics(
@@ -53,13 +52,7 @@ fun TunnelHomeTab(
         bridgeBytes = 0L,
         isRealSocketActive = state.isUsbConnected
     )
-    val isServerConnected = state.connectionState is TunnelConnectionState.Connected
     val isPaired = state.pairing.pairingState is AdbPairingState.PairedAndConnected
-    val serverTrafficState by produceTunnelTrafficMetrics(
-        activeConnectedEpoch = if (isServerConnected) serverEpoch else 0L,
-        bridgeBytes = connected?.bytesBridged ?: 0L,
-        isRealSocketActive = isServerConnected && isPaired
-    )
 
     val usbTelemetry = remember(state.isUsbConnected, state.usbConnectedAtEpochMs, state.usbHostName, nowEpochMs, usbTrafficState) {
         val uptimeSec = if (state.usbConnectedAtEpochMs > 0L && nowEpochMs > state.usbConnectedAtEpochMs) {
@@ -78,36 +71,13 @@ fun TunnelHomeTab(
         )
     }
 
-    val serverTelemetry = remember(state.connectionState, state.serverUrlInput, state.remoteRoomCode, state.primarySlotMode, state.serverPingMs, nowEpochMs, serverTrafficState, isPaired) {
-        val connState = when {
-            state.connectionState is TunnelConnectionState.Connecting ||
-                state.connectionState is TunnelConnectionState.Reconnecting -> RemoteConnectionState.Connecting
-            state.connectionState is TunnelConnectionState.Connected -> RemoteConnectionState.Connected
-            else -> RemoteConnectionState.Disconnected
-        }
-        val channel = when {
-            state.primarySlotMode == ConnectMode.Lan -> RemoteTransportChannel.LanWifi
-            state.serverUrlInput.contains("trycloudflare.com") -> RemoteTransportChannel.QuickTunnel
-            state.remoteRoomCode.isNotBlank() -> RemoteTransportChannel.WebRtcDirect
-            else -> RemoteTransportChannel.WebRtcDirect
-        }
-        val uptimeSec = if (serverEpoch > 0L && nowEpochMs > serverEpoch && connState == RemoteConnectionState.Connected) {
-            (nowEpochMs - serverEpoch) / 1000
-        } else {
-            0L
-        }
-        val actualPing = if (connState == RemoteConnectionState.Connected) state.serverPingMs ?: 3L else null
-        RemoteTelemetryData(
-            state = connState,
-            channel = channel,
-            host = state.serverUrlInput,
-            roomCode = state.remoteRoomCode,
-            pingMs = actualPing,
-            uptimeSec = uptimeSec,
-            bytesTransferred = if (connState == RemoteConnectionState.Connected && isPaired) serverTrafficState.first else 0L,
-            transferSpeedBps = if (connState == RemoteConnectionState.Connected && isPaired) serverTrafficState.second else 0L
-        )
-    }
+    val serverTelemetry = rememberServerSlotTelemetry(
+        connection = state.connectionState,
+        mode = state.primarySlotMode,
+        serverUrl = state.serverUrlInput,
+        roomCode = state.remoteRoomCode,
+        latencyMs = state.serverLatencyMs[state.serverUrlInput]
+    )
 
     val isWifiConnected = remember(state.activeNetwork, state.localWifiIp) {
         state.activeNetwork == NetworkType.WIFI || state.localWifiIp.isNotBlank()
@@ -172,7 +142,8 @@ fun TunnelHomeTab(
                                 isUsbConnected = false,
                                 isPaired = isPaired,
                                 activePort = activePort,
-                                telemetry = serverTelemetry
+                                telemetry = serverTelemetry,
+                                serverMappedPort = connected?.mappedServerPort
                             )
                         }
                     }
@@ -203,24 +174,13 @@ fun TunnelHomeTab(
         state.extraSlots.forEachIndexed { index, slot ->
             val slotNumber = if (showPrimarySlot) index + 2 else index + 1
             val slotTitle = if (!showPrimarySlot && state.extraSlots.size == 1) "Kết Nối Máy Chủ" else "Máy Chủ $slotNumber"
-            val slotConnState = when {
-                slot.connectionState is TunnelConnectionState.Connecting ||
-                    slot.connectionState is TunnelConnectionState.Reconnecting -> RemoteConnectionState.Connecting
-                slot.connectionState is TunnelConnectionState.Connected -> RemoteConnectionState.Connected
-                else -> RemoteConnectionState.Disconnected
-            }
-            val slotTelemetry = remember(slot.connectionState, slot.serverUrlInput, slot.remoteRoomCode, slot.mode) {
-                RemoteTelemetryData(
-                    state = slotConnState,
-                    channel = when {
-                        slot.mode == ConnectMode.Lan -> RemoteTransportChannel.LanWifi
-                        slot.serverUrlInput.contains("trycloudflare.com") -> RemoteTransportChannel.QuickTunnel
-                        else -> RemoteTransportChannel.WebRtcDirect
-                    },
-                    host = slot.serverUrlInput,
-                    roomCode = slot.remoteRoomCode
-                )
-            }
+            val slotTelemetry = rememberServerSlotTelemetry(
+                connection = slot.connectionState,
+                mode = slot.mode,
+                serverUrl = slot.serverUrlInput,
+                roomCode = slot.remoteRoomCode,
+                latencyMs = state.serverLatencyMs[slot.serverUrlInput]
+            )
             DualChannelConnectContent(
                 title = withStandbySuffix(slotTitle, slot.connectionState),
                 dedicatedMode = slot.mode,
@@ -240,7 +200,8 @@ fun TunnelHomeTab(
                                 isUsbConnected = false,
                                 isPaired = isPaired,
                                 activePort = activePort,
-                                telemetry = slotTelemetry
+                                telemetry = slotTelemetry,
+                                serverMappedPort = (slot.connectionState as? TunnelConnectionState.Connected)?.mappedServerPort
                             )
                         }
                     }

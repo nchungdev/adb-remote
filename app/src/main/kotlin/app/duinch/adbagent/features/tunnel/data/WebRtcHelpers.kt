@@ -5,6 +5,9 @@ import org.webrtc.PeerConnection
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 
+fun resolveServerBaseUrl(serverUrl: String): String =
+    resolveWebRtcSignalEndpoint(serverUrl).removeSuffix("/api/webrtc/signal")
+
 fun resolveWebRtcSignalEndpoint(serverUrl: String): String {
     var base = serverUrl.trim()
     if (base.startsWith("wss://")) base = "https://" + base.removePrefix("wss://")

@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 
 internal class DashboardSlotController(
     private val container: AppContainer,
+    private val approvals: DashboardServerApprovalController,
     private val scope: CoroutineScope,
     private val uiState: MutableStateFlow<DashboardUiState>,
     private val effects: MutableSharedFlow<DashboardUiEffect>
@@ -109,7 +110,7 @@ internal class DashboardSlotController(
             serverUrl = finalServer,
             remoteRoomCode = finalRoom
         )
-        scope.launch {
+        approvals.connectWhenApproved(finalServer, config.deviceAlias) {
             gw.connect(config).onFailure { err ->
                 effects.emit(DashboardUiEffect.ShowMessage(err.message ?: "Không thể bật kết nối phụ"))
             }

@@ -3,6 +3,7 @@ package app.duinch.adbagent.features.tunnel.data
 import android.content.Context
 import app.duinch.adbagent.core.model.NetworkType
 import app.duinch.adbagent.features.tunnel.application.ComputeReconnectBackoffUseCase
+import app.duinch.adbagent.features.tunnel.domain.DeviceSecretProvider
 import app.duinch.adbagent.features.tunnel.domain.HostActivityRepository
 import app.duinch.adbagent.features.tunnel.domain.ReverseTunnelGateway
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfig
@@ -33,7 +34,8 @@ class WebSocketReverseTunnelAdapter(
     context: Context,
     private val computeBackoff: ComputeReconnectBackoffUseCase,
     private val historyRepository: TunnelHistoryRepository,
-    private val hostActivityRepository: HostActivityRepository
+    private val hostActivityRepository: HostActivityRepository,
+    private val secrets: DeviceSecretProvider
 ) : ReverseTunnelGateway {
 
     private val appContext = context.applicationContext
@@ -112,6 +114,7 @@ class WebSocketReverseTunnelAdapter(
             .url(targetWsUrl)
             .addHeader("X-Device-Alias", config.deviceAlias.ifBlank { "android-device" })
             .addHeader("X-Local-Adb-Port", config.localAdbPort.toString())
+            .addHeader("Authorization", "Bearer ${secrets.deviceSecret()}")
             .build()
 
         activeWebSocket = httpClient.newWebSocket(request, object : WebSocketListener() {
@@ -121,6 +124,7 @@ class WebSocketReverseTunnelAdapter(
                 bytesBridged.set(0L)
                 val now = System.currentTimeMillis().also { connectedAtEpochMs = it }
                 val sid = UUID.randomUUID().toString().also { activeSessionId = it }
+                scope.publishBridgedBytes(bytesBridged, connectionState) { generation == sessionGeneration.get() }
                 historyRepository.recordSessionStarted(
                     TunnelHistoryEntry(
                         sessionId = sid,
@@ -159,6 +163,10 @@ class WebSocketReverseTunnelAdapter(
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 if (generation != sessionGeneration.get()) return
                 val code = response?.code
+                if (code == 401) {
+                    handleNotApproved()
+                    return
+                }
                 val reason = if (code != null) "Lỗi máy chủ ($code)" else (t.message ?: "Mất kết nối mạng")
                 handleConnectionLoss(reason)
             }
@@ -205,6 +213,15 @@ class WebSocketReverseTunnelAdapter(
             delay(backoff)
             currentConfig?.let { openWebSocketSession(it) }
         }
+    }
+
+    // Retrying cannot help until the host owner approves this device again.
+    private fun handleNotApproved() {
+        userWantsConnected.set(false)
+        reconnectJob?.cancel()
+        finishHistorySession("Thiết bị chưa được duyệt")
+        closeActiveSession()
+        connectionState.value = TunnelConnectionState.Error("Thiết bị chưa được máy chủ duyệt, hãy kết nối lại để ghép nối")
     }
 
     private fun finishHistorySession(reason: String) {

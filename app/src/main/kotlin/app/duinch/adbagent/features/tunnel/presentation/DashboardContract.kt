@@ -64,7 +64,8 @@ data class DashboardUiState(
     val primarySlotMode: ConnectMode = ConnectMode.Lan,
     val extraSlots: List<ServerConnectionSlot> = emptyList(),
     val discoveredServers: List<app.duinch.adbagent.features.pairing.domain.DiscoveredServer> = emptyList(),
-    val serverPingMs: Long? = null
+    val serverLatencyMs: Map<String, Long?> = emptyMap(),
+    val serverApprovalCode: String? = null
 ) {
     val isTunnelActive: Boolean
         get() = connectionState is TunnelConnectionState.Connected ||
@@ -99,6 +100,7 @@ sealed interface DashboardUiIntent {
     data class SelectThemeMode(val mode: String) : DashboardUiIntent
     data object SaveConfig : DashboardUiIntent
     data object ToggleTunnel : DashboardUiIntent
+    data object CancelServerApproval : DashboardUiIntent
     data object ToggleHistoryExpand : DashboardUiIntent
     data object ClearHistory : DashboardUiIntent
     data object ToggleHostCommandsExpand : DashboardUiIntent

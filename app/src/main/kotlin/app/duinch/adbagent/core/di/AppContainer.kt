@@ -64,18 +64,25 @@ class AppContainer(context: Context) {
 
     private val computeReconnectBackoff = ComputeReconnectBackoffUseCase()
 
+    private val deviceSecrets = app.duinch.adbagent.features.tunnel.data.SharedPrefsDeviceSecretProvider(appContext)
+
+    val serverApprovalGateway: app.duinch.adbagent.features.tunnel.domain.ServerApprovalGateway =
+        app.duinch.adbagent.features.tunnel.data.OkHttpServerApprovalAdapter(deviceSecrets)
+
     fun createReverseTunnelGateway(): ReverseTunnelGateway {
         val webRtc = WebRtcReverseTunnelAdapter(
             appContext,
             computeReconnectBackoff,
             tunnelHistoryRepository,
-            hostActivityRepository
+            hostActivityRepository,
+            deviceSecrets
         )
         val webSocket = WebSocketReverseTunnelAdapter(
             appContext,
             computeReconnectBackoff,
             tunnelHistoryRepository,
-            hostActivityRepository
+            hostActivityRepository,
+            deviceSecrets
         )
         return HybridReverseTunnelGateway(webRtc, webSocket)
     }

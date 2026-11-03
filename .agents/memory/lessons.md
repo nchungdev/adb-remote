@@ -35,3 +35,7 @@
 ## 2026-11-03: Quick Tunnel URL Is Printed Before It Resolves
 - cloudflared logs the trycloudflare URL ~1.5s before the DNS record exists. Any client resolving it then gets NXDOMAIN, and the OS caches that for 60s+ while 1.1.1.1 recovers instantly, so it looks like a slow or broken first start.
 - Publish only after "Registered tunnel connection" and a successful lookup against a public resolver. Polling through the system resolver would poison the very cache being protected.
+
+## 2026-11-03: Pairing UI Must Be Backed By The Server
+- A client-side approval dialog protects nothing: `/api/tunnel` and `/api/webrtc/signal` were open to anyone holding the public tunnel URL. Enforce on the server and test with a non-loopback `RemoteAddr`, since host-local requests bypass the gate. An emulator reaching the host through `10.0.2.2` also looks local, so test against the LAN IP.
+- Use a client-generated secret and store only its hash: the approval then survives URL changes, and no endpoint ever hands out a credential that polling could steal.

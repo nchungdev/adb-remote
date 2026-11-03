@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.duinch.adbagent.core.designsystem.AppIcons
 import app.duinch.remotetunnel.ui.RemoteTelemetryData
+import app.duinch.remotetunnel.ui.RemoteTransportChannel
+import app.duinch.remotetunnel.ui.RemoteConnectionState
 
 @Composable
 fun AdbTelemetryBentoGrid(
@@ -32,9 +34,10 @@ fun AdbTelemetryBentoGrid(
     isPaired: Boolean,
     activePort: Int,
     telemetry: RemoteTelemetryData,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    serverMappedPort: Int? = null
 ) {
-    val pingText = if (telemetry.pingMs != null) "${telemetry.pingMs}ms" else "<2ms"
+    val pingText = if (telemetry.pingMs != null) "${telemetry.pingMs}ms" else "--"
     val uptimeText = if (telemetry.uptimeSec > 0) {
         val h = telemetry.uptimeSec / 3600
         val m = (telemetry.uptimeSec % 3600) / 60
@@ -56,6 +59,12 @@ fun AdbTelemetryBentoGrid(
             val channelLabel = when {
                 isUsbConnected && isPaired -> "USB & Wi-Fi"
                 isUsbConnected -> "Cáp USB"
+                telemetry.state == RemoteConnectionState.Connected -> when (telemetry.channel) {
+                    RemoteTransportChannel.LanWifi -> "Wi-Fi"
+                    RemoteTransportChannel.QuickTunnel -> "Tunnel"
+                    RemoteTransportChannel.WebRtcDirect -> "P2P"
+                    else -> "Máy chủ"
+                }
                 isPaired -> "Wi-Fi"
                 else -> "Chưa bật"
             }
@@ -97,6 +106,7 @@ fun AdbTelemetryBentoGrid(
                 modifier = Modifier.weight(1f)
             )
             val adbPortValue = when {
+                serverMappedPort != null -> serverMappedPort.toString()
                 isPaired -> activePort.toString()
                 isUsbConnected -> "5555"
                 else -> "--"

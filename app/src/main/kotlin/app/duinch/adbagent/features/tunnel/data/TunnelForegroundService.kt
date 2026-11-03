@@ -22,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 class TunnelForegroundService : Service() {
@@ -115,7 +116,10 @@ class TunnelForegroundService : Service() {
             combine(
                 container.reverseTunnelGateway.observeConnectionState(),
                 container.reverseTunnelGateway.observeActiveNetwork()
-            ) { conn, net -> conn to net }.collect { (conn, net) ->
+            ) { conn, net ->
+                // Byte counters tick every second; the notification does not show them.
+                ((conn as? TunnelConnectionState.Connected)?.copy(bytesBridged = 0L) ?: conn) to net
+            }.distinctUntilChanged().collect { (conn, net) ->
                 updateWifiLock(conn is TunnelConnectionState.Connected)
                 val ip = container.reverseTunnelGateway.getLocalWifiIp().orEmpty()
                 val port = container.tunnelConfigRepository.getConfig().localAdbPort

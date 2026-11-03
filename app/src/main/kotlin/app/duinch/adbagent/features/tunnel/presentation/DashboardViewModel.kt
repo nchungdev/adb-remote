@@ -38,8 +38,16 @@ class DashboardViewModel(
         onSaveConfig = { saveCurrentConfig(silent = true) }
     )
 
+    private val approvalController = DashboardServerApprovalController(
+        gateway = container.serverApprovalGateway,
+        scope = viewModelScope,
+        uiState = _uiState,
+        effects = _effects
+    )
+
     private val slotController = DashboardSlotController(
         container = container,
+        approvals = approvalController,
         scope = viewModelScope,
         uiState = _uiState,
         effects = _effects
@@ -64,6 +72,7 @@ class DashboardViewModel(
         when (intent) {
             DashboardUiIntent.SaveConfig -> saveCurrentConfig()
             DashboardUiIntent.ToggleTunnel -> toggleTunnel()
+            DashboardUiIntent.CancelServerApproval -> approvalController.cancel()
             DashboardUiIntent.ToggleHistoryExpand -> _uiState.update { it.copy(showAllHistory = !it.showAllHistory) }
             DashboardUiIntent.ClearHistory -> {
                 container.clearTunnelHistory()
@@ -164,15 +173,7 @@ class DashboardViewModel(
     private fun observeFlows() {
         viewModelScope.launch {
             container.reverseTunnelGateway.observeConnectionState().collect { conn ->
-                val prevConn = _uiState.value.connectionState
                 _uiState.update { it.copy(connectionState = conn) }
-                if (prevConn !is TunnelConnectionState.Connected && conn is TunnelConnectionState.Connected) {
-                    val isPaired = _uiState.value.pairing.pairingState is AdbPairingState.PairedAndConnected
-                    if (!isPaired && !_uiState.value.isUsbConnected) {
-                        _uiState.update { it.copy(forceShowPairing = true) }
-                        _effects.emit(DashboardUiEffect.ShowMessage("Đã nối máy chủ! Hãy ghép đôi ADB không dây để sử dụng."))
-                    }
-                }
             }
         }
         viewModelScope.launch {
@@ -182,11 +183,7 @@ class DashboardViewModel(
                 _uiState.update { it.copy(activeNetwork = net, localWifiIp = ip, currentWifiSsid = ssid) }
             }
         }
-        viewModelScope.launch {
-            container.reverseTunnelGateway.observePingMs().collect { ping ->
-                _uiState.update { it.copy(serverPingMs = ping) }
-            }
-        }
+        viewModelScope.launchLatencyProbes(container.serverApprovalGateway, _uiState)
         viewModelScope.launch {
             container.reverseTunnelGateway.observeUsbConnected().collect { usb ->
                 val now = System.currentTimeMillis()
@@ -272,10 +269,14 @@ class DashboardViewModel(
 
     private fun toggleTunnel() {
         val draft = buildDraftConfig(_uiState.value)
-        viewModelScope.launch {
-            container.toggleReverseTunnel(draft).onFailure { err ->
-                _effects.emit(DashboardUiEffect.ShowMessage(err.message ?: "Không thể bật đường hầm"))
-            }
+        val toggle: suspend () -> Unit = {
+            container.toggleReverseTunnel(draft).onFailure { _effects.emit(DashboardUiEffect.ShowMessage(it.message ?: "Không thể bật đường hầm")) }
+        }
+        val current = _uiState.value.connectionState
+        if (current is TunnelConnectionState.Disconnected || current is TunnelConnectionState.Error) {
+            approvalController.connectWhenApproved(draft.serverUrl, draft.deviceAlias, toggle)
+        } else {
+            viewModelScope.launch { toggle() }
         }
     }
 

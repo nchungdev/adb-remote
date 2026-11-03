@@ -147,67 +147,6 @@ func (s *Server) handleRemoteQrPng(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(png)
 }
 
-func (s *Server) handlePairRequest(w http.ResponseWriter, r *http.Request) {
-	clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
-	if clientIP == "" {
-		clientIP = r.RemoteAddr
-	}
-	if !s.pairHub.CheckRateLimit(clientIP) {
-		http.Error(w, "Too many pairing requests: rate limit exceeded", http.StatusTooManyRequests)
-		return
-	}
-	var req struct {
-		DeviceID   string `json:"device_id"`
-		DeviceName string `json:"device_name"`
-		Code       string `json:"code"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
-		return
-	}
-	if req.DeviceID == "" {
-		req.DeviceID = "android-device"
-	}
-	res := s.pairHub.SubmitRequest(req.DeviceID, req.DeviceName, req.Code)
-	if res == nil {
-		http.Error(w, "Too many pending requests in queue", http.StatusTooManyRequests)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"status": "pending"})
-}
-
-func (s *Server) handlePairPending(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	pending := s.pairHub.GetPending()
-	_ = json.NewEncoder(w).Encode(pending)
-}
-
-func (s *Server) handlePairConfirm(w http.ResponseWriter, r *http.Request) {
-	if !pairing.IsLoopbackRequest(r) {
-		http.Error(w, "Forbidden: pairing confirmation must originate on host machine", http.StatusForbidden)
-		return
-	}
-	var req struct {
-		DeviceID string `json:"device_id"`
-		Approved bool   `json:"approved"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
-		return
-	}
-	s.pairHub.Confirm(req.DeviceID, req.Approved)
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
-}
-
-func (s *Server) handlePairCheck(w http.ResponseWriter, r *http.Request) {
-	deviceID := r.URL.Query().Get("device_id")
-	status := s.pairHub.CheckStatus(deviceID)
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"status": status})
-}
-
 func (s *Server) handleRemoteRequestEnable(w http.ResponseWriter, r *http.Request) {
 	clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
 	if clientIP == "" {

@@ -3,6 +3,7 @@ package app.duinch.adbagent.features.tunnel.data
 import android.content.Context
 import app.duinch.adbagent.core.model.NetworkType
 import app.duinch.adbagent.features.tunnel.application.ComputeReconnectBackoffUseCase
+import app.duinch.adbagent.features.tunnel.domain.DeviceSecretProvider
 import app.duinch.adbagent.features.tunnel.domain.HostActivityRepository
 import app.duinch.adbagent.features.tunnel.domain.ReverseTunnelGateway
 import app.duinch.adbagent.features.tunnel.domain.TunnelConfig
@@ -35,6 +36,7 @@ class WebRtcReverseTunnelAdapter(
     private val computeBackoff: ComputeReconnectBackoffUseCase,
     private val historyRepository: TunnelHistoryRepository,
     private val hostActivityRepository: HostActivityRepository,
+    private val secrets: DeviceSecretProvider,
     private val signalingClient: WebRtcSignalingClient = WebRtcSignalingClient()
 ) : ReverseTunnelGateway {
 
@@ -116,7 +118,7 @@ class WebRtcReverseTunnelAdapter(
         val peer = config.deviceAlias.ifBlank { "android-device" } + "~" + connectionId
 
         val signalUrl = resolveWebRtcSignalEndpoint(config.serverUrl)
-        val sc: TunnelSignalingChannel = HttpTunnelSignalingChannel(signalingClient, signalUrl, room, peer, scope)
+        val sc: TunnelSignalingChannel = HttpTunnelSignalingChannel(signalingClient, signalUrl, room, peer, scope, secrets.deviceSecret())
         signalingChannel = sc
 
         val pc = factory.createPeerConnection(buildTunnelRtcConfiguration(), object : SimplePeerConnectionObserver() {
@@ -156,6 +158,7 @@ class WebRtcReverseTunnelAdapter(
                     bytesBridged.set(0L)
                     val now = System.currentTimeMillis().also { connectedAtEpochMs = it }
                     val sid = UUID.randomUUID().toString().also { activeSessionId = it }
+                    scope.publishBridgedBytes(bytesBridged, connectionState) { generation == sessionGeneration.get() }
                     historyRepository.recordSessionStarted(
                         TunnelHistoryEntry(
                             sessionId = sid,

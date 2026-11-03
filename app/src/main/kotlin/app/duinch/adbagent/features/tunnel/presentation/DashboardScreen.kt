@@ -55,6 +55,10 @@ fun DashboardScreen(
         return
     }
 
+    state.serverApprovalCode?.let { code ->
+        ServerApprovalDialog(code = code, onCancel = { onIntent(DashboardUiIntent.CancelServerApproval) })
+    }
+
     val hasUpdateDot = updaterState.status is UpdateStatus.Available ||
         updaterState.status is UpdateStatus.ReadyToInstall
 
