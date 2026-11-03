@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import app.duinch.adbagent.core.di.AppContainer
+import app.duinch.adbagent.core.model.NetworkType
 import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
 import app.duinch.adbagent.features.termux.presentation.TermuxUiIntent
@@ -99,7 +100,6 @@ class DashboardViewModel(
                         hasPrimarySlot = true,
                         primarySlotMode = ConnectMode.Lan,
                         serverUrlInput = intent.server.address,
-                        selectedMode = AdbConnectionMode.LAN,
                         selectedTab = AppTab.CONNECT
                     )
                 }
@@ -109,32 +109,16 @@ class DashboardViewModel(
             is DashboardUiIntent.ApplyQrRemoteConfig -> {
                 val targetSlotId = slotController.pendingQrSlotId
                 slotController.pendingQrSlotId = null
-                if (targetSlotId != null) {
-                    slotController.connectSlot(targetSlotId, intent.roomCode, intent.serverUrl.orEmpty())
-                } else {
-                    val (finalServer, finalRoom) = resolveQrRemoteTarget(intent, _uiState.value.serverUrlInput, _uiState.value.remoteRoomCode)
-                    val inferredMode = if (finalServer.contains("trycloudflare.com") || (finalRoom.isNotBlank() && finalRoom != "default" && finalServer.isBlank())) {
-                        app.duinch.remotetunnel.ui.ConnectMode.Remote
-                    } else {
-                        app.duinch.remotetunnel.ui.ConnectMode.Lan
-                    }
-                    _uiState.update {
-                        it.copy(
-                            hasPrimarySlot = true,
-                            primarySlotMode = inferredMode,
-                            remoteRoomCode = finalRoom,
-                            serverUrlInput = finalServer,
-                            selectedTab = AppTab.CONNECT
-                        )
-                    }
-                    saveCurrentConfig(silent = true)
-                    toggleTunnel()
+                viewModelScope.launch {
+                    val isOnWifi = _uiState.value.activeNetwork == NetworkType.WIFI
+                    val server = chooseReachableServer(container.serverApprovalGateway, isOnWifi, intent.serverUrl, intent.fallbackServerUrl)
+                    if (targetSlotId != null) slotController.connectSlot(targetSlotId, server) else connectPrimary(server)
                 }
             }
             is DashboardUiIntent.AddConnectionSlot -> slotController.addSlot(intent.mode)
             DashboardUiIntent.RemovePrimarySlot -> slotController.removePrimarySlot { saveCurrentConfig(silent = true) }
             is DashboardUiIntent.RemoveConnectionSlot -> slotController.removeSlot(intent.slotId)
-            is DashboardUiIntent.ConnectExtraSlot -> slotController.connectSlot(intent.slotId, intent.roomCode, intent.serverUrl)
+            is DashboardUiIntent.ConnectExtraSlot -> slotController.connectSlot(intent.slotId, intent.serverUrl)
             is DashboardUiIntent.DisconnectExtraSlot -> slotController.disconnectSlot(intent.slotId)
             is DashboardUiIntent.OnServerRemoteTunnelPushed -> {
                 _uiState.update { cur ->
@@ -142,7 +126,6 @@ class DashboardViewModel(
                         usbHostName = intent.hostName.ifBlank { cur.usbHostName },
                         serverQuickTunnelUrl = if (intent.active) intent.url else "",
                         isServerRemoteActive = intent.active,
-                        remoteRoomCode = if (intent.active && intent.roomCode.isNotBlank()) intent.roomCode else cur.remoteRoomCode,
                         serverUrlInput = if (intent.active && intent.url.isNotBlank()) intent.url else cur.serverUrlInput
                     )
                 }
@@ -265,6 +248,19 @@ class DashboardViewModel(
             onSuccess = { if (!silent) _effects.tryEmit(DashboardUiEffect.ShowMessage("Đã lưu cấu hình đường hầm")) },
             onFailure = { err -> if (!silent) _effects.tryEmit(DashboardUiEffect.ShowMessage(err.message ?: "Lỗi")) }
         )
+    }
+
+    private fun connectPrimary(server: String) {
+        _uiState.update {
+            it.copy(
+                hasPrimarySlot = true,
+                primarySlotMode = if (server.contains("trycloudflare.com")) ConnectMode.Remote else ConnectMode.Lan,
+                serverUrlInput = server,
+                selectedTab = AppTab.CONNECT
+            )
+        }
+        saveCurrentConfig(silent = true)
+        toggleTunnel()
     }
 
     private fun toggleTunnel() {

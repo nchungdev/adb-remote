@@ -27,8 +27,7 @@ internal class DashboardSlotController(
             uiState.update { cur ->
                 cur.copy(
                     hasPrimarySlot = true,
-                    primarySlotMode = mode,
-                    selectedMode = if (mode == ConnectMode.Lan) AdbConnectionMode.LAN else AdbConnectionMode.REMOTE
+                    primarySlotMode = mode
                 )
             }
             return
@@ -43,7 +42,6 @@ internal class DashboardSlotController(
                 extraSlots = cur.extraSlots + ServerConnectionSlot(
                     id = slotId,
                     mode = mode,
-                    remoteRoomCode = "",
                     serverUrlInput = ""
                 )
             )
@@ -69,8 +67,7 @@ internal class DashboardSlotController(
         uiState.update { cur ->
             cur.copy(
                 hasPrimarySlot = false,
-                serverUrlInput = "",
-                remoteRoomCode = ""
+                serverUrlInput = ""
             )
         }
         onSaveEmptyConfig()
@@ -87,30 +84,18 @@ internal class DashboardSlotController(
         }
     }
 
-    fun connectSlot(slotId: String, roomCode: String, serverUrl: String) {
-        val currentSlot = uiState.value.extraSlots.find { it.id == slotId } ?: return
-        val (finalServer, finalRoom) = resolveQrRemoteTarget(
-            DashboardUiIntent.ApplyQrRemoteConfig(roomCode = roomCode, serverUrl = serverUrl),
-            currentSlot.serverUrlInput,
-            currentSlot.remoteRoomCode
-        )
+    fun connectSlot(slotId: String, serverUrl: String) {
+        if (uiState.value.extraSlots.none { it.id == slotId }) return
         uiState.update { cur ->
             cur.copy(
                 extraSlots = cur.extraSlots.map { slot ->
-                    if (slot.id == slotId) {
-                        slot.copy(serverUrlInput = finalServer, remoteRoomCode = finalRoom)
-                    } else {
-                        slot
-                    }
+                    if (slot.id == slotId) slot.copy(serverUrlInput = serverUrl) else slot
                 }
             )
         }
         val gw = slotGateways[slotId] ?: return
-        val config = buildDraftConfig(uiState.value).copy(
-            serverUrl = finalServer,
-            remoteRoomCode = finalRoom
-        )
-        approvals.connectWhenApproved(finalServer, config.deviceAlias) {
+        val config = buildDraftConfig(uiState.value).copy(serverUrl = serverUrl)
+        approvals.connectWhenApproved(serverUrl, config.deviceAlias) {
             gw.connect(config).onFailure { err ->
                 effects.emit(DashboardUiEffect.ShowMessage(err.message ?: "Không thể bật kết nối phụ"))
             }

@@ -11,12 +11,11 @@ import (
 )
 
 type DeviceService struct {
-	adb            AdbRunner
-	tunnels        TunnelInspector
-	auditor        CommandAuditor
-	history        HistoryRepository
-	mu             sync.RWMutex
-	roomCode       string
+	adb             AdbRunner
+	tunnels         TunnelInspector
+	auditor         CommandAuditor
+	history         HistoryRepository
+	mu              sync.RWMutex
 	remoteActive    bool
 	activeRemoteDev string
 	lastTunnelURL   string

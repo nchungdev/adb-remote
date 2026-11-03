@@ -29,36 +29,6 @@ async function confirmPair(approved) {
   loadDevices();
 }
 
-let pendingRemoteDev = null;
-async function checkRemoteRequests() {
-  try {
-    const res = await fetch('/api/remote/pending-requests');
-    if (!res.ok) return;
-    const list = await res.json();
-    const prompt = document.getElementById('remotePrompt');
-    if (list && list.length > 0) {
-      pendingRemoteDev = list[0].device_id;
-      document.getElementById('remotePromptDev').textContent = list[0].device_name || list[0].device_id;
-      prompt.style.display = 'flex';
-    } else {
-      prompt.style.display = 'none';
-    }
-  } catch(e) {}
-}
-
-async function approveRemoteRequest(approved) {
-  if (!pendingRemoteDev) return;
-  await fetch('/api/remote/approve-request', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({device_id: pendingRemoteDev, approved: approved})
-  });
-  document.getElementById('remotePrompt').style.display = 'none';
-  pendingRemoteDev = null;
-  checkTunnelStatus();
-}
-
-let isTunnelActive = false;
 async function checkTunnelStatus() {
   try {
     const res = await fetch('/api/remote/status');
@@ -87,9 +57,7 @@ async function toggleQuickTunnel() {
 }
 
 checkPairing();
-checkRemoteRequests();
 checkTunnelStatus();
 
 setInterval(checkPairing, 2000);
-setInterval(checkRemoteRequests, 2500);
 setInterval(checkTunnelStatus, 3000);

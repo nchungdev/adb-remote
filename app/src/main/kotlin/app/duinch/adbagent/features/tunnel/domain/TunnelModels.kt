@@ -6,11 +6,7 @@ data class TunnelConfig(
     val serverUrl: String = DEFAULT_TUNNEL_URL,
     val deviceAlias: String = "Android-Device",
     val localAdbPort: Int = 5555,
-    val autoReconnectOnNetworkChange: Boolean = true,
-    val trustedHomeSsid: String = "",
-    val autoSwitchOnHomeWifi: Boolean = true,
     val runInBackground: Boolean = true,
-    val remoteRoomCode: String = "",
     val notifyConnectionChange: Boolean = true,
     val themeMode: String = "system"
 ) {

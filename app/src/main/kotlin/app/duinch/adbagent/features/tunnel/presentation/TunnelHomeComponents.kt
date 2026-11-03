@@ -19,43 +19,6 @@ import androidx.compose.ui.unit.dp
 import app.duinch.adbagent.core.designsystem.AdbTheme
 
 @Composable
-internal fun TelemetryTile(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    monospace: Boolean = false
-) {
-    Surface(
-        modifier = modifier.height(62.dp),
-        color = AdbTheme.colors.surfaceElevated,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = if (monospace) FontFamily.Monospace else null,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Composable
 fun MetricMiniBox(
     title: String,
     value: String,

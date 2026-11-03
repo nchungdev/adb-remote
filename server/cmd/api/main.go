@@ -73,7 +73,6 @@ func main() {
 	cmdTracker := tracker.NewCommandTracker()
 	cmdTracker.SetBroadcast(hub.BroadcastCommand)
 
-	roomCode := tray.LoadOrGenerateRoomCode(cfg.DataDir)
 	sigHub := signaling.NewMessageHub()
 	sigHandler := signaling.NewHTTPHandler(sigHub, "")
 	rtcHub := tunnel.NewWebRtcHub(hub, sigHub, []string{"stun:stun.l.google.com:19302"}, logger)
@@ -81,14 +80,10 @@ func main() {
 	appCtx, appCancel := context.WithCancel(context.Background())
 	defer appCancel()
 
-	// Start local room and persistent room code
 	_ = rtcHub.Start(appCtx, "default")
-	normRoom := strings.ReplaceAll(roomCode, "-", "")
-	_ = rtcHub.Start(appCtx, normRoom)
 
 	deviceSvc := usecase.NewDeviceService(adbRunner, hub, cmdTracker)
 	deviceSvc.SetHistory(historyStore)
-	deviceSvc.SetRoomCode(roomCode)
 	tunnelSvc := usecase.NewTunnelService(hub, historyStore)
 	otaSvc := usecase.NewOtaService(otaStore)
 
@@ -115,7 +110,7 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	ctrl := newServerController(port, cfg.ListenAddr, roomCode, adbRunner, handler, rtcHub, hub, deviceSvc, logger, qt, appCancel)
+	ctrl := newServerController(port, cfg.ListenAddr, adbRunner, handler, rtcHub, hub, deviceSvc, logger, qt, appCancel)
 	ctrl.SetServer(srv)
 
 	// If on macOS and not in headless mode: run native menu bar tray

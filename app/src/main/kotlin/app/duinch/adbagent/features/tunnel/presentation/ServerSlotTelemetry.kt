@@ -14,7 +14,6 @@ internal fun rememberServerSlotTelemetry(
     connection: TunnelConnectionState,
     mode: ConnectMode,
     serverUrl: String,
-    roomCode: String,
     latencyMs: Long?
 ): RemoteTelemetryData {
     val connected = connection as? TunnelConnectionState.Connected
@@ -37,7 +36,6 @@ internal fun rememberServerSlotTelemetry(
             else -> RemoteTransportChannel.WebRtcDirect
         },
         host = serverUrl,
-        roomCode = roomCode,
         pingMs = latencyMs.takeIf { connected != null },
         uptimeSec = if (connectedAt > 0L) ((now - connectedAt) / 1000).coerceAtLeast(0L) else 0L,
         bytesTransferred = if (connected != null) traffic.first else 0L,

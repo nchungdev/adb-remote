@@ -114,7 +114,7 @@ class WebRtcReverseTunnelAdapter(
         connectionState.value = TunnelConnectionState.Connecting(config.serverUrl)
         val generation = sessionGeneration.get()
 
-        val room = config.remoteRoomCode.takeIf { it.isNotBlank() }?.replace("-", "")?.trim() ?: "default"
+        val room = "default"
         val peer = config.deviceAlias.ifBlank { "android-device" } + "~" + connectionId
 
         val signalUrl = resolveWebRtcSignalEndpoint(config.serverUrl)

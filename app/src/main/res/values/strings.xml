@@ -54,15 +54,11 @@
 
     <string name="settings_p2p_title">Kết nối Máy tính (P2P WebRTC)</string>
     <string name="settings_p2p_unset">Chưa đặt URL</string>
-    <string name="settings_home_wifi_title">Ưu tiên Wi-Fi nội bộ</string>
-    <string name="settings_home_wifi_off">Tắt (luôn duy trì P2P WebRTC)</string>
     <string name="settings_wireless_pairing_title">Ghép đôi không dây</string>
     <string name="settings_wireless_pairing_sub">Ghép đôi cổng ADB nội bộ trên thiết bị</string>
 
     <string name="settings_run_in_background_title">Duy trì chạy ngầm</string>
     <string name="settings_run_in_background_sub">Giữ tiến trình trên thông báo để nhận lệnh liên tục</string>
-    <string name="settings_auto_reconnect_title">Tự động kết nối lại</string>
-    <string name="settings_auto_reconnect_sub">Duy trì kết nối ngầm khi mạng thay đổi (Backoff)</string>
     <string name="settings_termux_title">Embedded Termux Console</string>
     <string name="settings_termux_sub">Mở shell nội bộ &amp; chẩn đoán ADB trên máy</string>
 

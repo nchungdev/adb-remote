@@ -108,13 +108,11 @@ class MainActivity : ComponentActivity() {
                         override fun onReceive(context: Context?, intent: Intent?) {
                             if (intent?.action == ACTION_REMOTE_TUNNEL_STATE) {
                                 val url = intent.getStringExtra("url").orEmpty()
-                                val room = intent.getStringExtra("room").orEmpty()
                                 val active = intent.getBooleanExtra("active", false)
                                 val host = intent.getStringExtra("host").orEmpty()
                                 dashboardVm.onIntent(
                                     DashboardUiIntent.OnServerRemoteTunnelPushed(
                                         url = url,
-                                        roomCode = room,
                                         active = active,
                                         hostName = host
                                     )
@@ -196,22 +194,15 @@ class MainActivity : ComponentActivity() {
             .addOnSuccessListener { barcode ->
                 val raw = barcode.rawValue.orEmpty()
                 val parsed = app.duinch.remotetunnel.parser.RemoteQrPayloadParser.parse(raw)
-                if (parsed != null) {
-                    val room = parsed.roomCode.orEmpty()
-                    val targetServer = parsed.lan?.takeIf { it.isNotBlank() } ?: parsed.url
+                val lan = parsed?.lan?.takeIf { it.isNotBlank() }
+                val url = parsed?.url?.takeIf { it.isNotBlank() }
+                val server = lan ?: url
+                if (server != null) {
                     dashboardVm.onIntent(
-                        DashboardUiIntent.ApplyQrRemoteConfig(
-                            roomCode = room,
-                            serverUrl = targetServer
-                        )
+                        DashboardUiIntent.ApplyQrRemoteConfig(serverUrl = server, fallbackServerUrl = url.takeIf { lan != null })
                     )
-                } else if (raw.isNotBlank()) {
-                    dashboardVm.onIntent(
-                        DashboardUiIntent.ApplyQrRemoteConfig(
-                            roomCode = raw.trim(),
-                            serverUrl = null
-                        )
-                    )
+                } else {
+                    android.widget.Toast.makeText(this, "Mã QR không phải của máy chủ ADB Remote", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
     }

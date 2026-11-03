@@ -75,7 +75,6 @@ fun TunnelHomeTab(
         connection = state.connectionState,
         mode = state.primarySlotMode,
         serverUrl = state.serverUrlInput,
-        roomCode = state.remoteRoomCode,
         latencyMs = state.serverLatencyMs[state.serverUrlInput]
     )
 
@@ -118,14 +117,15 @@ fun TunnelHomeTab(
                 title = withStandbySuffix(if (state.extraSlots.isNotEmpty()) "Máy Chủ 1" else "Kết Nối Máy Chủ", state.connectionState),
                 dedicatedMode = state.primarySlotMode,
                 initialLanAddress = state.serverUrlInput,
-                initialRemoteTarget = state.remoteRoomCode,
+                initialRemoteTarget = state.serverUrlInput,
+                remotePlaceholder = REMOTE_URL_PLACEHOLDER,
                 telemetry = serverTelemetry,
                 isUsbConnected = state.isUsbConnected,
                 isWifiConnected = isWifiConnected,
                 serverRemoteUrl = state.serverQuickTunnelUrl,
                 isServerRemoteActive = state.isServerRemoteActive,
-                recentTunnels = remember(state.serverQuickTunnelUrl, state.serverUrlInput, state.recentTunnelUrls) {
-                    (state.recentTunnelUrls + listOf(state.serverQuickTunnelUrl, state.serverUrlInput))
+                recentTunnels = remember(state.serverQuickTunnelUrl, state.serverUrlInput) {
+                    (listOf(state.serverQuickTunnelUrl, state.serverUrlInput))
                         .filter { it.isNotBlank() && (it.contains("trycloudflare.com") || it.startsWith("http")) }
                         .distinct()
                         .take(3)
@@ -150,19 +150,13 @@ fun TunnelHomeTab(
                 },
                 onClose = { onIntent(DashboardUiIntent.RemovePrimarySlot) },
                 onConnect = { lan, remote ->
-                    val isUrl = remote.startsWith("http://") || remote.startsWith("https://") || remote.contains("trycloudflare.com")
                     val targetServer = when {
                         lan.isNotBlank() -> lan
-                        isUrl -> remote
+                        remote.isNotBlank() -> remote
                         state.serverQuickTunnelUrl.isNotBlank() -> state.serverQuickTunnelUrl
                         else -> state.serverUrlInput
                     }
-                    val targetRoom = when {
-                        !isUrl && remote.isNotBlank() -> remote
-                        state.remoteRoomCode.isNotBlank() -> state.remoteRoomCode
-                        else -> "default"
-                    }
-                    onIntent(DashboardUiIntent.ApplyQrRemoteConfig(roomCode = targetRoom, serverUrl = targetServer))
+                    onIntent(DashboardUiIntent.ApplyQrRemoteConfig(serverUrl = targetServer))
                 },
                 onDisconnect = { onIntent(DashboardUiIntent.ToggleTunnel) },
                 onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) },
@@ -178,14 +172,14 @@ fun TunnelHomeTab(
                 connection = slot.connectionState,
                 mode = slot.mode,
                 serverUrl = slot.serverUrlInput,
-                roomCode = slot.remoteRoomCode,
                 latencyMs = state.serverLatencyMs[slot.serverUrlInput]
             )
             DualChannelConnectContent(
                 title = withStandbySuffix(slotTitle, slot.connectionState),
                 dedicatedMode = slot.mode,
                 initialLanAddress = slot.serverUrlInput,
-                initialRemoteTarget = slot.remoteRoomCode,
+                initialRemoteTarget = slot.serverUrlInput,
+                remotePlaceholder = REMOTE_URL_PLACEHOLDER,
                 telemetry = slotTelemetry,
                 isWifiConnected = isWifiConnected,
                 adbStatusContent = {
@@ -208,10 +202,7 @@ fun TunnelHomeTab(
                 },
                 onClose = { onIntent(DashboardUiIntent.RemoveConnectionSlot(slot.id)) },
                 onConnect = { lan, remote ->
-                    val isUrl = remote.startsWith("http://") || remote.startsWith("https://") || remote.contains("trycloudflare.com")
-                    val targetServer = if (lan.isNotBlank()) lan else if (isUrl) remote else ""
-                    val targetRoom = if (!isUrl && remote.isNotBlank()) remote else "default"
-                    onIntent(DashboardUiIntent.ConnectExtraSlot(slot.id, targetRoom, targetServer))
+                    onIntent(DashboardUiIntent.ConnectExtraSlot(slot.id, lan.ifBlank { remote }))
                 },
                 onDisconnect = { onIntent(DashboardUiIntent.DisconnectExtraSlot(slot.id)) },
                 onScanQr = { onIntent(DashboardUiIntent.ScanQrForSlot(slot.id)) },
@@ -256,3 +247,5 @@ fun TunnelHomeTabPreview() {
         )
     }
 }
+
+private const val REMOTE_URL_PLACEHOLDER = "Dán URL Cloudflare của máy chủ"

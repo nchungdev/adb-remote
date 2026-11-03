@@ -39,3 +39,7 @@
 ## 2026-11-03: Pairing UI Must Be Backed By The Server
 - A client-side approval dialog protects nothing: `/api/tunnel` and `/api/webrtc/signal` were open to anyone holding the public tunnel URL. Enforce on the server and test with a non-loopback `RemoteAddr`, since host-local requests bypass the gate. An emulator reaching the host through `10.0.2.2` also looks local, so test against the LAN IP.
 - Use a client-generated secret and store only its hash: the approval then survives URL changes, and no endpoint ever hands out a credential that polling could steal.
+
+## 2026-11-03: Check That Settings And Addresses Are Actually Consumed
+- Saved settings can look alive while nothing reads them: auto reconnect and home Wi-Fi only round-tripped through prefs and UI. Grep for readers outside the settings path before trusting a toggle.
+- A QR carrying both LAN and tunnel addresses must not assume LAN: it only works on the host's network. Use the tunnel unless the device is on Wi-Fi and the LAN address answers.

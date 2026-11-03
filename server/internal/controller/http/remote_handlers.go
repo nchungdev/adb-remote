@@ -26,7 +26,6 @@ func getLANIPAddress() string {
 }
 
 type RemoteStateProvider interface {
-	GetRoomCode() string
 	IsRemoteActive() bool
 	SetRemoteActive(active bool)
 	GetActiveDevice() string
@@ -53,7 +52,6 @@ func extractPort(r *http.Request) string {
 
 func (s *Server) handleRemoteStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	room := s.devices.GetRoomCode()
 	dev := s.devices.GetActiveRemoteDevice()
 	lan := fmt.Sprintf("%s:%s", getLANIPAddress(), extractPort(r))
 
@@ -70,7 +68,6 @@ func (s *Server) handleRemoteStatus(w http.ResponseWriter, r *http.Request) {
 		"active":           active,
 		"url":              url,
 		"lan":              lan,
-		"room":             room,
 		"hostname":         hostName,
 		"connected_device": dev,
 	})
@@ -94,14 +91,14 @@ func (s *Server) handleRemoteToggle(w http.ResponseWriter, r *http.Request) {
 		}
 		s.devices.SetRemoteActive(true)
 		if err == nil {
-			s.devices.BroadcastRemoteTunnelState(r.Context(), url, s.devices.GetRoomCode(), true)
+			s.devices.BroadcastRemoteTunnelState(r.Context(), url, true)
 		}
 	} else {
 		if s.qt != nil {
 			_ = s.qt.Stop()
 		}
 		s.devices.SetRemoteActive(false)
-		s.devices.BroadcastRemoteTunnelState(r.Context(), "", s.devices.GetRoomCode(), false)
+		s.devices.BroadcastRemoteTunnelState(r.Context(), "", false)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -123,14 +120,13 @@ func (s *Server) handleRemoteToggle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRemoteQrPng(w http.ResponseWriter, r *http.Request) {
-	room := s.devices.GetRoomCode()
 	url := ""
 	if s.qt != nil {
 		url = s.qt.GetURL()
 	}
 	lan := fmt.Sprintf("%s:%s", getLANIPAddress(), extractPort(r))
 
-	payload, err := pairing.BuildPairingJSON("adb-remote", url, "", room, lan)
+	payload, err := pairing.BuildPairingJSON("adb-remote", url, "", "", lan)
 	if err != nil {
 		http.Error(w, "Failed to encode QR payload", http.StatusInternalServerError)
 		return
@@ -145,88 +141,4 @@ func (s *Server) handleRemoteQrPng(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	_, _ = w.Write(png)
-}
-
-func (s *Server) handleRemoteRequestEnable(w http.ResponseWriter, r *http.Request) {
-	clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
-	if clientIP == "" {
-		clientIP = r.RemoteAddr
-	}
-	if !s.pairHub.CheckRateLimit(clientIP) {
-		http.Error(w, "Too many pairing requests: rate limit exceeded", http.StatusTooManyRequests)
-		return
-	}
-	var req struct {
-		DeviceID   string `json:"device_id"`
-		DeviceName string `json:"device_name"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
-		return
-	}
-	if req.DeviceID == "" {
-		req.DeviceID = "android-device"
-	}
-	res := s.pairHub.SubmitRemoteTunnelRequest(req.DeviceID, req.DeviceName)
-	if res == nil {
-		http.Error(w, "Too many pending requests in queue", http.StatusTooManyRequests)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"status": "pending"})
-}
-
-func (s *Server) handleRemotePendingRequests(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	pending := s.pairHub.GetPendingRemoteTunnelRequests()
-	_ = json.NewEncoder(w).Encode(pending)
-}
-
-func (s *Server) handleRemoteApproveRequest(w http.ResponseWriter, r *http.Request) {
-	if !pairing.IsLoopbackRequest(r) {
-		http.Error(w, "Forbidden: remote tunnel approval must originate on host machine", http.StatusForbidden)
-		return
-	}
-	var req struct {
-		DeviceID string `json:"device_id"`
-		Approved bool   `json:"approved"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
-		return
-	}
-
-	url := ""
-	room := s.devices.GetRoomCode()
-	if req.Approved {
-		if s.qt != nil && !s.qt.IsActive() {
-			ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
-			defer cancel()
-			url, _ = s.qt.Start(ctx)
-		} else if s.qt != nil {
-			url = s.qt.GetURL()
-		}
-		s.devices.SetRemoteActive(true)
-		s.devices.BroadcastRemoteTunnelState(r.Context(), url, room, true)
-	}
-
-	s.pairHub.ConfirmRemoteTunnelRequest(req.DeviceID, req.Approved, url, room)
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"status": "ok",
-		"active": req.Approved,
-		"url":    url,
-		"room":   room,
-	})
-}
-
-func (s *Server) handleRemoteRequestStatus(w http.ResponseWriter, r *http.Request) {
-	deviceID := r.URL.Query().Get("device_id")
-	status, url, room := s.pairHub.CheckRemoteTunnelStatus(deviceID)
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"status": status,
-		"url":    url,
-		"room":   room,
-	})
 }

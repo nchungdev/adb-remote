@@ -95,15 +95,6 @@ p.subtitle { font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px; l
     </div>
   </div>
 
-  <div id="remotePrompt" class="pair-card" style="display:none;background:rgba(56,189,248,0.12);border-color:rgba(56,189,248,0.4);">
-    <div style="font-size:13px;font-weight:700;color:#38bdf8;">☁️ Yêu Cầu Mở Quick Tunnel Từ Xa</div>
-    <div id="remotePromptDev" style="font-size:12px;color:var(--text-muted);margin:3px 0;"></div>
-    <div style="font-size:12px;color:#cbd5e1;margin-bottom:8px;">Thiết bị yêu cầu mở Quick Tunnel để truy cập từ xa.</div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="approveRemoteRequest(true)" class="action-btn" style="flex:1;padding:8px;background:#38bdf8;color:#090d16;">Đồng Ý & Mở</button>
-      <button onclick="approveRemoteRequest(false)" class="action-btn stop-btn" style="flex:1;padding:8px;">Từ Chối</button>
-    </div>
-  </div>
 
   <h1>ADB Remote Pairing</h1>
   <p class="subtitle">Quét mã QR trên điện thoại hoặc nhập mã P2P để kết nối tức thì.</p>
@@ -113,11 +104,6 @@ p.subtitle { font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px; l
   </div>
 
   <div class="code-deck">
-    <span style="font-size:12px;color:var(--text-muted);">P2P Room Code:</span>
-    <span class="code-val" id="roomCodeDisplay">--- ---</span>
-    <button class="copy-btn" id="copyBtn">Copy</button>
-  </div>
-  <div class="code-deck" style="margin-top:-6px;">
     <span style="font-size:12px;color:var(--text-muted);">Wi-Fi LAN:</span>
     <span class="code-val" id="lanDisplay" style="font-size:13px;letter-spacing:0;">192.168.x.x:8080</span>
     <button class="copy-btn" id="copyLanBtn">Copy</button>
@@ -132,10 +118,8 @@ let isActive = true;
 let pendingDev = null;
 const statusBadge = document.getElementById('statusBadge');
 const statusText = document.getElementById('statusText');
-const roomDisplay = document.getElementById('roomCodeDisplay');
 const lanDisplay = document.getElementById('lanDisplay');
 const toggleBtn = document.getElementById('toggleBtn');
-const copyBtn = document.getElementById('copyBtn');
 const copyLanBtn = document.getElementById('copyLanBtn');
 const qrContainer = document.getElementById('qrContainer');
 const qrImage = document.getElementById('qrImage');
@@ -146,7 +130,6 @@ async function fetchStatus() {
     if (!res.ok) return;
     const data = await res.json();
     isActive = data.active;
-    roomDisplay.textContent = data.room || '--- ---';
     if (data.lan) lanDisplay.textContent = data.lan;
 
     if (!isActive) {
@@ -199,34 +182,6 @@ async function confirmPair(approved) {
   pendingDev = null;
 }
 
-let pendingRemoteDev = null;
-async function checkRemoteRequests() {
-  try {
-    const res = await fetch('/api/remote/pending-requests');
-    if (!res.ok) return;
-    const list = await res.json();
-    const prompt = document.getElementById('remotePrompt');
-    if (list && list.length > 0) {
-      pendingRemoteDev = list[0].device_id;
-      document.getElementById('remotePromptDev').textContent = 'Thiết bị: ' + (list[0].device_name || list[0].device_id);
-      prompt.style.display = 'block';
-    } else {
-      prompt.style.display = 'none';
-    }
-  } catch(e) {}
-}
-
-async function approveRemoteRequest(approved) {
-  if (!pendingRemoteDev) return;
-  await fetch('/api/remote/approve-request', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({device_id: pendingRemoteDev, approved: approved})
-  });
-  document.getElementById('remotePrompt').style.display = 'none';
-  pendingRemoteDev = null;
-  await fetchStatus();
-}
 
 toggleBtn.addEventListener('click', async () => {
   const nextState = !isActive;
@@ -235,15 +190,6 @@ toggleBtn.addEventListener('click', async () => {
     qrImage.src = '/api/remote/qr.png?t=' + Date.now();
     await fetchStatus();
   } catch (err) {}
-});
-
-copyBtn.addEventListener('click', () => {
-  const code = roomDisplay.textContent.trim();
-  if (code && code !== '--- ---') {
-    navigator.clipboard.writeText(code);
-    copyBtn.textContent = 'Copied!';
-    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
-  }
 });
 
 copyLanBtn.addEventListener('click', () => {
@@ -257,8 +203,7 @@ copyLanBtn.addEventListener('click', () => {
 
 fetchStatus();
 checkPairing();
-checkRemoteRequests();
-setInterval(() => { fetchStatus(); checkPairing(); checkRemoteRequests(); }, 2000);
+setInterval(() => { fetchStatus(); checkPairing(); }, 2000);
 </script>
 </body>
 </html>

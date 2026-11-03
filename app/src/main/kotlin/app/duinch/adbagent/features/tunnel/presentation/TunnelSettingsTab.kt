@@ -36,7 +36,6 @@ fun TunnelSettingsTab(
     val ext = AdbTheme.colors
     val dim = AdbTheme.dimens
     var showP2PSheet by rememberSaveable { mutableStateOf(false) }
-    var showHomeWifiSheet by rememberSaveable { mutableStateOf(false) }
     var showThemeSheet by rememberSaveable { mutableStateOf(false) }
 
     if (showP2PSheet) {
@@ -44,14 +43,6 @@ fun TunnelSettingsTab(
             state = state,
             onIntent = onIntent,
             onDismiss = { showP2PSheet = false }
-        )
-    }
-
-    if (showHomeWifiSheet) {
-        HomeWifiConfigSheet(
-            state = state,
-            onIntent = onIntent,
-            onDismiss = { showHomeWifiSheet = false }
         )
     }
 
@@ -90,18 +81,6 @@ fun TunnelSettingsTab(
 
                     SettingsNavigationRow(
                         icon = AppIcons.LinkWireless,
-                        title = stringResource(R.string.settings_home_wifi_title),
-                        subtitle = if (state.autoSwitchOnHomeWifi) {
-                            if (state.trustedHomeSsidInput.isNotBlank()) "SSID: ${state.trustedHomeSsidInput}"
-                            else "Đang bật • Chưa đặt SSID"
-                        } else stringResource(R.string.settings_home_wifi_off),
-                        onClick = { showHomeWifiSheet = true }
-                    )
-
-                    HorizontalDivider(color = ext.cardBorder, thickness = 0.5.dp)
-
-                    SettingsNavigationRow(
-                        icon = AppIcons.LinkWireless,
                         title = stringResource(R.string.settings_wireless_pairing_title),
                         subtitle = stringResource(R.string.settings_wireless_pairing_sub),
                         onClick = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
@@ -131,16 +110,6 @@ fun TunnelSettingsTab(
                         subtitle = stringResource(R.string.settings_run_in_background_sub),
                         checked = state.runInBackground,
                         onCheckedChange = { onIntent(DashboardUiIntent.ToggleRunInBackground(it)) }
-                    )
-
-                    HorizontalDivider(color = ext.cardBorder, thickness = 0.5.dp)
-
-                    SettingsSwitchRow(
-                        icon = AppIcons.Refresh,
-                        title = stringResource(R.string.settings_auto_reconnect_title),
-                        subtitle = stringResource(R.string.settings_auto_reconnect_sub),
-                        checked = state.autoReconnect,
-                        onCheckedChange = { onIntent(DashboardUiIntent.ToggleAutoReconnect(it)) }
                     )
 
                     HorizontalDivider(color = ext.cardBorder, thickness = 0.5.dp)

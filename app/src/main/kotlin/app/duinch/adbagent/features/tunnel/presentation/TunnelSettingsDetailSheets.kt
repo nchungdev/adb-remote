@@ -86,16 +86,6 @@ fun P2PConfigSheet(
             )
 
             OutlinedTextField(
-                value = state.remoteRoomCode,
-                onValueChange = { onIntent(DashboardUiIntent.UpdateRemoteRoomCode(it)) },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Mã phòng Remote P2P (từ máy tính)") },
-                placeholder = { Text("Ví dụ: 123-456") },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                singleLine = true
-            )
-
-            OutlinedTextField(
                 value = state.deviceAliasInput,
                 onValueChange = { onIntent(DashboardUiIntent.UpdateDeviceAlias(it)) },
                 modifier = Modifier.fillMaxWidth(),
@@ -130,107 +120,6 @@ fun P2PConfigSheet(
                     .heightIn(min = 48.dp)
             ) {
                 Text("Lưu cấu hình")
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun HomeWifiConfigSheet(
-    state: DashboardUiState,
-    onIntent: (DashboardUiIntent) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val ext = AdbTheme.colors
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .navigationBarsPadding()
-                .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                text = "Ưu tiên Wi-Fi nội bộ",
-                style = MaterialTheme.typography.titleLarge
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Tự đổi sang nội bộ khi ở Wi-Fi nhà",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        text = "Ưu tiên mạng LAN trực tiếp (ping < 2ms, không tốn data)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = state.autoSwitchOnHomeWifi,
-                    onCheckedChange = { onIntent(DashboardUiIntent.ToggleAutoSwitchHomeWifi(it)) }
-                )
-            }
-
-            if (state.autoSwitchOnHomeWifi) {
-                OutlinedTextField(
-                    value = state.trustedHomeSsidInput,
-                    onValueChange = { onIntent(DashboardUiIntent.UpdateTrustedHomeSsid(it)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Tên Wi-Fi nhà (SSID)") },
-                    placeholder = { Text("Nhập chính xác SSID Wi-Fi nhà") },
-                    singleLine = true
-                )
-
-                OutlinedButton(
-                    onClick = { onIntent(DashboardUiIntent.UseCurrentWifiAsHome) },
-                    enabled = state.currentWifiSsid.isNotBlank(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                ) {
-                    Icon(AppIcons.LinkWireless, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        if (state.currentWifiSsid.isNotBlank()) "Lấy tên Wi-Fi hiện tại: \"${state.currentWifiSsid}\""
-                        else "Chưa kết nối mạng Wi-Fi nào"
-                    )
-                }
-
-                if (state.currentWifiSsid.isNotBlank()) {
-                    Text(
-                        text = if (state.isAtHomeWifi) "Đang kết nối đúng Wi-Fi nhà: ${state.currentWifiSsid}"
-                        else "Wi-Fi hiện tại: ${state.currentWifiSsid}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (state.isAtHomeWifi) ext.statusConnected else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Button(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-            ) {
-                Text("Xong")
             }
 
             Spacer(modifier = Modifier.height(12.dp))

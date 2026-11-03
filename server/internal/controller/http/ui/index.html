@@ -52,7 +52,7 @@
       </button>
       <a class="nav-item" href="/remote" target="_blank">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-        <span>Mã QR & P2P Room</span>
+        <span>Mã QR</span>
       </a>
       <button class="nav-item" onclick="openPairModal()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -126,10 +126,6 @@
         <div id="pairPrompt" class="prompt-banner" style="display:none;">
           <div class="prompt-body"><span class="prompt-title">🔔 Yêu Cầu Ghép Nối Mới</span><span id="pairDev" class="prompt-dev"></span><span id="pairCode" class="prompt-code font-mono">--- ---</span></div>
           <div class="prompt-actions"><button onclick="confirmPair(true)" class="btn btn-sm btn-emerald">Cho Phép</button><button onclick="confirmPair(false)" class="btn btn-sm btn-danger">Từ Chối</button></div>
-        </div>
-        <div id="remotePrompt" class="prompt-banner remote" style="display:none;">
-          <div class="prompt-body"><span class="prompt-title" style="color:var(--accent);">☁️ Yêu Cầu Mở Quick Tunnel Từ Xa</span><span id="remotePromptDev" class="prompt-dev"></span><span style="font-size:12px;color:#94a3b8;">Thiết bị yêu cầu mở Cloudflare Quick Tunnel.</span></div>
-          <div class="prompt-actions"><button onclick="approveRemoteRequest(true)" class="btn btn-sm btn-cyan">Đồng Ý & Mở</button><button onclick="approveRemoteRequest(false)" class="btn btn-sm btn-danger">Từ Chối</button></div>
         </div>
 
         <!-- Compact KPI Strip -->

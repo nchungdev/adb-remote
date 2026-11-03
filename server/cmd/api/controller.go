@@ -15,7 +15,6 @@ import (
 
 type serverController struct {
 	port       int
-	roomCode   string
 	adbRunner  *adb.CLIRunner
 	handler    http.Handler
 	listenAddr string
@@ -34,7 +33,6 @@ type serverController struct {
 func newServerController(
 	port int,
 	listenAddr string,
-	roomCode string,
 	adbRunner *adb.CLIRunner,
 	handler http.Handler,
 	rtcHub *tunnel.WebRtcHub,
@@ -47,7 +45,6 @@ func newServerController(
 	return &serverController{
 		port:       port,
 		listenAddr: listenAddr,
-		roomCode:   roomCode,
 		adbRunner:  adbRunner,
 		handler:    handler,
 		rtcHub:     rtcHub,
@@ -71,10 +68,6 @@ func (s *serverController) GetPort() int {
 	return s.port
 }
 
-func (s *serverController) GetRoomCode() string {
-	return s.roomCode
-}
-
 func (s *serverController) IsRemoteActive() bool {
 	return s.deviceSvc.IsRemoteActive()
 }
@@ -86,7 +79,7 @@ func (s *serverController) StartRemote() error {
 		defer cancel()
 		url, err := s.qt.Start(ctx)
 		if err == nil {
-			s.deviceSvc.BroadcastRemoteTunnelState(context.Background(), url, s.GetRoomCode(), true)
+			s.deviceSvc.BroadcastRemoteTunnelState(context.Background(), url, true)
 		}
 		return err
 	}
@@ -94,7 +87,7 @@ func (s *serverController) StartRemote() error {
 	if s.qt != nil {
 		url = s.qt.GetURL()
 	}
-	s.deviceSvc.BroadcastRemoteTunnelState(context.Background(), url, s.GetRoomCode(), true)
+	s.deviceSvc.BroadcastRemoteTunnelState(context.Background(), url, true)
 	return nil
 }
 
@@ -106,7 +99,7 @@ func (s *serverController) StopRemote() error {
 	if s.rtcHub != nil {
 		s.rtcHub.CloseAll()
 	}
-	s.deviceSvc.BroadcastRemoteTunnelState(context.Background(), "", s.GetRoomCode(), false)
+	s.deviceSvc.BroadcastRemoteTunnelState(context.Background(), "", false)
 	return nil
 }
 

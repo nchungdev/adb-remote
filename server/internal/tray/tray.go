@@ -14,7 +14,6 @@ var trayIconBytes []byte
 
 type ServerController interface {
 	GetPort() int
-	GetRoomCode() string
 	GetTunnelURL() string
 	IsRemoteActive() bool
 	StartRemote() error
@@ -44,7 +43,6 @@ func (t *TrayManager) onReady() {
 	systray.SetTooltip("ADB Device Manager")
 
 	port := t.ctrl.GetPort()
-	roomCode := t.ctrl.GetRoomCode()
 
 	// Status Header
 	mStatus := systray.AddMenuItem(fmt.Sprintf("● Server Running (:%d)", port), "Server Status")
@@ -61,7 +59,6 @@ func (t *TrayManager) onReady() {
 	// Quick Copy & Tunnel actions
 	mToggleTunnel := systray.AddMenuItem("⚡ Start Cloudflare Tunnel", "Start on-demand Cloudflare Quick Tunnel")
 	mTunnel := systray.AddMenuItem("Copy Cloudflare URL", "Copy ephemeral public URL")
-	mRoom := systray.AddMenuItem(fmt.Sprintf("Copy P2P Code (%s)", roomCode), "Copy WebRTC P2P Room Code")
 	lanIP := getLocalLANIP()
 	mLAN := systray.AddMenuItem(fmt.Sprintf("Copy LAN Address (%s)", lanIP), "Copy local HTTP/WebSocket URL")
 
@@ -133,9 +130,6 @@ func (t *TrayManager) onReady() {
 				if url != "" {
 					copyToClipboard(url)
 				}
-
-			case <-mRoom.ClickedCh:
-				copyToClipboard(roomCode)
 
 			case <-mLAN.ClickedCh:
 				lanURL := fmt.Sprintf("http://%s:%d", lanIP, port)

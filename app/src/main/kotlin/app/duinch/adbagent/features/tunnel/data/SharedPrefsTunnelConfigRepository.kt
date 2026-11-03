@@ -15,35 +15,22 @@ class SharedPrefsTunnelConfigRepository(
     override fun getConfig(): TunnelConfig {
         val defaultAlias = "${Build.MANUFACTURER}-${Build.MODEL}".replace(" ", "-")
         val rawUrl = KeystoreCipher.decrypt(prefs.getString(KEY_SERVER_URL, "") ?: "")
-        val rawSsid = KeystoreCipher.decrypt(prefs.getString(KEY_TRUSTED_HOME_SSID, "") ?: "")
-        val rawRoom = KeystoreCipher.decrypt(prefs.getString(KEY_REMOTE_ROOM_CODE, "") ?: "")
         return TunnelConfig(
             serverUrl = rawUrl,
             deviceAlias = prefs.getString(KEY_DEVICE_ALIAS, defaultAlias) ?: defaultAlias,
             localAdbPort = prefs.getInt(KEY_LOCAL_PORT, 5555),
-            autoReconnectOnNetworkChange = prefs.getBoolean(KEY_AUTO_RECONNECT, true),
-            trustedHomeSsid = rawSsid,
-            autoSwitchOnHomeWifi = prefs.getBoolean(KEY_AUTO_SWITCH_HOME_WIFI, true),
             runInBackground = prefs.getBoolean(KEY_RUN_IN_BACKGROUND, true),
-            remoteRoomCode = rawRoom.let {
-                if (it.contains("://") || it.contains("trycloudflare.com")) "" else it
-            },
             notifyConnectionChange = prefs.getBoolean(KEY_NOTIFY_CONNECTION_CHANGE, true),
             themeMode = prefs.getString(KEY_THEME_MODE, "system") ?: "system"
         )
     }
 
     override fun saveConfig(config: TunnelConfig) {
-        val cleanRoom = if (config.remoteRoomCode.contains("://") || config.remoteRoomCode.contains("trycloudflare.com")) "" else config.remoteRoomCode
         prefs.edit()
             .putString(KEY_SERVER_URL, KeystoreCipher.encrypt(config.serverUrl))
             .putString(KEY_DEVICE_ALIAS, config.deviceAlias)
             .putInt(KEY_LOCAL_PORT, config.localAdbPort)
-            .putBoolean(KEY_AUTO_RECONNECT, config.autoReconnectOnNetworkChange)
-            .putString(KEY_TRUSTED_HOME_SSID, KeystoreCipher.encrypt(config.trustedHomeSsid))
-            .putBoolean(KEY_AUTO_SWITCH_HOME_WIFI, config.autoSwitchOnHomeWifi)
             .putBoolean(KEY_RUN_IN_BACKGROUND, config.runInBackground)
-            .putString(KEY_REMOTE_ROOM_CODE, KeystoreCipher.encrypt(cleanRoom))
             .putBoolean(KEY_NOTIFY_CONNECTION_CHANGE, config.notifyConnectionChange)
             .putString(KEY_THEME_MODE, config.themeMode)
             .apply()
@@ -60,11 +47,7 @@ class SharedPrefsTunnelConfigRepository(
         private const val KEY_SERVER_URL = "server_url"
         private const val KEY_DEVICE_ALIAS = "device_alias"
         private const val KEY_LOCAL_PORT = "local_adb_port"
-        private const val KEY_AUTO_RECONNECT = "auto_reconnect"
-        private const val KEY_TRUSTED_HOME_SSID = "trusted_home_ssid"
-        private const val KEY_AUTO_SWITCH_HOME_WIFI = "auto_switch_home_wifi"
         private const val KEY_RUN_IN_BACKGROUND = "run_in_background"
-        private const val KEY_REMOTE_ROOM_CODE = "remote_room_code"
         private const val KEY_NOTIFY_CONNECTION_CHANGE = "notify_connection_change"
         private const val KEY_THEME_MODE = "app_theme_mode"
         private const val KEY_HAS_SEEN_ONBOARDING = "has_seen_onboarding_guide"

@@ -162,29 +162,6 @@ class TunnelUseCasesTest {
     }
 
     @Test
-    fun `isAtHomeWifi correctly identifies home Wi-Fi network and respects autoSwitch toggle`() {
-        val stateAtHome = app.duinch.adbagent.features.tunnel.presentation.DashboardUiState(
-            activeNetwork = NetworkType.WIFI,
-            currentWifiSsid = "Chung Home 5G",
-            trustedHomeSsidInput = "Chung Home 5G",
-            autoSwitchOnHomeWifi = true
-        )
-        assertTrue(stateAtHome.isAtHomeWifi)
-
-        val stateCaseInsensitive = stateAtHome.copy(trustedHomeSsidInput = "chung home 5g")
-        assertTrue(stateCaseInsensitive.isAtHomeWifi)
-
-        val stateDisabled = stateAtHome.copy(autoSwitchOnHomeWifi = false)
-        assertFalse(stateDisabled.isAtHomeWifi)
-
-        val stateOtherWifi = stateAtHome.copy(currentWifiSsid = "Coffee-Free-Wifi")
-        assertFalse(stateOtherWifi.isAtHomeWifi)
-
-        val stateCellular = stateAtHome.copy(activeNetwork = NetworkType.CELLULAR)
-        assertFalse(stateCellular.isAtHomeWifi)
-    }
-
-    @Test
     fun `tunnel config preserves runInBackground flag and defaults to true`() {
         val config = TunnelConfig()
         assertTrue(config.runInBackground)

@@ -71,28 +71,6 @@ func (s *DeviceService) RestartServer(ctx context.Context) error {
 	return err
 }
 
-func (s *DeviceService) SetRoomCode(code string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.roomCode = code
-}
-
-func (s *DeviceService) GetRoomCode() string {
-	s.mu.RLock()
-	code := s.roomCode
-	s.mu.RUnlock()
-	if code == "" {
-		s.mu.Lock()
-		if s.roomCode == "" {
-			now := time.Now().UnixNano()
-			s.roomCode = fmt.Sprintf("%03d-%03d", 100+(now%900), 100+((now/900)%900))
-		}
-		code = s.roomCode
-		s.mu.Unlock()
-	}
-	return code
-}
-
 func (s *DeviceService) SetRemoteActive(active bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -111,7 +89,7 @@ func (s *DeviceService) GetLastTunnelURL() string {
 	return s.lastTunnelURL
 }
 
-func (s *DeviceService) BroadcastRemoteTunnelState(ctx context.Context, tunnelURL, roomCode string, active bool) {
+func (s *DeviceService) BroadcastRemoteTunnelState(ctx context.Context, tunnelURL string, active bool) {
 	s.mu.Lock()
 	s.lastTunnelURL = tunnelURL
 	s.remoteActive = active
@@ -139,8 +117,8 @@ func (s *DeviceService) BroadcastRemoteTunnelState(ctx context.Context, tunnelUR
 			if active {
 				activeFlag = "true"
 			}
-			cmd := fmt.Sprintf("am broadcast -a app.duinch.adbagent.ACTION_REMOTE_TUNNEL_STATE --es url %q --es room %q --ez active %s --es host %q",
-				tunnelURL, roomCode, activeFlag, hostName)
+			cmd := fmt.Sprintf("am broadcast -a app.duinch.adbagent.ACTION_REMOTE_TUNNEL_STATE --es url %q --ez active %s --es host %q",
+				tunnelURL, activeFlag, hostName)
 			_, _ = s.adb.RunShell(bctx, serial, cmd)
 		}(d.Serial)
 	}

@@ -15,17 +15,10 @@ enum class AppTab(val title: String) {
     SETTINGS("Cài đặt")
 }
 
-enum class AdbConnectionMode(val label: String) {
-    USB("Cáp USB"),
-    LAN("Mạng nội bộ"),
-    REMOTE("Mạng từ xa")
-}
-
 data class ServerConnectionSlot(
     val id: String,
     val mode: ConnectMode = ConnectMode.Remote,
     val serverUrlInput: String = "",
-    val remoteRoomCode: String = "",
     val connectionState: TunnelConnectionState = TunnelConnectionState.Disconnected
 )
 
@@ -34,15 +27,11 @@ data class DashboardUiState(
     val serverUrlInput: String = "",
     val deviceAliasInput: String = "",
     val localAdbPortInput: String = "5555",
-    val autoReconnect: Boolean = true,
     val runInBackground: Boolean = true,
-    val trustedHomeSsidInput: String = "",
-    val autoSwitchOnHomeWifi: Boolean = true,
     val currentWifiSsid: String = "",
     val activeNetwork: NetworkType = NetworkType.UNKNOWN,
     val localWifiIp: String = "",
     val isUsbConnected: Boolean = false,
-    val selectedMode: AdbConnectionMode = AdbConnectionMode.REMOTE,
     val forceShowPairing: Boolean = false,
     val connectionState: TunnelConnectionState = TunnelConnectionState.Disconnected,
     val history: List<TunnelHistoryEntry> = emptyList(),
@@ -51,10 +40,8 @@ data class DashboardUiState(
     val showAllHostCommands: Boolean = false,
     val pairing: PairingUiState = PairingUiState(),
     val termux: TermuxUiState = TermuxUiState(),
-    val remoteRoomCode: String = "",
     val serverQuickTunnelUrl: String = "",
     val isServerRemoteActive: Boolean = false,
-    val recentTunnelUrls: List<String> = emptyList(),
     val usbConnectedAtEpochMs: Long = 0L,
     val usbHostName: String = "",
     val activeOnboardingStep: OnboardingStep? = null,
@@ -77,25 +64,14 @@ data class DashboardUiState(
                     it.connectionState is TunnelConnectionState.Reconnecting
             }
 
-    val isAtHomeWifi: Boolean
-        get() = autoSwitchOnHomeWifi &&
-            activeNetwork == NetworkType.WIFI &&
-            trustedHomeSsidInput.isNotBlank() &&
-            currentWifiSsid.equals(trustedHomeSsidInput.trim(), ignoreCase = true)
 }
 
 sealed interface DashboardUiIntent {
     data class SelectTab(val tab: AppTab) : DashboardUiIntent
-    data class SelectConnectionMode(val mode: AdbConnectionMode) : DashboardUiIntent
     data class UpdateServerUrl(val value: String) : DashboardUiIntent
-    data class UpdateRemoteRoomCode(val value: String) : DashboardUiIntent
     data class UpdateDeviceAlias(val value: String) : DashboardUiIntent
     data class UpdateLocalAdbPort(val value: String) : DashboardUiIntent
-    data class ToggleAutoReconnect(val enabled: Boolean) : DashboardUiIntent
     data class ToggleRunInBackground(val enabled: Boolean) : DashboardUiIntent
-    data class UpdateTrustedHomeSsid(val value: String) : DashboardUiIntent
-    data class ToggleAutoSwitchHomeWifi(val enabled: Boolean) : DashboardUiIntent
-    data object UseCurrentWifiAsHome : DashboardUiIntent
     data class ToggleNotifyConnectionChange(val enabled: Boolean) : DashboardUiIntent
     data class SelectThemeMode(val mode: String) : DashboardUiIntent
     data object SaveConfig : DashboardUiIntent
@@ -107,8 +83,8 @@ sealed interface DashboardUiIntent {
     data object ClearHostCommands : DashboardUiIntent
     data class SetForceShowPairing(val force: Boolean) : DashboardUiIntent
     data object ScanQrCode : DashboardUiIntent
-    data class ApplyQrRemoteConfig(val roomCode: String, val serverUrl: String?) : DashboardUiIntent
-    data class OnServerRemoteTunnelPushed(val url: String, val roomCode: String, val active: Boolean, val hostName: String = "") : DashboardUiIntent
+    data class ApplyQrRemoteConfig(val serverUrl: String, val fallbackServerUrl: String? = null) : DashboardUiIntent
+    data class OnServerRemoteTunnelPushed(val url: String, val active: Boolean, val hostName: String = "") : DashboardUiIntent
     data class OnPairingIntent(val intent: PairingUiIntent) : DashboardUiIntent
     data class OnTermuxIntent(val intent: TermuxUiIntent) : DashboardUiIntent
     data object NextOnboardingStep : DashboardUiIntent
@@ -117,7 +93,7 @@ sealed interface DashboardUiIntent {
     data class AddConnectionSlot(val mode: ConnectMode = ConnectMode.Remote) : DashboardUiIntent
     data object RemovePrimarySlot : DashboardUiIntent
     data class RemoveConnectionSlot(val slotId: String) : DashboardUiIntent
-    data class ConnectExtraSlot(val slotId: String, val roomCode: String, val serverUrl: String) : DashboardUiIntent
+    data class ConnectExtraSlot(val slotId: String, val serverUrl: String) : DashboardUiIntent
     data class DisconnectExtraSlot(val slotId: String) : DashboardUiIntent
     data class ScanQrForSlot(val slotId: String) : DashboardUiIntent
     data object ScanLanServers : DashboardUiIntent

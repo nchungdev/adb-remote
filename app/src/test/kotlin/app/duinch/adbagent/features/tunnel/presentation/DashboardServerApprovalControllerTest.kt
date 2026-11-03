@@ -124,3 +124,42 @@ class DashboardServerApprovalControllerTest {
         assertTrue(gateway.requests.isEmpty())
     }
 }
+
+class ChooseReachableServerTest {
+    private class ProbeGateway(private val reachable: Set<String>) : ServerApprovalGateway {
+        val probed = mutableListOf<String>()
+        override suspend fun checkApproval(serverUrl: String) = Result.success(ServerApprovalStatus.APPROVED)
+        override suspend fun requestApproval(serverUrl: String, deviceName: String, code: String) = Result.success(Unit)
+        override suspend fun measureLatencyMs(serverUrl: String): Long? {
+            probed += serverUrl
+            return if (serverUrl in reachable) 1L else null
+        }
+    }
+
+    private val lan = "10.0.0.2:8080"
+    private val tunnel = "https://a.trycloudflare.com"
+
+    @Test
+    fun `away from home on mobile data uses the tunnel without probing`() = runTest {
+        val gateway = ProbeGateway(reachable = setOf(tunnel))
+        assertEquals(tunnel, chooseReachableServer(gateway, isOnWifi = false, preferred = lan, fallback = tunnel))
+        assertTrue(gateway.probed.isEmpty())
+    }
+
+    @Test
+    fun `on another Wi-Fi the unreachable LAN address falls back to the tunnel`() = runTest {
+        val gateway = ProbeGateway(reachable = setOf(tunnel))
+        assertEquals(tunnel, chooseReachableServer(gateway, isOnWifi = true, preferred = lan, fallback = tunnel))
+    }
+
+    @Test
+    fun `on the host's Wi-Fi prefers the LAN address`() = runTest {
+        val gateway = ProbeGateway(reachable = setOf(lan, tunnel))
+        assertEquals(lan, chooseReachableServer(gateway, isOnWifi = true, preferred = lan, fallback = tunnel))
+    }
+
+    @Test
+    fun `without a tunnel the LAN address is used as is`() = runTest {
+        assertEquals(lan, chooseReachableServer(ProbeGateway(emptySet()), isOnWifi = false, preferred = lan, fallback = null))
+    }
+}
