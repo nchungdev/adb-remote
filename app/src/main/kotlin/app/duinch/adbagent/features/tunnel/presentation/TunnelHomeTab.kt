@@ -112,11 +112,17 @@ fun TunnelHomeTab(
     val showPrimarySlot = state.hasPrimarySlot || state.connectionState !is TunnelConnectionState.Disconnected
 
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        state.discoveredServers.forEach { server ->
+            DiscoveredServerCard(
+                server = server,
+                onConnect = { onIntent(DashboardUiIntent.ConnectDiscoveredServer(it)) },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
         if (!state.isUsbConnected && !showPrimarySlot && state.extraSlots.isEmpty()) {
             EmptyConnectionCard(
-                modifier = Modifier.fillMaxWidth(),
-                suggestedServer = state.discoveredServers.firstOrNull(),
-                onConnectSuggested = { onIntent(DashboardUiIntent.ConnectDiscoveredServer(it)) }
+                modifier = Modifier.fillMaxWidth()
             )
         }
 
