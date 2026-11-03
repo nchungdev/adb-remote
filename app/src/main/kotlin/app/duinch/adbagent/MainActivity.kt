@@ -3,6 +3,7 @@ package app.duinch.adbagent
 import android.Manifest
 import android.app.RecoverableSecurityException
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -216,20 +217,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openDeveloperSettings() {
-        val wirelessIntent = Intent("android.settings.WIRELESS_DEBUGGING_SETTINGS").apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        val dev = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS).apply { addFlags(flags) }
+        val samsung = Intent().apply {
+            component = ComponentName("com.android.settings", "com.android.settings.Settings\$DevelopmentSettingsActivity")
+            addFlags(flags)
         }
-        val devIntent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val wireless = Intent("android.settings.WIRELESS_DEBUGGING_SETTINGS").apply { addFlags(flags) }
+        val fallback = Intent(Settings.ACTION_SETTINGS).apply { addFlags(flags) }
+
+        listOf(dev, samsung, wireless, fallback).firstOrNull { intent ->
+            runCatching { startActivity(intent); true }.getOrDefault(false)
         }
-        val fallbackIntent = Intent(Settings.ACTION_SETTINGS).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        runCatching { startActivity(wirelessIntent) }
-            .onFailure {
-                runCatching { startActivity(devIntent) }
-                    .onFailure { runCatching { startActivity(fallbackIntent) } }
-            }
     }
 
     override fun onNewIntent(intent: Intent) {
