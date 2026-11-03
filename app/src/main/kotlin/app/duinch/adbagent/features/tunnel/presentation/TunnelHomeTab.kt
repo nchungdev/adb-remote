@@ -111,13 +111,18 @@ fun TunnelHomeTab(
     val activePort = (state.pairing.pairingState as? AdbPairingState.PairedAndConnected)?.connectPort ?: 5555
     val showPrimarySlot = state.hasPrimarySlot || state.connectionState !is TunnelConnectionState.Disconnected
 
+    val hasAnyWifiSlot = (showPrimarySlot && state.primarySlotMode == ConnectMode.Lan) ||
+        state.extraSlots.any { it.mode == ConnectMode.Lan }
+
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        state.discoveredServers.forEach { server ->
-            DiscoveredServerCard(
-                server = server,
-                onConnect = { onIntent(DashboardUiIntent.ConnectDiscoveredServer(it)) },
-                modifier = Modifier.fillMaxWidth()
-            )
+        if (!hasAnyWifiSlot) {
+            state.discoveredServers.forEach { server ->
+                DiscoveredServerCard(
+                    server = server,
+                    onConnect = { onIntent(DashboardUiIntent.ConnectDiscoveredServer(it)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
 
         if (!state.isUsbConnected && !showPrimarySlot && state.extraSlots.isEmpty()) {
