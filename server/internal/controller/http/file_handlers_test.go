@@ -114,3 +114,31 @@ func TestCrossSitePagesCannotDriveTheServer(t *testing.T) {
 		t.Fatal("a client with no Origin, like the app or curl, must still pass this check")
 	}
 }
+
+func TestReceiveFile_OnlyFromAnApprovedDevice(t *testing.T) {
+	dir := t.TempDir()
+	st := stubTunnel{}
+	h := httpctrl.NewRouter(usecase.NewDeviceService(stubAdb{}, st, nil),
+		usecase.NewTunnelService(st, st), usecase.NewOtaService(stubOta{}), st, nil, nil,
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		httpctrl.WithPairedDevicesFile(t.TempDir()+"/paired.json"),
+		httpctrl.WithFileReceiver(usecase.NewFileReceiver(dir)))
+
+	target := "/api/files/receive?name=a.txt"
+	if rec := call(h, "POST", target, lanAddr, phoneSecret, "hi"); rec.Code == http.StatusOK {
+		t.Fatal("a device not yet approved must be refused")
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 0 {
+		t.Fatalf("a refused device left files: %v", entries)
+	}
+
+	call(h, "POST", "/api/pair/request", lanAddr, phoneSecret, `{"device_name":"phone","code":"123-456"}`)
+	approveFirstPending(t, h, true)
+	rec := call(h, "POST", target, lanAddr, phoneSecret, "hi")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("approved device: %d %s", rec.Code, rec.Body.String())
+	}
+	if raw, _ := os.ReadFile(dir + "/a.txt"); string(raw) != "hi" {
+		t.Fatalf("saved %q", raw)
+	}
+}

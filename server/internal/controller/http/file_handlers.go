@@ -137,3 +137,15 @@ func writeFileError(w http.ResponseWriter, err error) {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 	}
 }
+
+// handleReceiveFile takes a file a device chooses to send to this machine.
+func (s *Server) handleReceiveFile(w http.ResponseWriter, r *http.Request) {
+	disableDeadlines(w)
+	body := http.MaxBytesReader(w, r.Body, maxUploadBytes)
+	saved, err := s.receiver.Save(r.URL.Query().Get("name"), body)
+	if err != nil {
+		writeFileError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"path": saved})
+}

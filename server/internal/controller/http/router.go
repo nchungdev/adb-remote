@@ -35,6 +35,7 @@ type Server struct {
 	wsHub      WebSocketUpgrader
 	policyMgr  PolicyManager
 	files      *usecase.FileService
+	receiver   *usecase.FileReceiver
 	signaling  http.Handler
 	qt         *quicktunnel.QuickTunnel
 	pairHub    *pairing.Hub
@@ -59,6 +60,11 @@ func WithPairRequestNotifier(notify func(deviceName, code string)) RouterOption 
 // WithFileService enables moving files between this machine and its devices.
 func WithFileService(files *usecase.FileService) RouterOption {
 	return func(s *Server) { s.files = files }
+}
+
+// WithFileReceiver lets approved devices send files to this machine.
+func WithFileReceiver(receiver *usecase.FileReceiver) RouterOption {
+	return func(s *Server) { s.receiver = receiver }
 }
 
 // WithPolicyManager overrides the policy manager used for path policy endpoints.
@@ -144,6 +150,9 @@ func NewRouter(
 	mux.HandleFunc("GET /api/tunnel/policy", s.blockUnapprovedTunnelClients(s.handleGetTunnelPolicy))
 	mux.HandleFunc("POST /api/tunnel/policy", s.blockUnapprovedTunnelClients(s.handleSetTunnelPolicy))
 
+	if s.receiver != nil {
+		mux.HandleFunc("POST /api/files/receive", s.requireApprovedDevice(s.handleReceiveFile))
+	}
 	if s.files != nil {
 		mux.HandleFunc("GET /api/files", s.requireHostDashboard(s.handleListFiles))
 		mux.HandleFunc("POST /api/files/upload", s.requireHostDashboard(s.handleUploadFile))
