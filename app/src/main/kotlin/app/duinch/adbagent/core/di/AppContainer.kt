@@ -55,6 +55,10 @@ class AppContainer(context: Context) {
 
     fun deviceSecret(): String = deviceSecrets.deviceSecret()
 
+    val fileSendGateway: app.duinch.adbagent.features.sharing.domain.FileSendGateway by lazy {
+        app.duinch.adbagent.features.sharing.data.OkHttpFileSendAdapter(appContext.contentResolver, deviceSecrets)
+    }
+
     val tunnelConfigRepository: TunnelConfigRepository =
         LocalTunnelConfigRepository(
             appContext,

@@ -112,6 +112,7 @@ func main() {
 	handler := httpctrl.NewRouter(deviceSvc, tunnelSvc, otaSvc, hub, sigHandler, qt, logger,
 		httpctrl.WithPairedDevicesFile(filepath.Join(cfg.DataDir, "paired_devices.json")),
 		httpctrl.WithFileService(usecase.NewFileService(adbRunner)),
+		httpctrl.WithFileReceiver(usecase.NewFileReceiver(receivedFilesDir(cfg.DataDir))),
 		httpctrl.WithPairRequestNotifier(notifyPairRequest))
 
 	srv := &http.Server{
@@ -162,4 +163,13 @@ display notification (item 2 of argv) with title (item 1 of argv)
 end run`
 	_ = exec.Command("osascript", "-e", script, "Yêu cầu ghép nối thiết bị",
 		deviceName+" • Mã "+code+" • Mở Dashboard để duyệt").Run()
+}
+
+// receivedFilesDir is outside folders macOS guards behind a privacy prompt, like Downloads:
+// a background agent cannot answer one, and the send would just fail.
+func receivedFilesDir(dataDir string) string {
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, "ADB Remote Files")
+	}
+	return filepath.Join(dataDir, "received")
 }
