@@ -1,5 +1,6 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,6 +50,8 @@ internal fun SettingsNavigationRow(
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(
                 text = subtitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -89,6 +92,8 @@ internal fun SettingsSwitchRow(
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(
                 text = subtitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -56,7 +56,8 @@ sealed interface TunnelConnectionState {
         val bytesBridged: Long = 0L,
         val mappedServerPort: Int? = null,
         val connectedAtEpochMs: Long = System.currentTimeMillis(),
-        val isStandby: Boolean = false
+        val isStandby: Boolean = false,
+        val server: ServerIdentity? = null
     ) : TunnelConnectionState
     data class Reconnecting(
         val attempt: Int,
@@ -81,4 +82,23 @@ data class TunnelHistoryEntry(
 
     fun durationMillis(nowEpochMs: Long): Long =
         ((endedAtEpochMs ?: nowEpochMs) - startedAtEpochMs).coerceAtLeast(0L)
+}
+
+/** The same server written with or without its scheme or trailing slash. */
+fun normalizedServerAddress(url: String): String = url.trim().substringAfter("://").trimEnd('/').lowercase()
+
+/** Which machine answered: two addresses with the same [id] lead to one server. */
+data class ServerIdentity(val id: String, val name: String)
+
+/** A connection the user keeps: everything about a card that must survive an app restart. */
+data class SavedConnection(
+    val id: String,
+    val serverUrl: String,
+    val wantsConnected: Boolean = false,
+    val name: String? = null,
+    val server: ServerIdentity? = null
+) {
+    companion object {
+        const val PRIMARY_ID = "primary"
+    }
 }

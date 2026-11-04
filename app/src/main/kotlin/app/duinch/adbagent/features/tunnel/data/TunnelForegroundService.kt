@@ -63,6 +63,7 @@ class TunnelForegroundService : Service() {
 
         when (intent?.action) {
             ACTION_STOP -> {
+                container?.tunnelConfigRepository?.setWantsConnected(false)
                 serviceScope.launch {
                     container?.reverseTunnelGateway?.disconnect()
                     stopForeground(STOP_FOREGROUND_REMOVE)
@@ -71,6 +72,7 @@ class TunnelForegroundService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_DISCONNECT -> {
+                container?.tunnelConfigRepository?.setWantsConnected(false)
                 serviceScope.launch { container?.reverseTunnelGateway?.disconnect() }
                 return START_STICKY
             }

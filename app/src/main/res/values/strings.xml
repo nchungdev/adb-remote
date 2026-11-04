@@ -55,15 +55,15 @@
     <string name="settings_p2p_title">Kết nối Máy tính (P2P WebRTC)</string>
     <string name="settings_p2p_unset">Chưa đặt URL</string>
     <string name="settings_wireless_pairing_title">Ghép đôi không dây</string>
-    <string name="settings_wireless_pairing_sub">Ghép đôi cổng ADB nội bộ trên thiết bị</string>
+    <string name="settings_wireless_pairing_sub">Ghép đôi ADB ngay trên máy</string>
 
     <string name="settings_run_in_background_title">Duy trì chạy ngầm</string>
-    <string name="settings_run_in_background_sub">Giữ tiến trình trên thông báo để nhận lệnh liên tục</string>
+    <string name="settings_run_in_background_sub">Giữ kết nối khi thoát app</string>
     <string name="settings_termux_title">Embedded Termux Console</string>
-    <string name="settings_termux_sub">Mở shell nội bộ &amp; chẩn đoán ADB trên máy</string>
+    <string name="settings_termux_sub">Shell nội bộ &amp; chẩn đoán ADB</string>
 
     <string name="settings_notify_connection_change_title">Thông báo đổi trạng thái mạng</string>
-    <string name="settings_notify_connection_change_sub">Hiện Toast/Snackbar khi trong app và Notification khi ra ngoài</string>
+    <string name="settings_notify_connection_change_sub">Báo khi kết nối thay đổi</string>
     <string name="settings_theme_mode_title">Chủ đề giao diện</string>
     <string name="settings_theme_system">Theo hệ thống</string>
     <string name="settings_theme_light">Chế độ Sáng</string>

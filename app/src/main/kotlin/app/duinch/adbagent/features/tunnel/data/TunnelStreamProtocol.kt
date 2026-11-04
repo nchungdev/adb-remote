@@ -1,5 +1,6 @@
 package app.duinch.adbagent.features.tunnel.data
 
+import app.duinch.adbagent.features.tunnel.domain.ServerIdentity
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
 import org.json.JSONObject
@@ -65,7 +66,8 @@ object TunnelStreamProtocol {
     data class WelcomeServerInfo(
         val mappedPort: Int?,
         val serverLanIp: String?,
-        val serverSsid: String?
+        val serverSsid: String?,
+        val server: ServerIdentity? = null
     )
 
     fun parseWelcomeServerInfo(jsonText: String): WelcomeServerInfo? = runCatching {
@@ -74,7 +76,10 @@ object TunnelStreamProtocol {
             WelcomeServerInfo(
                 mappedPort = obj.optInt("mapped_port").takeIf { it > 0 },
                 serverLanIp = obj.optString("server_lan_ip").takeIf { it.isNotBlank() },
-                serverSsid = obj.optString("server_ssid").takeIf { it.isNotBlank() }
+                serverSsid = obj.optString("server_ssid").takeIf { it.isNotBlank() },
+                server = obj.optString("server_id").takeIf { it.isNotBlank() }?.let {
+                    ServerIdentity(it, obj.optString("server_name"))
+                }
             )
         } else null
     }.getOrNull()

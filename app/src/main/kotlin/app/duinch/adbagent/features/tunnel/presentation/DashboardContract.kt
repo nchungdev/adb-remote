@@ -1,5 +1,6 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
+import app.duinch.adbagent.features.tunnel.domain.ServerIdentity
 import app.duinch.adbagent.core.model.NetworkType
 import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
 import app.duinch.adbagent.features.pairing.presentation.PairingUiState
@@ -18,13 +19,20 @@ enum class AppTab(val title: String) {
 data class ServerConnectionSlot(
     val id: String,
     val mode: ConnectMode = ConnectMode.Remote,
+    val formRevision: Int = 0,
+    val displayName: String? = null,
+    val server: ServerIdentity? = null,
     val serverUrlInput: String = "",
-    val connectionState: TunnelConnectionState = TunnelConnectionState.Disconnected
+    val connectionState: TunnelConnectionState = TunnelConnectionState.Disconnected,
+    val autoConnect: Boolean = true
 )
 
 data class DashboardUiState(
     val selectedTab: AppTab = AppTab.CONNECT,
     val serverUrlInput: String = "",
+    val primaryDisplayName: String? = null,
+    val primaryServer: ServerIdentity? = null,
+    val primaryAutoConnect: Boolean = true,
     val deviceAliasInput: String = "",
     val localAdbPortInput: String = "5555",
     val runInBackground: Boolean = true,
@@ -44,6 +52,10 @@ data class DashboardUiState(
     val isServerRemoteActive: Boolean = false,
     val usbConnectedAtEpochMs: Long = 0L,
     val usbHostName: String = "",
+    /** The server that confirmed this phone's cable goes to it. */
+    val usbLinkedServerId: String? = null,
+    /** A server answered, so no [usbLinkedServerId] means the cable really goes elsewhere. */
+    val usbLinkChecked: Boolean = false,
     val activeOnboardingStep: OnboardingStep? = null,
     val notifyConnectionChange: Boolean = true,
     val themeMode: String = "system",
@@ -52,7 +64,8 @@ data class DashboardUiState(
     val extraSlots: List<ServerConnectionSlot> = emptyList(),
     val discoveredServers: List<app.duinch.adbagent.features.pairing.domain.DiscoveredServer> = emptyList(),
     val serverLatencyMs: Map<String, Long?> = emptyMap(),
-    val serverApprovalCode: String? = null
+    val serverApprovalCode: String? = null,
+    val connectionOrder: List<String> = emptyList()
 ) {
     val isTunnelActive: Boolean
         get() = connectionState is TunnelConnectionState.Connected ||
@@ -90,11 +103,22 @@ sealed interface DashboardUiIntent {
     data object NextOnboardingStep : DashboardUiIntent
     data object DismissOnboarding : DashboardUiIntent
     data object ShowOnboarding : DashboardUiIntent
-    data class AddConnectionSlot(val mode: ConnectMode = ConnectMode.Remote) : DashboardUiIntent
+    /** [server] is the machine the card is added under; null starts a new one. */
+    data class AddConnectionSlot(
+        val mode: ConnectMode = ConnectMode.Remote,
+        val server: ServerIdentity? = null,
+        val scanQr: Boolean = false
+    ) : DashboardUiIntent
     data object RemovePrimarySlot : DashboardUiIntent
+    data class RenameConnection(val connectionId: String, val name: String) : DashboardUiIntent
+    data class RenameServer(val serverId: String, val name: String) : DashboardUiIntent
     data class RemoveConnectionSlot(val slotId: String) : DashboardUiIntent
     data class ConnectExtraSlot(val slotId: String, val serverUrl: String) : DashboardUiIntent
     data class DisconnectExtraSlot(val slotId: String) : DashboardUiIntent
+    data class ToggleAutoConnect(val connectionId: String, val enabled: Boolean) : DashboardUiIntent
+    data class ToggleServerAutoConnect(val connectionIds: List<String>, val enabled: Boolean) : DashboardUiIntent
+    data class ReorderConnections(val connectionIds: List<String>) : DashboardUiIntent
+    data class ForceActiveConnection(val connectionId: String) : DashboardUiIntent
     data class ScanQrForSlot(val slotId: String) : DashboardUiIntent
     data object ScanLanServers : DashboardUiIntent
     data class ConnectDiscoveredServer(val server: app.duinch.adbagent.features.pairing.domain.DiscoveredServer) : DashboardUiIntent

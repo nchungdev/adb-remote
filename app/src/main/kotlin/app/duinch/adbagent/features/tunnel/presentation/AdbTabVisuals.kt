@@ -1,5 +1,6 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
+import app.duinch.remotetunnel.ui.ServerCardTone
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -113,5 +114,19 @@ fun rememberAdbTabVisual(
     }
 }
 
-internal fun withStandbySuffix(title: String, connection: TunnelConnectionState): String =
-    if ((connection as? TunnelConnectionState.Connected)?.isStandby == true) "$title • Dự phòng" else title
+internal fun formatUptime(seconds: Long): String =
+    "%02d:%02d:%02d".format(seconds / 3600, (seconds % 3600) / 60, seconds % 60)
+
+/** Note shown alongside the channel and state; standby connections do not run or show uptime. */
+internal fun connectionNote(connection: TunnelConnectionState, uptimeSec: Long = 0L): String? = when {
+    connection is TunnelConnectionState.Error -> "Lỗi"
+    connection is TunnelConnectionState.Connected && !connection.isStandby && uptimeSec > 0L -> formatUptime(uptimeSec)
+    else -> null
+}
+
+internal fun connectionTone(connection: TunnelConnectionState): ServerCardTone = when (connection) {
+    is TunnelConnectionState.Connected -> if (connection.isStandby) ServerCardTone.Standby else ServerCardTone.Running
+    is TunnelConnectionState.Connecting, is TunnelConnectionState.Reconnecting -> ServerCardTone.Connecting
+    is TunnelConnectionState.Error -> ServerCardTone.Error
+    TunnelConnectionState.Disconnected -> ServerCardTone.Neutral
+}

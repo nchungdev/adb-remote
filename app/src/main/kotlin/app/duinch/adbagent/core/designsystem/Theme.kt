@@ -70,7 +70,14 @@ private val DarkPalette = darkColorScheme(
     onSurfaceVariant = Color(0xFFCBD5E1),
     error = Color(0xFFF87171),
     onError = Color(0xFF450A0A),
-    outline = Color(0xFF334155)
+    outline = Color(0xFF334155),
+    // Dialogs, menus and sheets use these; unset they fall back to Material's purple baseline.
+    surfaceTint = Color(0xFF38BDF8),
+    surfaceContainerLowest = Color(0xFF0B1120),
+    surfaceContainerLow = Color(0xFF111827),
+    surfaceContainer = Color(0xFF162033),
+    surfaceContainerHigh = Color(0xFF1A2638),
+    surfaceContainerHighest = Color(0xFF1E293B)
 )
 
 private val LightPalette = lightColorScheme(
@@ -82,7 +89,7 @@ private val LightPalette = lightColorScheme(
     onSecondary = Color(0xFFFFFFFF),
     secondaryContainer = Color(0xFFE2E8F0),
     onSecondaryContainer = Color(0xFF0F172A),
-    background = Color(0xFFF1F5F9),
+    background = Color(0xFFE9ECEF),
     onBackground = Color(0xFF0F172A),
     surface = Color(0xFFFAFBFD),
     onSurface = Color(0xFF0F172A),
@@ -90,7 +97,13 @@ private val LightPalette = lightColorScheme(
     onSurfaceVariant = Color(0xFF334155),
     error = Color(0xFFB91C1C),
     onError = Color(0xFFFFFFFF),
-    outline = Color(0xFF94A3B8)
+    outline = Color(0xFF94A3B8),
+    surfaceTint = Color(0xFF0369A1),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF8FAFC),
+    surfaceContainer = Color(0xFFFFFFFF),
+    surfaceContainerHigh = Color(0xFFFAFBFD),
+    surfaceContainerHighest = Color(0xFFE2E8F0)
 )
 
 private val AppTypography = Typography(

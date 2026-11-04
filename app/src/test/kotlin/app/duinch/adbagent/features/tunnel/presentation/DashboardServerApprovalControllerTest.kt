@@ -115,6 +115,24 @@ class DashboardServerApprovalControllerTest {
     }
 
     @Test
+    fun `restoring on app open reconnects an approved device`() = runTest {
+        val gateway = FakeGateway(Result.success(ServerApprovalStatus.APPROVED))
+        controller(gateway).restoreIfApproved("server") { connected = true }
+        runCurrent()
+        assertTrue(connected)
+    }
+
+    @Test
+    fun `restoring on app open never prompts an unapproved device`() = runTest {
+        val gateway = FakeGateway(Result.success(ServerApprovalStatus.NOT_REQUESTED))
+        controller(gateway).restoreIfApproved("server") { connected = true }
+        runCurrent()
+        assertFalse(connected)
+        assertTrue(gateway.requests.isEmpty())
+        assertNull(uiState.value.serverApprovalCode)
+    }
+
+    @Test
     fun `unreachable server falls through so the tunnel reports the failure`() = runTest {
         val gateway = FakeGateway(Result.failure(IllegalStateException("offline")))
         controller(gateway).connectWhenApproved("server", "phone") { connected = true }
@@ -139,27 +157,47 @@ class ChooseReachableServerTest {
     private val lan = "10.0.0.2:8080"
     private val tunnel = "https://a.trycloudflare.com"
 
+    private suspend fun choose(gateway: ProbeGateway, wantsRemote: Boolean, isOnWifi: Boolean, preferred: String, fallback: String?) =
+        chooseQrServer(gateway, wantsRemote, isOnWifi, preferred, fallback)
+
     @Test
     fun `away from home on mobile data uses the tunnel without probing`() = runTest {
         val gateway = ProbeGateway(reachable = setOf(tunnel))
-        assertEquals(tunnel, chooseReachableServer(gateway, isOnWifi = false, preferred = lan, fallback = tunnel))
+        assertEquals(tunnel, choose(gateway, false, false, lan, tunnel))
         assertTrue(gateway.probed.isEmpty())
     }
 
     @Test
     fun `on another Wi-Fi the unreachable LAN address falls back to the tunnel`() = runTest {
-        val gateway = ProbeGateway(reachable = setOf(tunnel))
-        assertEquals(tunnel, chooseReachableServer(gateway, isOnWifi = true, preferred = lan, fallback = tunnel))
+        assertEquals(tunnel, choose(ProbeGateway(setOf(tunnel)), false, true, lan, tunnel))
     }
 
     @Test
-    fun `on the host's Wi-Fi prefers the LAN address`() = runTest {
-        val gateway = ProbeGateway(reachable = setOf(lan, tunnel))
-        assertEquals(lan, chooseReachableServer(gateway, isOnWifi = true, preferred = lan, fallback = tunnel))
+    fun `on the host's Wi-Fi a Wi-Fi card prefers the LAN address`() = runTest {
+        assertEquals(lan, choose(ProbeGateway(setOf(lan, tunnel)), false, true, lan, tunnel))
     }
 
     @Test
     fun `without a tunnel the LAN address is used as is`() = runTest {
-        assertEquals(lan, chooseReachableServer(ProbeGateway(emptySet()), isOnWifi = false, preferred = lan, fallback = null))
+        assertEquals(lan, choose(ProbeGateway(emptySet()), false, false, lan, null))
+    }
+
+    @Test
+    fun `a remote card uses the tunnel even when the LAN address answers`() = runTest {
+        val gateway = ProbeGateway(setOf(lan, tunnel))
+        assertEquals(tunnel, choose(gateway, true, true, lan, tunnel))
+        assertTrue(gateway.probed.isEmpty())
+    }
+
+    @Test
+    fun `a remote card gets nothing when the QR has no tunnel`() = runTest {
+        assertNull(choose(ProbeGateway(setOf(lan)), true, true, lan, null))
+    }
+
+    @Test
+    fun `addresses match with or without scheme`() {
+        assertTrue(isSameServer("http://192.168.1.16:8080/", "192.168.1.16:8080"))
+        assertFalse(isSameServer("192.168.1.16:8080", "192.168.1.16:18140"))
+        assertFalse(isSameServer("", ""))
     }
 }

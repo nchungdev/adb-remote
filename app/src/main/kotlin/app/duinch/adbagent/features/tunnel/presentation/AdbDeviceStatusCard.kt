@@ -1,5 +1,13 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
+import androidx.compose.foundation.background
+import app.duinch.remotetunnel.ui.ServerCardBodyShape
+import app.duinch.remotetunnel.ui.ServerCardHeaderRow
+import app.duinch.remotetunnel.ui.serverCardPalette
+import app.duinch.remotetunnel.ui.ServerCardTone
+import app.duinch.remotetunnel.ui.LocalServerCardPalette
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,8 +30,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -34,87 +42,41 @@ import app.duinch.remotetunnel.ui.RemoteConnectionState
 import app.duinch.remotetunnel.ui.RemoteTelemetryData
 import app.duinch.remotetunnel.ui.RemoteTransportChannel
 
+/**
+ * A cable is a fact about the phone, not a connection to manage: nothing here can be switched or
+ * ranked, so it takes the quiet look and none of the state colours.
+ */
 @Composable
-fun UsbConnectionCard(
-    telemetry: RemoteTelemetryData,
-    hostName: String = "",
-    modifier: Modifier = Modifier
-) {
-    val effectiveHost = hostName.ifBlank { telemetry.host }.ifBlank { "Máy tính qua cáp USB" }
-    Card(
+internal fun UsbStatusRow(detail: String, modifier: Modifier = Modifier) {
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
-        ),
-        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "Kết Nối Cáp USB",
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Text(
-                            text = if (hostName.isNotBlank()) hostName else "USB",
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.5.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color(0xFFE8F5E9)
-                ) {
-                    Text(
-                        text = "ĐÃ KẾT NỐI",
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        ),
-                        color = Color(0xFF2E7D32)
-                    )
-                }
+            Icon(
+                imageVector = AppIcons.Usb,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+            Column {
+                Text(
+                    text = "Cáp USB",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-
-            DeviceStatusRow(
-                icon = AppIcons.Usb,
-                iconTint = MaterialTheme.colorScheme.primary,
-                title = "Đang kết nối: $effectiveHost",
-                subtitle = "Quyền ADB đã sẵn sàng qua cáp phần cứng"
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-            AdbTelemetryBentoGrid(
-                isUsbConnected = true,
-                isPaired = false,
-                activePort = 5555,
-                telemetry = telemetry
-            )
         }
     }
 }
@@ -122,86 +84,54 @@ fun UsbConnectionCard(
 @Composable
 fun WirelessAdbStatusRow(
     isPaired: Boolean,
-    activePort: Int = 5555,
     onOpenPairing: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    if (isPaired) return // A connected Wi-Fi channel already says it; only a missing step needs saying.
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = if (isPaired) Color(0xFFE8F5E9).copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
         border = BorderStroke(
             1.dp,
-            if (isPaired) Color(0xFF4CAF50).copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
         )
     ) {
-        if (isPaired) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onOpenPairing)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            DeviceStatusRow(
+                icon = AppIcons.LinkWireless,
+                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                title = "Chưa bật ADB không dây",
+                subtitle = "Cắm cáp USB hoặc ghép đôi",
+                modifier = Modifier.weight(1f)
+            )
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.padding(start = 8.dp)
             ) {
-                DeviceStatusRow(
-                    icon = AppIcons.LinkWireless,
-                    iconTint = Color(0xFF2E7D32),
-                    title = "ADB Không dây đã bật",
-                    subtitle = "Cổng kết nối ADB: $activePort (Sẵn sàng nhận lệnh)",
-                    modifier = Modifier.weight(1f)
+                Text(
+                    text = "Ghép đôi",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    ),
+                    color = MaterialTheme.colorScheme.primary
                 )
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color(0xFFE8F5E9)
-                ) {
-                    Text(
-                        text = "Port $activePort",
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        ),
-                        color = Color(0xFF2E7D32)
-                    )
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable(onClick = onOpenPairing)
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                DeviceStatusRow(
-                    icon = AppIcons.LinkWireless,
-                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    title = "Chưa bật ADB không dây",
-                    subtitle = "Cần cắm cáp USB hoặc ghép đôi không dây",
-                    modifier = Modifier.weight(1f)
+                Spacer(modifier = Modifier.width(2.dp))
+                Icon(
+                    imageVector = AppIcons.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 8.dp)
-                ) {
-                    Text(
-                        text = "Ghép đôi",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
-                        ),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Icon(
-                        imageVector = AppIcons.ChevronRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
             }
         }
     }
@@ -244,6 +174,8 @@ fun DeviceStatusRow(
             Spacer(modifier = Modifier.height(1.dp))
             Text(
                 text = subtitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = 12.sp
                 ),
@@ -255,18 +187,8 @@ fun DeviceStatusRow(
 
 @Preview(showBackground = true, widthDp = 390)
 @Composable
-fun UsbConnectionCardPreview() {
+fun UsbStatusRowPreview() {
     AdbAgentTheme(darkTheme = false) {
-        UsbConnectionCard(
-            telemetry = RemoteTelemetryData(
-                state = RemoteConnectionState.Connected,
-                channel = RemoteTransportChannel.UsbCable,
-                pingMs = 2L,
-                uptimeSec = 47L,
-                bytesTransferred = 14_850_000L,
-                transferSpeedBps = 128_000L
-            ),
-            modifier = Modifier.padding(16.dp)
-        )
+        UsbStatusRow(detail = "Đang cắm vào máy này", modifier = Modifier.padding(16.dp))
     }
 }

@@ -121,7 +121,7 @@ class ScreenshotPairingWatcher(
             .addOnSuccessListener { visionText ->
                 val fullText = visionText.text
                 val extractedCode = parsePairingCodeFromOcrText(fullText)
-                val extractedPort = parsePairingPortFromOcrText(fullText)
+                val extractedPort = parsePairingPortFromOcrText(fullText, extractedCode)
                 if (extractedCode != null) {
                     onCodeExtracted(extractedCode, extractedPort, uri)
                 }
@@ -130,6 +130,10 @@ class ScreenshotPairingWatcher(
 
     companion object {
         fun parsePairingCodeFromOcrText(text: String): String? {
+            // The code sits alone on its line; a bare six digits elsewhere could be anything.
+            val regexOwnLine = Regex("""(?m)^\s*(\d{6})\s*$""")
+            regexOwnLine.find(text)?.let { return it.groupValues[1] }
+
             val regexExact = Regex("""\b(\d{6})\b""")
             val matchExact = regexExact.find(text)
             if (matchExact != null) {
@@ -150,9 +154,17 @@ class ScreenshotPairingWatcher(
             return null
         }
 
-        fun parsePairingPortFromOcrText(text: String): Int? {
+        /**
+         * The Settings page behind the pairing dialog shows the connect port too, in the same
+         * IP:port form. The pairing port is the one printed below the code, in the dialog.
+         */
+        fun parsePairingPortFromOcrText(text: String, code: String? = null): Int? {
             val regex = Regex("""\b(?:\d{1,3}\.){3}\d{1,3}\s*:\s*(\d{4,5})\b""")
-            val match = regex.find(text) ?: return null
+            val matches = regex.findAll(text).toList()
+            val codeIndex = code?.let { text.indexOf(it) } ?: -1
+            val match = matches.firstOrNull { codeIndex >= 0 && it.range.first > codeIndex }
+                ?: matches.lastOrNull()
+                ?: return null
             val port = match.groupValues[1].toIntOrNull() ?: return null
             return if (port in 1024..65535) port else null
         }

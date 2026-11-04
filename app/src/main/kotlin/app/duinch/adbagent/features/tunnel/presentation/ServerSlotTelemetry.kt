@@ -17,7 +17,8 @@ internal fun rememberServerSlotTelemetry(
     latencyMs: Long?
 ): RemoteTelemetryData {
     val connected = connection as? TunnelConnectionState.Connected
-    val connectedAt = connected?.connectedAtEpochMs ?: 0L
+    val isStandby = connected?.isStandby == true
+    val connectedAt = if (!isStandby) (connected?.connectedAtEpochMs ?: 0L) else 0L
     val now by produceConnectedEpochNow(connectedAt)
     val traffic by produceTunnelTrafficMetrics(
         activeConnectedEpoch = connectedAt,

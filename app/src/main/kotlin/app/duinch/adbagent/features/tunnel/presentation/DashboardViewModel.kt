@@ -4,12 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import app.duinch.adbagent.core.di.AppContainer
-import app.duinch.adbagent.core.model.NetworkType
 import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
-import app.duinch.adbagent.features.termux.presentation.TermuxUiIntent
-import app.duinch.adbagent.features.tunnel.data.TunnelForegroundService
-import app.duinch.adbagent.features.tunnel.domain.TunnelConfig
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
 import app.duinch.remotetunnel.ui.ConnectMode
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -58,6 +54,9 @@ class DashboardViewModel(
         viewModelScope.launch { container.ensureTermuxBootstrap() }
         container.adbDiscoveryGateway.startDiscovery()
         observeFlows()
+        viewModelScope.launchAdbPortWatch(container.adbPairingGateway, _uiState)
+        slotController.restoreSavedSlots()
+        restoreConnectionIfWanted(container, approvalController, _uiState.value.serverUrlInput) { runToggle(wanted = true) }
     }
 
     fun onIntent(intent: DashboardUiIntent) {
@@ -110,12 +109,15 @@ class DashboardViewModel(
                 val targetSlotId = slotController.pendingQrSlotId
                 slotController.pendingQrSlotId = null
                 viewModelScope.launch {
-                    val isOnWifi = _uiState.value.activeNetwork == NetworkType.WIFI
-                    val server = chooseReachableServer(container.serverApprovalGateway, isOnWifi, intent.serverUrl, intent.fallbackServerUrl)
-                    if (targetSlotId != null) slotController.connectSlot(targetSlotId, server) else connectPrimary(server)
+                    val server = chooseQrServerForTarget(_uiState.value, targetSlotId, container.serverApprovalGateway, intent)
+                    when {
+                        server == null -> _effects.emit(DashboardUiEffect.ShowMessage("Máy chủ chưa bật Quick Tunnel"))
+                        targetSlotId != null -> slotController.connectSlot(targetSlotId, server)
+                        else -> connectPrimary(server)
+                    }
                 }
             }
-            is DashboardUiIntent.AddConnectionSlot -> slotController.addSlot(intent.mode)
+            is DashboardUiIntent.AddConnectionSlot -> slotController.addSlot(intent.mode, intent.server, intent.scanQr)
             DashboardUiIntent.RemovePrimarySlot -> slotController.removePrimarySlot { saveCurrentConfig(silent = true) }
             is DashboardUiIntent.RemoveConnectionSlot -> slotController.removeSlot(intent.slotId)
             is DashboardUiIntent.ConnectExtraSlot -> slotController.connectSlot(intent.slotId, intent.serverUrl)
@@ -156,7 +158,7 @@ class DashboardViewModel(
     private fun observeFlows() {
         viewModelScope.launch {
             container.reverseTunnelGateway.observeConnectionState().collect { conn ->
-                _uiState.update { it.copy(connectionState = conn) }
+                applyPrimaryConnectionState(_uiState, container.tunnelConfigRepository, conn)
             }
         }
         viewModelScope.launch {
@@ -166,7 +168,7 @@ class DashboardViewModel(
                 _uiState.update { it.copy(activeNetwork = net, localWifiIp = ip, currentWifiSsid = ssid) }
             }
         }
-        viewModelScope.launchLatencyProbes(container.serverApprovalGateway, _uiState)
+        viewModelScope.launchServerProbes(container.serverApprovalGateway, _uiState)
         viewModelScope.launch {
             container.reverseTunnelGateway.observeUsbConnected().collect { usb ->
                 val now = System.currentTimeMillis()
@@ -251,10 +253,11 @@ class DashboardViewModel(
     }
 
     private fun connectPrimary(server: String) {
+        savePrimaryTarget(container.tunnelConfigRepository, server, _uiState.value.primaryDisplayName)
         _uiState.update {
             it.copy(
                 hasPrimarySlot = true,
-                primarySlotMode = if (server.contains("trycloudflare.com")) ConnectMode.Remote else ConnectMode.Lan,
+                primarySlotMode = connectModeForServer(server),
                 serverUrlInput = server,
                 selectedTab = AppTab.CONNECT
             )
@@ -264,15 +267,18 @@ class DashboardViewModel(
     }
 
     private fun toggleTunnel() {
-        val draft = buildDraftConfig(_uiState.value)
-        val toggle: suspend () -> Unit = {
-            container.toggleReverseTunnel(draft).onFailure { _effects.emit(DashboardUiEffect.ShowMessage(it.message ?: "Không thể bật đường hầm")) }
-        }
         val current = _uiState.value.connectionState
         if (current is TunnelConnectionState.Disconnected || current is TunnelConnectionState.Error) {
-            approvalController.connectWhenApproved(draft.serverUrl, draft.deviceAlias, toggle)
+            approvalController.connectWhenApproved(_uiState.value.serverUrlInput, _uiState.value.deviceAliasInput) { runToggle(wanted = true) }
         } else {
-            viewModelScope.launch { toggle() }
+            viewModelScope.launch { runToggle(wanted = false) }
+        }
+    }
+
+    private suspend fun runToggle(wanted: Boolean) {
+        container.tunnelConfigRepository.setWantsConnected(wanted)
+        container.toggleReverseTunnel(buildDraftConfig(_uiState.value)).onFailure {
+            _effects.emit(DashboardUiEffect.ShowMessage(it.message ?: "Không thể bật đường hầm"))
         }
     }
 

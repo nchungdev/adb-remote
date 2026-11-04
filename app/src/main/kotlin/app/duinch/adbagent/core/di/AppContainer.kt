@@ -21,7 +21,10 @@ import app.duinch.adbagent.features.tunnel.application.SaveTunnelConfigUseCase
 import app.duinch.adbagent.features.tunnel.application.ToggleReverseTunnelUseCase
 import app.duinch.adbagent.features.tunnel.data.AndroidConnectionAlertNotifier
 import app.duinch.adbagent.features.tunnel.data.HybridReverseTunnelGateway
-import app.duinch.adbagent.features.tunnel.data.SharedPrefsTunnelConfigRepository
+import app.duinch.adbagent.core.security.KeystoreCipher
+import app.duinch.adbagent.features.tunnel.data.LocalTunnelConfigRepository
+import app.duinch.adbagent.features.tunnel.data.SavedConnectionStore
+import app.duinch.adbagent.features.tunnel.data.db.TunnelDatabase
 import app.duinch.adbagent.features.tunnel.data.SharedPrefsTunnelHistoryRepository
 import app.duinch.adbagent.features.tunnel.data.WebRtcReverseTunnelAdapter
 import app.duinch.adbagent.features.tunnel.data.WebSocketReverseTunnelAdapter
@@ -50,8 +53,17 @@ class AppContainer(context: Context) {
     val pairingNotificationGateway: PairingNotificationGateway =
         AndroidPairingNotificationAdapter(appContext)
 
+    fun deviceSecret(): String = deviceSecrets.deviceSecret()
+
     val tunnelConfigRepository: TunnelConfigRepository =
-        SharedPrefsTunnelConfigRepository(appContext)
+        LocalTunnelConfigRepository(
+            appContext,
+            SavedConnectionStore(
+                TunnelDatabase.create(appContext).connections(),
+                KeystoreCipher::encrypt,
+                KeystoreCipher::decrypt
+            )
+        )
 
     val tunnelHistoryRepository: TunnelHistoryRepository =
         SharedPrefsTunnelHistoryRepository(appContext)
@@ -69,20 +81,26 @@ class AppContainer(context: Context) {
     val serverApprovalGateway: app.duinch.adbagent.features.tunnel.domain.ServerApprovalGateway =
         app.duinch.adbagent.features.tunnel.data.OkHttpServerApprovalAdapter(deviceSecrets)
 
-    fun createReverseTunnelGateway(): ReverseTunnelGateway {
+    /**
+     * connectionId stays the same across app restarts, so the server can tell a slot's new
+     * session from a second path and replace the old one instead of waiting for it to time out.
+     */
+    fun createReverseTunnelGateway(connectionId: String = "primary"): ReverseTunnelGateway {
         val webRtc = WebRtcReverseTunnelAdapter(
             appContext,
             computeReconnectBackoff,
             tunnelHistoryRepository,
             hostActivityRepository,
-            deviceSecrets
+            deviceSecrets,
+            connectionId
         )
         val webSocket = WebSocketReverseTunnelAdapter(
             appContext,
             computeReconnectBackoff,
             tunnelHistoryRepository,
             hostActivityRepository,
-            deviceSecrets
+            deviceSecrets,
+            connectionId
         )
         return HybridReverseTunnelGateway(webRtc, webSocket)
     }

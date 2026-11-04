@@ -37,6 +37,7 @@ class WebRtcReverseTunnelAdapter(
     private val historyRepository: TunnelHistoryRepository,
     private val hostActivityRepository: HostActivityRepository,
     private val secrets: DeviceSecretProvider,
+    private val connectionId: String,
     private val signalingClient: WebRtcSignalingClient = WebRtcSignalingClient()
 ) : ReverseTunnelGateway {
 
@@ -59,7 +60,6 @@ class WebRtcReverseTunnelAdapter(
     private val userWantsConnected = AtomicBoolean(false)
     private val bytesBridged = AtomicLong(0L)
     private val sessionGeneration = AtomicLong(0L)
-    private val connectionId = UUID.randomUUID().toString().take(8)
     private val streamBridge = DataChannelStreamBridge(scope, bytesBridged)
 
     @Volatile private var currentConfig: TunnelConfig? = null
@@ -235,7 +235,7 @@ class WebRtcReverseTunnelAdapter(
             mappedServerPort = info.mappedPort
             val cur = connectionState.value
             if (cur is TunnelConnectionState.Connected) {
-                connectionState.value = cur.copy(mappedServerPort = info.mappedPort)
+                connectionState.value = cur.copy(mappedServerPort = info.mappedPort, server = info.server)
             }
             activeSessionId?.let { sid ->
                 historyRepository.updateActiveSession(

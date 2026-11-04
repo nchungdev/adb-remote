@@ -59,6 +59,18 @@ class OkHttpServerApprovalAdapter(
         }.getOrNull()
     }
 
+    override suspend fun isUsbLinked(serverUrl: String, deviceAlias: String): Boolean? = withContext(Dispatchers.IO) {
+        runCatching {
+            val alias = java.net.URLEncoder.encode(deviceAlias, "UTF-8")
+            val request = authorized("${resolveServerBaseUrl(serverUrl)}/api/usb-link?alias=$alias").get().build()
+            client.newCall(request).execute().use { resp ->
+                check(resp.isSuccessful)
+                val body = JSONObject(resp.body?.string().orEmpty())
+                body.optBoolean("linked").takeIf { body.optBoolean("known") }
+            }
+        }.getOrNull()
+    }
+
     private fun authorized(url: String) =
         Request.Builder().url(url).header("Authorization", "Bearer ${secrets.deviceSecret()}")
 }
