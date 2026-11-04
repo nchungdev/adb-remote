@@ -69,8 +69,28 @@ class WebSocketReverseTunnelAdapter(
 
     init {
         networkObserver.register { net ->
+            val prev = activeNetwork.value
             activeNetwork.value = net
-            if (net == NetworkType.NONE && connectionState.value is TunnelConnectionState.Connected) {
+            val cfg = currentConfig
+            val isLan = cfg != null && isLanTargetAddress(cfg.serverUrl)
+            if (isLan) {
+                if (net == NetworkType.CELLULAR || net == NetworkType.NONE) {
+                    reconnectJob?.cancel()
+                    retryAttempt = 0
+                    if (connectionState.value !is TunnelConnectionState.Disconnected) {
+                        finishHistorySession("Ra ngoài mạng Wi-Fi local")
+                        closeActiveSession()
+                        connectionState.value = TunnelConnectionState.Disconnected
+                    }
+                } else if (net == NetworkType.WIFI && prev != NetworkType.WIFI && userWantsConnected.get()) {
+                    retryAttempt = 0
+                    reconnectJob?.cancel()
+                    reconnectJob = scope.launch {
+                        delay(1200L)
+                        cfg?.let { openWebSocketSession(it) }
+                    }
+                }
+            } else if (net == NetworkType.NONE && connectionState.value is TunnelConnectionState.Connected) {
                 handleConnectionLoss("Mất kết nối mạng Internet/Wi-Fi")
             }
         }
@@ -89,6 +109,11 @@ class WebSocketReverseTunnelAdapter(
             currentConfig = valid
             retryAttempt = 0
             reconnectJob?.cancel()
+            val net = activeNetwork.value
+            if (isLanTargetAddress(valid.serverUrl) && (net == NetworkType.CELLULAR || net == NetworkType.NONE)) {
+                connectionState.value = TunnelConnectionState.Disconnected
+                return@map
+            }
             TunnelForegroundService.acquire(appContext, this)
             openWebSocketSession(valid)
         }
@@ -207,6 +232,22 @@ class WebSocketReverseTunnelAdapter(
         if (!userWantsConnected.get()) return
         finishHistorySession(reason)
         closeActiveSession()
+        val cfg = currentConfig
+        val isLan = cfg != null && isLanTargetAddress(cfg.serverUrl)
+        if (isLan) {
+            val net = activeNetwork.value
+            if (net == NetworkType.CELLULAR || net == NetworkType.NONE) {
+                reconnectJob?.cancel()
+                retryAttempt = 0
+                connectionState.value = TunnelConnectionState.Disconnected
+                return
+            }
+            if (retryAttempt >= 2) {
+                reconnectJob?.cancel()
+                connectionState.value = TunnelConnectionState.Disconnected
+                return
+            }
+        }
         retryAttempt++
         val backoff = computeBackoff(retryAttempt)
         connectionState.value = TunnelConnectionState.Reconnecting(retryAttempt, backoff, reason)

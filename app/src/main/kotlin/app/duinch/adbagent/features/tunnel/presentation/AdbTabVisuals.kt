@@ -118,15 +118,24 @@ internal fun formatUptime(seconds: Long): String =
     "%02d:%02d:%02d".format(seconds / 3600, (seconds % 3600) / 60, seconds % 60)
 
 /** Note shown alongside the channel and state; standby connections do not run or show uptime. */
-internal fun connectionNote(connection: TunnelConnectionState, uptimeSec: Long = 0L): String? = when {
+internal fun connectionNote(
+    connection: TunnelConnectionState,
+    uptimeSec: Long = 0L,
+    isAvailable: Boolean = true
+): String? = when {
+    !isAvailable && connection !is TunnelConnectionState.Connected -> "Không có sẵn"
     connection is TunnelConnectionState.Error -> "Lỗi"
     connection is TunnelConnectionState.Connected && !connection.isStandby && uptimeSec > 0L -> formatUptime(uptimeSec)
     else -> null
 }
 
-internal fun connectionTone(connection: TunnelConnectionState): ServerCardTone = when (connection) {
-    is TunnelConnectionState.Connected -> if (connection.isStandby) ServerCardTone.Standby else ServerCardTone.Running
-    is TunnelConnectionState.Connecting, is TunnelConnectionState.Reconnecting -> ServerCardTone.Connecting
-    is TunnelConnectionState.Error -> ServerCardTone.Error
-    TunnelConnectionState.Disconnected -> ServerCardTone.Neutral
+internal fun connectionTone(
+    connection: TunnelConnectionState,
+    isAvailable: Boolean = true
+): ServerCardTone = when {
+    !isAvailable && connection !is TunnelConnectionState.Connected -> ServerCardTone.Neutral
+    connection is TunnelConnectionState.Connected -> if (connection.isStandby) ServerCardTone.Standby else ServerCardTone.Running
+    connection is TunnelConnectionState.Connecting || connection is TunnelConnectionState.Reconnecting -> ServerCardTone.Connecting
+    connection is TunnelConnectionState.Error -> ServerCardTone.Error
+    else -> ServerCardTone.Neutral
 }

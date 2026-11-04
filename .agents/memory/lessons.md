@@ -43,3 +43,7 @@
 ## 2026-11-03: Check That Settings And Addresses Are Actually Consumed
 - Saved settings can look alive while nothing reads them: auto reconnect and home Wi-Fi only round-tripped through prefs and UI. Grep for readers outside the settings path before trusting a toggle.
 - A QR carrying both LAN and tunnel addresses must not assume LAN: it only works on the host's network. Use the tunnel unless the device is on Wi-Fi and the LAN address answers.
+
+## 2026-11-04: Dual-Path Routing (LAN vs Remote Tunnel)
+- When a phone switches from local Wi-Fi to Cellular/foreign network, private IP addresses (RFC 1918) are unroutable. An adapter that indefinitely retries connection loss locks the slot in an endless "Đang kết nối..." loop with spinning indicators.
+- Solution: Use `isLanTargetAddress` and `isLocalWifiNetwork` to evaluate subnet reachability. When off local Wi-Fi, mark the LAN slot as `isAvailable = false` ("Không có sẵn" with neutral gray indicator, no reconnecting spinner) and suppress reconnect attempts. Automatically engage the remote (Cloudflare Quick Tunnel) fallback connection. When reconnecting to the local Wi-Fi subnet, re-activate the LAN connection and mark the remote tunnel as standby ("Dự phòng").

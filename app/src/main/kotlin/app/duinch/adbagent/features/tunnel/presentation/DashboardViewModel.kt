@@ -166,6 +166,7 @@ class DashboardViewModel(
                 val ip = container.reverseTunnelGateway.getLocalWifiIp().orEmpty()
                 val ssid = container.reverseTunnelGateway.getCurrentWifiSsid().orEmpty()
                 _uiState.update { it.copy(activeNetwork = net, localWifiIp = ip, currentWifiSsid = ssid) }
+                coordinateNetworkRouting(net, ip, _uiState.value, { id, u -> slotController.connectSlot(id, u) }) { toggleTunnel() }
             }
         }
         viewModelScope.launchServerProbes(container.serverApprovalGateway, _uiState)
@@ -289,12 +290,9 @@ class DashboardViewModel(
     }
 
     companion object {
-        fun factory(container: AppContainer): ViewModelProvider.Factory =
-            object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return DashboardViewModel(container) as T
-                }
-            }
+        fun factory(container: AppContainer): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T = DashboardViewModel(container) as T
+        }
     }
 }

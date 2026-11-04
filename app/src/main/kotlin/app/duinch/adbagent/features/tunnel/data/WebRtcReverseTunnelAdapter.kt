@@ -26,10 +26,8 @@ import okio.ByteString.Companion.toByteString
 import org.json.JSONObject
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
-import org.webrtc.MediaConstraints
 import org.webrtc.PeerConnection
 import org.webrtc.PeerConnectionFactory
-import org.webrtc.SessionDescription
 
 class WebRtcReverseTunnelAdapter(
     context: Context,
@@ -50,8 +48,23 @@ class WebRtcReverseTunnelAdapter(
 
     init {
         networkObserver.register { net ->
+            val prev = activeNetwork.value
             activeNetwork.value = net
-            if (net == NetworkType.NONE && connectionState.value is TunnelConnectionState.Connected) {
+            val cfg = currentConfig
+            val isLan = cfg != null && isLanTargetAddress(cfg.serverUrl)
+            if (isLan && (net == NetworkType.CELLULAR || net == NetworkType.NONE)) {
+                reconnectJob?.cancel()
+                retryAttempt = 0
+                if (connectionState.value !is TunnelConnectionState.Disconnected) {
+                    finishHistorySession("Ra ngoài mạng Wi-Fi local")
+                    closeActiveSession()
+                    connectionState.value = TunnelConnectionState.Disconnected
+                }
+            } else if (isLan && net == NetworkType.WIFI && prev != NetworkType.WIFI && userWantsConnected.get()) {
+                retryAttempt = 0
+                reconnectJob?.cancel()
+                reconnectJob = scope.launch { delay(1200L); cfg?.let { startWebRtcSession(it) } }
+            } else if (net == NetworkType.NONE && connectionState.value is TunnelConnectionState.Connected) {
                 handleConnectionLoss("Mất kết nối mạng Internet/Wi-Fi")
             }
         }
@@ -75,9 +88,7 @@ class WebRtcReverseTunnelAdapter(
 
     private val factory: PeerConnectionFactory by lazy {
         PeerConnectionFactory.initialize(
-            PeerConnectionFactory.InitializationOptions.builder(appContext)
-                .setEnableInternalTracer(false)
-                .createInitializationOptions()
+            PeerConnectionFactory.InitializationOptions.builder(appContext).setEnableInternalTracer(false).createInitializationOptions()
         )
         PeerConnectionFactory.builder().createPeerConnectionFactory()
     }
@@ -94,6 +105,11 @@ class WebRtcReverseTunnelAdapter(
         currentConfig = config
         retryAttempt = 0
         reconnectJob?.cancel()
+        val net = activeNetwork.value
+        if (isLanTargetAddress(config.serverUrl) && (net == NetworkType.CELLULAR || net == NetworkType.NONE)) {
+            connectionState.value = TunnelConnectionState.Disconnected
+            return Result.success(Unit)
+        }
         TunnelForegroundService.acquire(appContext, this)
         startWebRtcSession(config)
         return Result.success(Unit)
@@ -194,33 +210,7 @@ class WebRtcReverseTunnelAdapter(
             }
         })
 
-        pc.createOffer(object : SimpleSdpObserver() {
-            override fun onCreateSuccess(desc: SessionDescription?) {
-                if (desc == null) return
-                pc.setLocalDescription(object : SimpleSdpObserver() {
-                    override fun onSetSuccess() {
-                        sc.sendOffer(desc.description)
-                    }
-                }, desc)
-            }
-        }, MediaConstraints())
-
-        sc.start { type, payload ->
-            when (type) {
-                "answer" -> {
-                    val sdp = payload.optString("sdp").orEmpty()
-                    if (sdp.isNotBlank()) {
-                        pc.setRemoteDescription(SimpleSdpObserver(), SessionDescription(SessionDescription.Type.ANSWER, sdp))
-                    }
-                }
-                "candidate" -> {
-                    val cand = payload.optString("candidate")
-                    val sdpMid = payload.optString("sdpMid")
-                    val sdpMLineIndex = payload.optInt("sdpMLineIndex", 0)
-                    pc.addIceCandidate(IceCandidate(sdpMid, sdpMLineIndex, cand))
-                }
-            }
-        }
+        startPeerNegotiation(pc, sc)
     }
 
     private fun handleTextMessage(text: String) {
@@ -262,6 +252,16 @@ class WebRtcReverseTunnelAdapter(
         if (!userWantsConnected.get()) return
         finishHistorySession(reason)
         closeActiveSession()
+        val cfg = currentConfig
+        val isLan = cfg != null && isLanTargetAddress(cfg.serverUrl)
+        if (isLan) {
+            val net = activeNetwork.value
+            if (net == NetworkType.CELLULAR || net == NetworkType.NONE || retryAttempt >= 2) {
+                reconnectJob?.cancel()
+                connectionState.value = TunnelConnectionState.Disconnected
+                return
+            }
+        }
         retryAttempt++
         val backoff = computeBackoff(retryAttempt)
         connectionState.value = TunnelConnectionState.Reconnecting(retryAttempt, backoff, reason)

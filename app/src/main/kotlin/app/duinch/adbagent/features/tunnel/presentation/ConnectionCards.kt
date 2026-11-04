@@ -80,12 +80,13 @@ internal fun PrimaryConnectionCard(
         displayName = state.primaryDisplayName,
         onRename = { host.onIntent(DashboardUiIntent.RenameConnection(PRIMARY_CONNECTION_ID, it)) }
     ) { openRename ->
+        val isAvailable = isLocalWifiNetwork(state.activeNetwork, state.localWifiIp, state.serverUrlInput)
         DualChannelConnectContent(
             displayName = state.primaryDisplayName,
             onRename = openRename,
             title = cardTitle,
-            statusNote = connectionNote(state.connectionState, serverTelemetry.uptimeSec),
-            tone = connectionTone(state.connectionState),
+            statusNote = connectionNote(state.connectionState, serverTelemetry.uptimeSec, isAvailable),
+            tone = connectionTone(state.connectionState, isAvailable),
             detailItems = adbPortDetails(connected?.mappedServerPort, host.activePort),
             detailsFooter = null,
             dedicatedMode = state.primarySlotMode,
@@ -141,13 +142,14 @@ internal fun ExtraConnectionCard(slot: ServerConnectionSlot, slotTitle: String, 
         displayName = slot.displayName,
         onRename = { host.onIntent(DashboardUiIntent.RenameConnection(slot.id, it)) }
     ) { openRename ->
+        val isAvailable = isLocalWifiNetwork(state.activeNetwork, state.localWifiIp, slot.serverUrlInput)
         key(slot.formRevision) {
             DualChannelConnectContent(
                 displayName = slot.displayName,
                 onRename = openRename,
                 title = slotTitle,
-                statusNote = connectionNote(slot.connectionState, slotTelemetry.uptimeSec),
-                tone = connectionTone(slot.connectionState),
+                statusNote = connectionNote(slot.connectionState, slotTelemetry.uptimeSec, isAvailable),
+                tone = connectionTone(slot.connectionState, isAvailable),
                 detailItems = adbPortDetails(slotMappedPort, host.activePort),
                 detailsFooter = null,
                 dedicatedMode = slot.mode,

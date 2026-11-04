@@ -6,66 +6,119 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Antennas -->
+    <!-- Wireless Tunnel Sync Waves (above antennas) -->
     <path
-        android:pathData="M39,35 L32,24"
-        android:strokeColor="#38BDF8"
-        android:strokeWidth="3.5"
-        android:strokeLineCap="round" />
-
-    <path
-        android:pathData="M69,35 L76,24"
-        android:strokeColor="#38BDF8"
-        android:strokeWidth="3.5"
-        android:strokeLineCap="round" />
-
-    <!-- Android Head Arch Frame -->
-    <path
-        android:pathData="M31,48 C31,34.8 41.3,28 54,28 C66.7,28 77,34.8 77,48 Z"
-        android:fillColor="#111C33"
-        android:strokeColor="#38BDF8"
-        android:strokeWidth="2.5"
-        android:strokeLineJoin="round" />
-
-    <!-- Cyan Glow Eyes -->
-    <path
-        android:pathData="M43,40 A2.5,2.5 0 1,1 42.99,40"
-        android:fillColor="#A5F3FC" />
-
-    <path
-        android:pathData="M65,40 A2.5,2.5 0 1,1 64.99,40"
-        android:fillColor="#A5F3FC" />
-
-    <!-- P2P Tunnel Wi-Fi Waves -->
-    <path
-        android:pathData="M38,76 C47,81 61,81 70,76"
-        android:fillColor="#00000000"
-        android:strokeColor="#34D399"
-        android:strokeWidth="2.5"
-        android:strokeLineCap="round" />
-
-    <path
-        android:pathData="M34,83 C45,90 63,90 74,83"
+        android:pathData="M38,25 C46,20 62,20 70,25"
         android:fillColor="#00000000"
         android:strokeColor="#38BDF8"
-        android:strokeWidth="2"
-        android:strokeAlpha="0.6"
+        android:strokeWidth="1.8"
+        android:strokeAlpha="0.5"
         android:strokeLineCap="round" />
 
-    <!-- WebRTC High-Speed Lightning Bolt (Center Tunnel) -->
     <path
-        android:pathData="M57,43 L39,63 H54 L51,84 L69,59 H55 Z">
+        android:pathData="M43,29 C48,25.5 60,25.5 65,29"
+        android:fillColor="#00000000"
+        android:strokeColor="#3DDC84"
+        android:strokeWidth="1.6"
+        android:strokeAlpha="0.85"
+        android:strokeLineCap="round" />
+
+    <!-- Left Antenna: Tilted Capsule (starts at 41,39, extends to 33,25.5) -->
+    <path
+        android:pathData="M41,39 L33,25.5"
+        android:strokeColor="#3DDC84"
+        android:strokeWidth="4"
+        android:strokeLineCap="round" />
+
+    <!-- Right Antenna: Tilted Capsule (starts at 67,39, extends to 75,25.5) -->
+    <path
+        android:pathData="M67,39 L75,25.5"
+        android:strokeColor="#3DDC84"
+        android:strokeWidth="4"
+        android:strokeLineCap="round" />
+
+    <!-- Modern Android Bugdroid Head Dome (2023+ soft curves and rounded base) -->
+    <path
+        android:pathData="M27,63 C27,40 39,33 54,33 C69,33 81,40 81,63 C81,68 77,70 72,70 L36,70 C31,70 27,68 27,63 Z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:startX="40"
-                android:startY="43"
-                android:endX="69"
-                android:endY="84"
+                android:startX="27"
+                android:startY="33"
+                android:endX="27"
+                android:endY="70"
                 android:type="linear">
-                <item android:color="#38BDF8" android:offset="0.0" />
-                <item android:color="#22D3EE" android:offset="0.5" />
-                <item android:color="#34D399" android:offset="1.0" />
+                <item android:color="#55ECA0" android:offset="0.0" />
+                <item android:color="#3DDC84" android:offset="0.4" />
+                <item android:color="#1FAA5E" android:offset="1.0" />
             </gradient>
         </aapt:attr>
     </path>
+
+    <!-- Expressive Friendly Eyes -->
+    <path
+        android:pathData="M42,48 A3.5,3.5 0 1,1 41.99,48"
+        android:fillColor="#090E1A" />
+    <path
+        android:pathData="M43,47 A1.2,1.2 0 1,1 42.99,47"
+        android:fillColor="#FFFFFF" />
+
+    <path
+        android:pathData="M66,48 A3.5,3.5 0 1,1 65.99,48"
+        android:fillColor="#090E1A" />
+    <path
+        android:pathData="M67,47 A1.2,1.2 0 1,1 66.99,47"
+        android:fillColor="#FFFFFF" />
+
+    <!-- ADB Cyber Terminal Console Badge -->
+    <path
+        android:pathData="M41,55 L67,55 A4.5,4.5 0 0,1 71.5,59.5 L71.5,62 A4.5,4.5 0 0,1 67,66.5 L41,66.5 A4.5,4.5 0 0,1 36.5,62 L36.5,59.5 A4.5,4.5 0 0,1 41,55 Z"
+        android:fillColor="#090E1A" />
+
+    <!-- ADB CLI Prompt `>` (Cyan Chevron) -->
+    <path
+        android:pathData="M42,58 L46,60.8 L42,63.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Terminal Cursor `_` (Neon Green) -->
+    <path
+        android:pathData="M49.5,63.5 L56,63.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#55ECA0"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round" />
+
+    <!-- Bridge Status Indicator Dot -->
+    <path
+        android:pathData="M62.5,60.8 A1.2,1.2 0 1,1 62.49,60.8"
+        android:fillColor="#38BDF8" />
+
+    <!-- High-Speed Data Conduit / Bridge Lightning under Head -->
+    <path
+        android:pathData="M56,71.5 L50.5,80.5 H56.5 L51.5,89.5 L60.5,78 H55 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="50"
+                android:startY="71.5"
+                android:endX="61"
+                android:endY="89.5"
+                android:type="linear">
+                <item android:color="#38BDF8" android:offset="0.0" />
+                <item android:color="#22D3EE" android:offset="0.5" />
+                <item android:color="#3DDC84" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Network Connection Nodes -->
+    <path
+        android:pathData="M36,85 A1.5,1.5 0 1,1 35.99,85"
+        android:fillColor="#3DDC84" />
+
+    <path
+        android:pathData="M72,85 A1.5,1.5 0 1,1 71.99,85"
+        android:fillColor="#38BDF8" />
 </vector>
