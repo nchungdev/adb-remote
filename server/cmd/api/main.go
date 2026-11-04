@@ -111,6 +111,7 @@ func main() {
 
 	handler := httpctrl.NewRouter(deviceSvc, tunnelSvc, otaSvc, hub, sigHandler, qt, logger,
 		httpctrl.WithPairedDevicesFile(filepath.Join(cfg.DataDir, "paired_devices.json")),
+		httpctrl.WithFileService(usecase.NewFileService(adbRunner)),
 		httpctrl.WithPairRequestNotifier(notifyPairRequest))
 
 	srv := &http.Server{

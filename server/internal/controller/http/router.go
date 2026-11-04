@@ -34,6 +34,7 @@ type Server struct {
 	ota        *usecase.OtaService
 	wsHub      WebSocketUpgrader
 	policyMgr  PolicyManager
+	files      *usecase.FileService
 	signaling  http.Handler
 	qt         *quicktunnel.QuickTunnel
 	pairHub    *pairing.Hub
@@ -53,6 +54,11 @@ func WithPairedDevicesFile(path string) RouterOption {
 // WithPairRequestNotifier alerts the host owner that a device awaits approval.
 func WithPairRequestNotifier(notify func(deviceName, code string)) RouterOption {
 	return func(s *Server) { s.notifyPair = notify }
+}
+
+// WithFileService enables moving files between this machine and its devices.
+func WithFileService(files *usecase.FileService) RouterOption {
+	return func(s *Server) { s.files = files }
 }
 
 // WithPolicyManager overrides the policy manager used for path policy endpoints.
@@ -138,7 +144,15 @@ func NewRouter(
 	mux.HandleFunc("GET /api/tunnel/policy", s.blockUnapprovedTunnelClients(s.handleGetTunnelPolicy))
 	mux.HandleFunc("POST /api/tunnel/policy", s.blockUnapprovedTunnelClients(s.handleSetTunnelPolicy))
 
-	return s.securityHeadersMiddleware(mux)
+	if s.files != nil {
+		mux.HandleFunc("GET /api/files", s.requireHostDashboard(s.handleListFiles))
+		mux.HandleFunc("POST /api/files/upload", s.requireHostDashboard(s.handleUploadFile))
+		mux.HandleFunc("GET /api/files/download", s.requireHostDashboard(s.handleDownloadFile))
+		mux.HandleFunc("POST /api/files/install", s.requireHostDashboard(s.handleInstallApk))
+		mux.HandleFunc("GET /api/files/install", s.requireHostDashboard(s.handleInstallResult))
+	}
+
+	return s.securityHeadersMiddleware(rejectCrossSiteWrites(mux))
 }
 
 func (s *Server) securityHeadersMiddleware(next http.Handler) http.Handler {
