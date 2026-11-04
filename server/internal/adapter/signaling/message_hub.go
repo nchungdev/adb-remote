@@ -14,6 +14,8 @@ type SignalMessage struct {
 	Recipient string          `json:"recipient,omitempty"`
 	Payload   json.RawMessage `json:"payload"`
 	CreatedAt int64           `json:"created_at"`
+	// SenderHost is the address the message arrived from. It stays on this server.
+	SenderHost string `json:"-"`
 }
 
 type MessageHub struct {

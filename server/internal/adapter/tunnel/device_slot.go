@@ -15,13 +15,15 @@ type deviceSlot struct {
 	mu         sync.RWMutex
 	sessions   []*Session
 	active     *Session
+	policy     PathPolicy
 }
 
-func newDeviceSlot(alias string, ln net.Listener, mappedPort int) *deviceSlot {
+func newDeviceSlot(alias string, ln net.Listener, mappedPort int, policy PathPolicy) *deviceSlot {
 	slot := &deviceSlot{
 		alias:      alias,
 		mappedPort: mappedPort,
 		listener:   ln,
+		policy:     policy,
 	}
 	go slot.acceptLoop()
 	return slot
@@ -51,12 +53,22 @@ func (d *deviceSlot) activeSession() *Session {
 	return d.active
 }
 
-// add registers a session and reports whether it changed the active path.
-func (d *deviceSlot) add(sess *Session) bool {
+// add registers a session and reports whether it changed the active path, plus any
+// sessions it replaced: a client slot only ever has one, so an older one with the same
+// connection ID is dead even if the server has not noticed yet.
+func (d *deviceSlot) add(sess *Session) (activeChanged bool, replaced []*Session) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	d.sessions = append(d.sessions, sess)
-	return d.electLocked()
+	kept := d.sessions[:0]
+	for _, s := range d.sessions {
+		if sess.connectionID != "" && s.connectionID == sess.connectionID {
+			replaced = append(replaced, s)
+		} else {
+			kept = append(kept, s)
+		}
+	}
+	d.sessions = append(kept, sess)
+	return d.electLocked(), replaced
 }
 
 // remove drops a session and reports whether it changed the active path.
@@ -72,18 +84,50 @@ func (d *deviceSlot) remove(sess *Session) bool {
 	return d.electLocked()
 }
 
-// electLocked prefers a LAN path, then the newest session: a retry on the same
-// path must win over its predecessor, which may be dead but not yet detected.
+// electLocked chooses the active session according to the slot policy.
+// In PolicyLAN, only LAN sessions can be active.
+// In PolicyRemote, only Remote sessions can be active.
+// In PolicyAuto, LAN is preferred, then newest session.
 func (d *deviceSlot) electLocked() bool {
 	var best *Session
 	for _, s := range d.sessions {
-		if s.Alive() && (best == nil || s.path >= best.path) {
-			best = s
+		if !s.Alive() {
+			continue
+		}
+		switch d.policy {
+		case PolicyLAN:
+			if s.path == PathLAN && (best == nil || s.ConnectedAt >= best.ConnectedAt) {
+				best = s
+			}
+		case PolicyRemote:
+			if s.path == PathRemote && (best == nil || s.ConnectedAt >= best.ConnectedAt) {
+				best = s
+			}
+		default:
+			if best == nil || s.path >= best.path {
+				best = s
+			}
 		}
 	}
 	changed := best != d.active
 	d.active = best
 	return changed
+}
+
+func (d *deviceSlot) setPolicy(p PathPolicy) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.policy == p {
+		return false
+	}
+	d.policy = p
+	return d.electLocked()
+}
+
+func (d *deviceSlot) currentPolicy() PathPolicy {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.policy
 }
 
 func (d *deviceSlot) drain() []*Session {

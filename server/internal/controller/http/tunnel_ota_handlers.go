@@ -58,7 +58,7 @@ func (s *Server) handleTunnel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	host, _, _ := net.SplitHostPort(r.RemoteAddr)
-	s.wsHub.ServeWebSocket(rawConn, rw, alias, localPort, tunnel.PathForHost(host))
+	s.wsHub.ServeWebSocket(rawConn, rw, alias, localPort, tunnel.PathForHost(host), strings.TrimSpace(r.Header.Get("X-Connection-Id")))
 }
 
 func (s *Server) handleClearHistory(w http.ResponseWriter, _ *http.Request) {

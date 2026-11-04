@@ -14,6 +14,8 @@ type RawAdbDevice struct {
 	Model       string
 	DeviceCode  string
 	TransportID string
+	// OverUSB is set only when adb names a USB port, so TCP and emulator devices never count.
+	OverUSB bool
 }
 
 type AdbRunner interface {

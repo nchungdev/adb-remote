@@ -28,6 +28,8 @@ type Hub struct {
 	autoConnect    AutoConnectFunc
 	autoDisconnect AutoDisconnectFunc
 	logger         *slog.Logger
+	identity       ServerIdentity
+	policy         PathPolicy
 }
 
 func NewHub(basePort int, history usecase.HistoryRepository, autoConnect AutoConnectFunc, logger *slog.Logger) *Hub {
@@ -46,10 +48,15 @@ func (h *Hub) SetAutoDisconnect(fn AutoDisconnectFunc) {
 	h.autoDisconnect = fn
 }
 
-func (h *Hub) ServeWebSocket(rawConn net.Conn, rw *bufio.ReadWriter, alias string, localPort int, path PathKind) {
+// SetIdentity sets what later sessions tell their clients about this server.
+func (h *Hub) SetIdentity(identity ServerIdentity) {
+	h.identity = identity
+}
+
+func (h *Hub) ServeWebSocket(rawConn net.Conn, rw *bufio.ReadWriter, alias string, localPort int, path PathKind, connectionID string) {
 	ws := NewWSConn(rawConn, rw)
 	ws.SetIdleTimeout(wsIdleTimeout)
-	session, err := h.RegisterSession(ws, alias, localPort, path)
+	session, err := h.RegisterSession(ws, alias, localPort, path, connectionID)
 	if err != nil {
 		h.logger.Error("failed to allocate loopback slot", "alias", alias, "err", err)
 		_ = ws.Close()
@@ -177,7 +184,7 @@ func (h *Hub) CloseAll() {
 	}
 }
 
-func (h *Hub) RegisterSession(transport Transport, rawAlias string, rawPort int, path PathKind) (*Session, error) {
+func (h *Hub) RegisterSession(transport Transport, rawAlias string, rawPort int, path PathKind, connectionID string) (*Session, error) {
 	alias := domain.SanitizeAlias(rawAlias)
 	localPort := domain.SanitizePort(rawPort)
 
@@ -189,7 +196,11 @@ func (h *Hub) RegisterSession(transport Transport, rawAlias string, rawPort int,
 			h.mu.Unlock()
 			return nil, err
 		}
-		slot = newDeviceSlot(alias, ln, port)
+		p := h.policy
+		if p == "" {
+			p = PolicyAuto
+		}
+		slot = newDeviceSlot(alias, ln, port, p)
 		h.slots[alias] = slot
 	}
 	h.mu.Unlock()
@@ -197,8 +208,17 @@ func (h *Hub) RegisterSession(transport Transport, rawAlias string, rawPort int,
 	newSess := NewSession(transport, alias, localPort, slot.mappedPort)
 
 	newSess.path = path
-	activeChanged := slot.add(newSess)
+	newSess.identity = h.identity
+	newSess.connectionID = connectionID
+	activeChanged, replaced := slot.add(newSess)
 	slot.publishRoles()
+	for _, old := range replaced {
+		// A dead path's close can block, and the new session must not wait on it.
+		go func(old *Session) {
+			old.Shutdown()
+			h.recordClosed(old, "Phiên mới của cùng kết nối")
+		}(old)
+	}
 
 	h.logger.Info("tunnel connected", "alias", alias, "local_port", localPort, "mapped_port", slot.mappedPort, "path", path.String(), "active", activeChanged)
 

@@ -18,6 +18,7 @@ type Config struct {
 	BaseTunnelPort int
 	AdbBin         string
 	LogLevel       slog.Level
+	ForcePath      string
 }
 
 func Load(args []string) (Config, error) {
@@ -29,6 +30,7 @@ func Load(args []string) (Config, error) {
 	basePort := fs.Int("base-tunnel-port", envIntOr("ADB_MANAGER_BASE_TUNNEL_PORT", 15555), "Starting loopback port for reverse tunnels")
 	adbBin := fs.String("adb-bin", envOr("ADB_BIN", ""), "Explicit path to adb binary")
 	logLvl := fs.String("log-level", envOr("ADB_MANAGER_LOG_LEVEL", "info"), "Log level (debug, info, warn, error)")
+	forcePath := fs.String("force-path", envOr("ADB_MANAGER_FORCE_PATH", "auto"), "Force connection path: auto, lan, or remote")
 
 	if err := fs.Parse(args); err != nil {
 		return Config{}, fmt.Errorf("parse flags: %w", err)
@@ -46,6 +48,7 @@ func Load(args []string) (Config, error) {
 		BaseTunnelPort: *basePort,
 		AdbBin:         resolvedAdb,
 		LogLevel:       parseLogLevel(*logLvl),
+		ForcePath:      strings.ToLower(strings.TrimSpace(*forcePath)),
 	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
@@ -62,6 +65,11 @@ func (c Config) Validate() error {
 	}
 	if c.BaseTunnelPort < 1024 || c.BaseTunnelPort > 60000 {
 		return fmt.Errorf("base tunnel port %d out of range [1024..60000]", c.BaseTunnelPort)
+	}
+	switch strings.ToLower(c.ForcePath) {
+	case "", "auto", "lan", "remote", "wifi", "local", "webrtc", "tunnel":
+	default:
+		return errors.New("invalid force-path: must be auto, lan, or remote")
 	}
 	return nil
 }

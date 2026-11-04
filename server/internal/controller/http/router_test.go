@@ -56,13 +56,22 @@ func (stubAdb) ScanMdns(_ context.Context) ([]string, error) {
 }
 func (stubAdb) RestartServer(_ context.Context) error { return nil }
 
-type stubTunnel struct{}
+type stubTunnel struct {
+	policy tunnel.PathPolicy
+}
 
-func (stubTunnel) ListActiveTunnels() []domain.TunnelInfo                                   { return nil }
-func (stubTunnel) ServeWebSocket(net.Conn, *bufio.ReadWriter, string, int, tunnel.PathKind) {}
-func (stubTunnel) ListClosed() ([]domain.TunnelHistoryEntry, error)                         { return nil, nil }
-func (stubTunnel) AppendClosed(domain.TunnelHistoryEntry) error                             { return nil }
-func (stubTunnel) ClearClosed() error                                                       { return nil }
+func (stubTunnel) ListActiveTunnels() []domain.TunnelInfo                                           { return nil }
+func (stubTunnel) ServeWebSocket(net.Conn, *bufio.ReadWriter, string, int, tunnel.PathKind, string) {}
+func (stubTunnel) ListClosed() ([]domain.TunnelHistoryEntry, error)                                 { return nil, nil }
+func (stubTunnel) AppendClosed(domain.TunnelHistoryEntry) error                                     { return nil }
+func (stubTunnel) ClearClosed() error                                                               { return nil }
+func (s *stubTunnel) Policy() tunnel.PathPolicy {
+	if s.policy == "" {
+		return tunnel.PolicyAuto
+	}
+	return s.policy
+}
+func (s *stubTunnel) SetPolicy(p tunnel.PathPolicy) { s.policy = p }
 
 type stubOta struct{}
 
@@ -75,7 +84,7 @@ func (stubOta) OpenApk() (io.ReadCloser, int64, domain.AppVersionManifest, error
 
 func TestRouterEndpoints(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	st := stubTunnel{}
+	st := &stubTunnel{}
 	router := httpctrl.NewRouter(
 		usecase.NewDeviceService(stubAdb{}, st, nil),
 		usecase.NewTunnelService(st, st),
@@ -125,5 +134,29 @@ func TestRouterEndpoints(t *testing.T) {
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/connect", bytes.NewBufferString(`{"addr":"127.0.0.1:15555"}`)))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on valid connect, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// 6. GET /api/tunnel/policy
+	rec = httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/tunnel/policy", nil))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"policy":"auto"`) {
+		t.Fatalf("unexpected /api/tunnel/policy GET: %d %s", rec.Code, rec.Body.String())
+	}
+
+	// 7. POST /api/tunnel/policy invalid -> 400
+	rec = httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/tunnel/policy", bytes.NewBufferString(`{"policy":"unknown"}`)))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid policy, got %d", rec.Code)
+	}
+
+	// 8. POST /api/tunnel/policy valid -> 200
+	rec = httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/tunnel/policy", bytes.NewBufferString(`{"policy":"remote"}`)))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"policy":"remote"`) {
+		t.Fatalf("expected 200 for valid policy, got %d %s", rec.Code, rec.Body.String())
+	}
+	if st.Policy() != tunnel.PolicyRemote {
+		t.Fatalf("policy was not updated in policy manager")
 	}
 }

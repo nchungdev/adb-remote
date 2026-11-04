@@ -65,12 +65,12 @@ func TestRegisterSession_RemoteJoiningLanStaysStandbyWithoutTouchingAdb(t *testi
 	hub, c := newTestHub(t, 26555)
 	lan, remote := &fakeTransport{}, &fakeTransport{}
 
-	if _, err := hub.RegisterSession(lan, "phone", 5555, tunnel.PathLAN); err != nil {
+	if _, err := hub.RegisterSession(lan, "phone", 5555, tunnel.PathLAN, ""); err != nil {
 		t.Fatal(err)
 	}
 	eventually(t, "initial adb connect", func() bool { return c.connects.Load() == 1 })
 
-	if _, err := hub.RegisterSession(remote, "phone", 5555, tunnel.PathRemote); err != nil {
+	if _, err := hub.RegisterSession(remote, "phone", 5555, tunnel.PathRemote, ""); err != nil {
 		t.Fatal(err)
 	}
 	eventually(t, "standby notice", func() bool { return remote.has(standbyRole) })
@@ -88,10 +88,10 @@ func TestRegisterSession_LanTakesOverFromRemote(t *testing.T) {
 	hub, c := newTestHub(t, 26655)
 	remote, lan := &fakeTransport{}, &fakeTransport{}
 
-	if _, err := hub.RegisterSession(remote, "phone", 5555, tunnel.PathRemote); err != nil {
+	if _, err := hub.RegisterSession(remote, "phone", 5555, tunnel.PathRemote, ""); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := hub.RegisterSession(lan, "phone", 5555, tunnel.PathLAN); err != nil {
+	if _, err := hub.RegisterSession(lan, "phone", 5555, tunnel.PathLAN, ""); err != nil {
 		t.Fatal(err)
 	}
 	eventually(t, "remote demoted", func() bool { return remote.has(standbyRole) })
@@ -105,11 +105,11 @@ func TestUnregisterSession_FailsOverThenDisconnectsAdb(t *testing.T) {
 	hub, c := newTestHub(t, 26755)
 	lanT, remoteT := &fakeTransport{}, &fakeTransport{}
 
-	lan, err := hub.RegisterSession(lanT, "phone", 5555, tunnel.PathLAN)
+	lan, err := hub.RegisterSession(lanT, "phone", 5555, tunnel.PathLAN, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	remote, err := hub.RegisterSession(remoteT, "phone", 5555, tunnel.PathRemote)
+	remote, err := hub.RegisterSession(remoteT, "phone", 5555, tunnel.PathRemote, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,10 +131,10 @@ func TestUnregisterSession_FailsOverThenDisconnectsAdb(t *testing.T) {
 
 func TestUnregisterSession_StandbyLossKeepsAdbUntouched(t *testing.T) {
 	hub, c := newTestHub(t, 26955)
-	if _, err := hub.RegisterSession(&fakeTransport{}, "phone", 5555, tunnel.PathLAN); err != nil {
+	if _, err := hub.RegisterSession(&fakeTransport{}, "phone", 5555, tunnel.PathLAN, ""); err != nil {
 		t.Fatal(err)
 	}
-	remote, err := hub.RegisterSession(&fakeTransport{}, "phone", 5555, tunnel.PathRemote)
+	remote, err := hub.RegisterSession(&fakeTransport{}, "phone", 5555, tunnel.PathRemote, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,5 +190,40 @@ func TestPathForHost(t *testing.T) {
 		if got := tunnel.PathForHost(host); got != want {
 			t.Errorf("PathForHost(%q) = %v, want %v", host, got, want)
 		}
+	}
+}
+
+func TestRegisterSession_SameConnectionReplacesDeadSessionAtOnce(t *testing.T) {
+	hub, c := newTestHub(t, 27055)
+	dead, fresh := &fakeTransport{}, &fakeTransport{}
+
+	// The app was killed: its LAN session looks alive, and the reconnect was classed remote.
+	if _, err := hub.RegisterSession(dead, "phone", 5555, tunnel.PathLAN, "primary"); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "initial adb connect", func() bool { return c.connects.Load() == 1 })
+	if _, err := hub.RegisterSession(fresh, "phone", 5555, tunnel.PathRemote, "primary"); err != nil {
+		t.Fatal(err)
+	}
+
+	eventually(t, "dead session closed", func() bool { return dead.has("closed") })
+	eventually(t, "adb moved to the new session", func() bool { return c.connects.Load() == 2 })
+	if fresh.has(standbyRole) || fresh.has("closed") {
+		t.Fatal("the new session must serve immediately")
+	}
+}
+
+func TestRegisterSession_DifferentConnectionsStayAsStandby(t *testing.T) {
+	hub, _ := newTestHub(t, 27155)
+	lan, remote := &fakeTransport{}, &fakeTransport{}
+	if _, err := hub.RegisterSession(lan, "phone", 5555, tunnel.PathLAN, "primary"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := hub.RegisterSession(remote, "phone", 5555, tunnel.PathRemote, "slot-2"); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "standby notice", func() bool { return remote.has(standbyRole) })
+	if lan.has("closed") || remote.has("closed") {
+		t.Fatal("a second slot must not replace the first")
 	}
 }

@@ -51,3 +51,33 @@ func containsClosed(s string) bool {
 	}
 	return false
 }
+
+// Policy reports the currently configured connection path policy.
+func (h *Hub) Policy() PathPolicy {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.policy == "" {
+		return PolicyAuto
+	}
+	return h.policy
+}
+
+// SetPolicy sets the connection policy across the hub and re-evaluates active paths.
+func (h *Hub) SetPolicy(policy PathPolicy) {
+	h.mu.Lock()
+	h.policy = policy
+	slots := make([]*deviceSlot, 0, len(h.slots))
+	for _, s := range h.slots {
+		slots = append(slots, s)
+	}
+	h.mu.Unlock()
+
+	for _, slot := range slots {
+		if slot.setPolicy(policy) {
+			slot.publishRoles()
+			h.reconnectAdb(slot, 150*time.Millisecond)
+		} else {
+			slot.publishRoles()
+		}
+	}
+}
