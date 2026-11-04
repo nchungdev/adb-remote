@@ -31,6 +31,8 @@ import app.duinch.remotetunnel.ui.ConnectMode
 
 @Composable
 fun AddConnectionModeDialog(
+    title: String,
+    prompt: String,
     onDismissRequest: () -> Unit,
     onSelectMode: (ConnectMode) -> Unit,
     onScanQrNow: (() -> Unit)? = null
@@ -40,7 +42,7 @@ fun AddConnectionModeDialog(
         shape = RoundedCornerShape(20.dp),
         title = {
             Text(
-                text = "Thêm Máy Chủ Kết Nối",
+                text = title,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp
@@ -53,7 +55,7 @@ fun AddConnectionModeDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "Chọn phương thức để thiết lập ngay:",
+                    text = prompt,
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -75,7 +77,7 @@ fun AddConnectionModeDialog(
                 )
                 ModeOptionTile(
                     title = "Mạng Từ Xa (Remote URL)",
-                    description = "Dán đường dẫn Cloudflare Tunnel hoặc nhập mã phòng P2P",
+                    description = "Dán đường dẫn Cloudflare Tunnel của máy chủ",
                     icon = AppIcons.CloudLock,
                     onClick = { onSelectMode(ConnectMode.Remote) }
                 )

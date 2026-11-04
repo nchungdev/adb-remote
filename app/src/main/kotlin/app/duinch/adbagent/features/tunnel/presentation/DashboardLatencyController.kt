@@ -12,7 +12,15 @@ import kotlinx.coroutines.launch
 private const val LATENCY_PROBE_INTERVAL_MS = 5_000L
 
 /** Measures round trips to every connected server for the slot cards. */
-internal fun CoroutineScope.launchLatencyProbes(
+internal fun CoroutineScope.launchServerProbes(
+    gateway: ServerApprovalGateway,
+    uiState: MutableStateFlow<DashboardUiState>
+) {
+    launchUsbLinkChecks(gateway, uiState)
+    launchLatencyProbes(gateway, uiState)
+}
+
+private fun CoroutineScope.launchLatencyProbes(
     gateway: ServerApprovalGateway,
     uiState: MutableStateFlow<DashboardUiState>
 ) = launch {

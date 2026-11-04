@@ -37,6 +37,20 @@ object AppIcons {
         return builder.build()
     }
 
+    val Monitor: ImageVector by lazy {
+        strokeIcon("Monitor") {
+            moveTo(2f, 4f)
+            horizontalLineTo(22f)
+            verticalLineTo(17f)
+            horizontalLineTo(2f)
+            close()
+            moveTo(8f, 21f)
+            horizontalLineTo(16f)
+            moveTo(12f, 17f)
+            verticalLineTo(21f)
+        }
+    }
+
     val ShieldBolt: ImageVector by lazy {
         strokeIcon("ShieldBolt") {
             moveTo(12f, 2f)

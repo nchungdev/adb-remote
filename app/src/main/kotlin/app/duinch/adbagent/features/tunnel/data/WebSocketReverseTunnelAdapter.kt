@@ -35,7 +35,8 @@ class WebSocketReverseTunnelAdapter(
     private val computeBackoff: ComputeReconnectBackoffUseCase,
     private val historyRepository: TunnelHistoryRepository,
     private val hostActivityRepository: HostActivityRepository,
-    private val secrets: DeviceSecretProvider
+    private val secrets: DeviceSecretProvider,
+    private val connectionId: String
 ) : ReverseTunnelGateway {
 
     private val appContext = context.applicationContext
@@ -115,6 +116,7 @@ class WebSocketReverseTunnelAdapter(
             .addHeader("X-Device-Alias", config.deviceAlias.ifBlank { "android-device" })
             .addHeader("X-Local-Adb-Port", config.localAdbPort.toString())
             .addHeader("Authorization", "Bearer ${secrets.deviceSecret()}")
+            .addHeader("X-Connection-Id", connectionId)
             .build()
 
         activeWebSocket = httpClient.newWebSocket(request, object : WebSocketListener() {
@@ -185,7 +187,7 @@ class WebSocketReverseTunnelAdapter(
             mappedServerPort = info.mappedPort
             val cur = connectionState.value
             if (cur is TunnelConnectionState.Connected) {
-                connectionState.value = cur.copy(mappedServerPort = info.mappedPort)
+                connectionState.value = cur.copy(mappedServerPort = info.mappedPort, server = info.server)
             }
             activeSessionId?.let { sid ->
                 historyRepository.updateActiveSession(

@@ -5,6 +5,7 @@ import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 import app.duinch.adbagent.features.pairing.presentation.PairingUiState
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class AdbTabVisualsTest {
@@ -88,5 +89,22 @@ class AdbTabVisualsTest {
     fun `resolves disconnected when idle`() {
         val state = DashboardUiState()
         assertEquals(AdbOverallState.DISCONNECTED, resolveAdbOverallState(state))
+    }
+
+    @Test
+    fun `connectionNote returns null for standby connection to avoid running uptime`() {
+        val standby = TunnelConnectionState.Connected(
+            targetUrl = "wss://example.trycloudflare.com",
+            localAdbPort = 5555,
+            networkType = NetworkType.WIFI,
+            isStandby = true
+        )
+        assertNull(connectionNote(standby, uptimeSec = 120L))
+    }
+
+    @Test
+    fun `connectionNote returns error text for error connection`() {
+        val error = TunnelConnectionState.Error("Failed")
+        assertEquals("Lỗi", connectionNote(error))
     }
 }

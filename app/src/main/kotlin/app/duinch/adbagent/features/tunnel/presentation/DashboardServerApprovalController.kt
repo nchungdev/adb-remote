@@ -34,6 +34,15 @@ internal class DashboardServerApprovalController(
         }
     }
 
+    /** Reconnecting on app open never prompts: a new approval only starts from a user's tap. */
+    fun restoreIfApproved(serverUrl: String, connect: suspend () -> Unit) {
+        // Several cards restore together, so this must not cancel another card's restore.
+        scope.launch {
+            val status = gateway.checkApproval(serverUrl).getOrNull()
+            if (status == null || status == ServerApprovalStatus.APPROVED) connect()
+        }
+    }
+
     fun cancel() {
         job?.cancel()
         uiState.update { it.copy(serverApprovalCode = null) }

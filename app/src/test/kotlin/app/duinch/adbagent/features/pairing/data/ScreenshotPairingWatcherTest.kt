@@ -47,4 +47,38 @@ class ScreenshotPairingWatcherTest {
         assertNull(code)
         assertNull(port)
     }
+
+    @Test
+    fun `picks the pairing port in the dialog, not the connect port on the page behind it`() {
+        val text = """
+            Wireless debugging
+            On
+            Device name
+            S24+
+            IP address & Port
+            192.168.1.9:39171
+            Pair device with pairing code
+            Pair with device
+            Wi-Fi pairing code
+            438802
+            IP address & Port
+            192.168.1.9:41773
+            Cancel
+        """.trimIndent()
+
+        val code = ScreenshotPairingWatcher.parsePairingCodeFromOcrText(text)
+        assertEquals("438802", code)
+        assertEquals(41773, ScreenshotPairingWatcher.parsePairingPortFromOcrText(text, code))
+    }
+
+    @Test
+    fun `falls back to the last address when OCR reads the code after both addresses`() {
+        val text = "192.168.1.9:39171\n192.168.1.9:41773\n438802"
+        assertEquals(41773, ScreenshotPairingWatcher.parsePairingPortFromOcrText(text, "438802"))
+    }
+
+    @Test
+    fun `prefers a code alone on its line over digits inside other text`() {
+        assertEquals("438802", ScreenshotPairingWatcher.parsePairingCodeFromOcrText("Build 123456 ready\n438802\n"))
+    }
 }

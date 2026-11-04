@@ -8,6 +8,12 @@ interface TunnelConfigRepository {
     fun saveConfig(config: TunnelConfig)
     fun hasSeenOnboarding(): Boolean = true
     fun setHasSeenOnboarding(seen: Boolean) {}
+    fun wantsConnected(): Boolean = false
+    fun setWantsConnected(wanted: Boolean) {}
+    fun getConnections(): List<SavedConnection> = emptyList()
+    fun upsertConnection(connection: SavedConnection) {}
+    fun removeConnection(id: String) {}
+    fun reorderConnections(orderedIds: List<String>) {}
 }
 
 interface ReverseTunnelGateway {

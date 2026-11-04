@@ -1,5 +1,7 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.key
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -14,8 +16,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -29,10 +31,6 @@ import app.duinch.adbagent.features.pairing.domain.AdbPairingState
 import app.duinch.adbagent.features.pairing.presentation.PairingUiIntent
 import app.duinch.adbagent.features.tunnel.domain.TunnelConnectionState
 import app.duinch.remotetunnel.ui.ConnectMode
-import app.duinch.remotetunnel.ui.DualChannelConnectContent
-import app.duinch.remotetunnel.ui.RemoteConnectionState
-import app.duinch.remotetunnel.ui.RemoteTelemetryData
-import app.duinch.remotetunnel.ui.RemoteTransportChannel
 
 @Composable
 fun TunnelHomeTab(
@@ -40,43 +38,9 @@ fun TunnelHomeTab(
     onIntent: (DashboardUiIntent) -> Unit,
     onPairingIntent: (PairingUiIntent) -> Unit
 ) {
-    val connected = state.connectionState as? TunnelConnectionState.Connected
-    var showAddSlotPicker by remember { mutableStateOf(false) }
+    var addRequest by remember { mutableStateOf<AddConnectionRequest?>(null) }
 
-    val usbEpoch = if (state.isUsbConnected) state.usbConnectedAtEpochMs else 0L
-    val activeConnectedEpoch = usbEpoch
-
-    val nowEpochMs by produceConnectedEpochNow(activeConnectedEpoch)
-    val usbTrafficState by produceTunnelTrafficMetrics(
-        activeConnectedEpoch = usbEpoch,
-        bridgeBytes = 0L,
-        isRealSocketActive = state.isUsbConnected
-    )
     val isPaired = state.pairing.pairingState is AdbPairingState.PairedAndConnected
-
-    val usbTelemetry = remember(state.isUsbConnected, state.usbConnectedAtEpochMs, state.usbHostName, nowEpochMs, usbTrafficState) {
-        val uptimeSec = if (state.usbConnectedAtEpochMs > 0L && nowEpochMs > state.usbConnectedAtEpochMs) {
-            (nowEpochMs - state.usbConnectedAtEpochMs) / 1000
-        } else {
-            0L
-        }
-        RemoteTelemetryData(
-            state = if (state.isUsbConnected) RemoteConnectionState.Connected else RemoteConnectionState.Disconnected,
-            channel = RemoteTransportChannel.UsbCable,
-            host = state.usbHostName,
-            pingMs = if (state.isUsbConnected) 1L else null,
-            uptimeSec = uptimeSec,
-            bytesTransferred = if (state.isUsbConnected) usbTrafficState.first else 0L,
-            transferSpeedBps = if (state.isUsbConnected) usbTrafficState.second else 0L
-        )
-    }
-
-    val serverTelemetry = rememberServerSlotTelemetry(
-        connection = state.connectionState,
-        mode = state.primarySlotMode,
-        serverUrl = state.serverUrlInput,
-        latencyMs = state.serverLatencyMs[state.serverUrlInput]
-    )
 
     val isWifiConnected = remember(state.activeNetwork, state.localWifiIp) {
         state.activeNetwork == NetworkType.WIFI || state.localWifiIp.isNotBlank()
@@ -86,6 +50,15 @@ fun TunnelHomeTab(
 
     val hasAnyWifiSlot = (showPrimarySlot && state.primarySlotMode == ConnectMode.Lan) ||
         state.extraSlots.any { it.mode == ConnectMode.Lan }
+
+    val connections = buildList {
+        if (showPrimarySlot) add(PRIMARY_CONNECTION_ID to state.connectionState)
+        state.extraSlots.forEach { add(it.id to it.connectionState) }
+    }
+    val connectionIds = connections.map { it.first }
+    val activeId = activeConnectionId(connections)
+    val expansion = rememberConnectionExpansion(activeId, connectionIds)
+    val expandedId = resolveExpandedConnection(expansion.userChoice, activeId, connectionIds)
 
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         if (!hasAnyWifiSlot) {
@@ -104,133 +77,160 @@ fun TunnelHomeTab(
             )
         }
 
-        if (state.isUsbConnected) {
-            UsbConnectionCard(
-                telemetry = usbTelemetry,
-                hostName = state.usbHostName,
-                modifier = Modifier.fillMaxWidth()
+        if (state.isUsbConnected && state.usbLinkedServerId == null) {
+            UsbStatusRow(
+                detail = if (state.usbLinkChecked) "Đang cắm, không thấy ở server đã kết nối" else "Đang cắm"
             )
         }
 
-        if (showPrimarySlot) {
-            DualChannelConnectContent(
-                title = withStandbySuffix(if (state.extraSlots.isNotEmpty()) "Máy Chủ 1" else "Kết Nối Máy Chủ", state.connectionState),
-                dedicatedMode = state.primarySlotMode,
-                initialLanAddress = state.serverUrlInput,
-                initialRemoteTarget = state.serverUrlInput,
-                remotePlaceholder = REMOTE_URL_PLACEHOLDER,
-                telemetry = serverTelemetry,
-                isUsbConnected = state.isUsbConnected,
-                isWifiConnected = isWifiConnected,
-                serverRemoteUrl = state.serverQuickTunnelUrl,
-                isServerRemoteActive = state.isServerRemoteActive,
-                recentTunnels = remember(state.serverQuickTunnelUrl, state.serverUrlInput) {
-                    (listOf(state.serverQuickTunnelUrl, state.serverUrlInput))
-                        .filter { it.isNotBlank() && (it.contains("trycloudflare.com") || it.startsWith("http")) }
-                        .distinct()
-                        .take(3)
-                },
-                adbStatusContent = {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        WirelessAdbStatusRow(
-                            isPaired = isPaired,
-                            activePort = activePort,
-                            onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
-                        )
-                        if (state.connectionState is TunnelConnectionState.Connected) {
-                            AdbTelemetryBentoGrid(
-                                isUsbConnected = false,
-                                isPaired = isPaired,
-                                activePort = activePort,
-                                telemetry = serverTelemetry,
-                                serverMappedPort = connected?.mappedServerPort
-                            )
-                        }
-                    }
-                },
-                onClose = { onIntent(DashboardUiIntent.RemovePrimarySlot) },
-                onConnect = { lan, remote ->
-                    val targetServer = when {
-                        lan.isNotBlank() -> lan
-                        remote.isNotBlank() -> remote
-                        state.serverQuickTunnelUrl.isNotBlank() -> state.serverQuickTunnelUrl
-                        else -> state.serverUrlInput
-                    }
-                    onIntent(DashboardUiIntent.ApplyQrRemoteConfig(serverUrl = targetServer))
-                },
-                onDisconnect = { onIntent(DashboardUiIntent.ToggleTunnel) },
-                onScanQr = { onIntent(DashboardUiIntent.ScanQrCode) },
-                onMdnsScan = { onIntent(DashboardUiIntent.ScanLanServers) },
-                onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
-            )
+        val configuredConnections = remember(showPrimarySlot, state.primaryServer, state.extraSlots, state.connectionOrder) {
+            val base = buildList {
+                if (showPrimarySlot) add(PRIMARY_CONNECTION_ID to state.primaryServer)
+                state.extraSlots.forEach { add(it.id to it.server) }
+            }
+            if (state.connectionOrder.isEmpty()) {
+                base
+            } else {
+                base.sortedBy { (id, _) ->
+                    val idx = state.connectionOrder.indexOf(id)
+                    if (idx >= 0) idx else Int.MAX_VALUE
+                }
+            }
+        }
+        val allBelongToOneServer = remember(configuredConnections) {
+            allConnectionsBelongToOneServer(configuredConnections)
         }
 
-        state.extraSlots.forEachIndexed { index, slot ->
-            val slotNumber = if (showPrimarySlot) index + 2 else index + 1
-            val slotTitle = if (!showPrimarySlot && state.extraSlots.size == 1) "Kết Nối Máy Chủ" else "Máy Chủ $slotNumber"
-            val slotTelemetry = rememberServerSlotTelemetry(
-                connection = slot.connectionState,
-                mode = slot.mode,
-                serverUrl = slot.serverUrlInput,
-                latencyMs = state.serverLatencyMs[slot.serverUrlInput]
-            )
-            DualChannelConnectContent(
-                title = withStandbySuffix(slotTitle, slot.connectionState),
-                dedicatedMode = slot.mode,
-                initialLanAddress = slot.serverUrlInput,
-                initialRemoteTarget = slot.serverUrlInput,
-                remotePlaceholder = REMOTE_URL_PLACEHOLDER,
-                telemetry = slotTelemetry,
-                isWifiConnected = isWifiConnected,
-                adbStatusContent = {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        WirelessAdbStatusRow(
-                            isPaired = isPaired,
-                            activePort = activePort,
-                            onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
-                        )
-                        if (slot.connectionState is TunnelConnectionState.Connected) {
-                            AdbTelemetryBentoGrid(
-                                isUsbConnected = false,
-                                isPaired = isPaired,
-                                activePort = activePort,
-                                telemetry = slotTelemetry,
-                                serverMappedPort = (slot.connectionState as? TunnelConnectionState.Connected)?.mappedServerPort
-                            )
+        val cards = CardHost(
+            onIntent = onIntent,
+            expandedId = expandedId,
+            expansion = expansion,
+            canCollapse = connectionIds.size > 1,
+            activePort = activePort,
+            isPaired = isPaired,
+            isWifiConnected = isWifiConnected
+        )
+        val slotsById = state.extraSlots.associateBy { it.id }
+        groupByServer(configuredConnections).forEach { group ->
+            val isGrouped = group.server != null
+            val connections = group.connectionIds.map { id ->
+                val slot = slotsById[id]
+                if (slot == null) {
+                    GroupedConnection(id, state.primarySlotMode, state.connectionState, state.serverUrlInput)
+                } else {
+                    GroupedConnection(id, slot.mode, slot.connectionState, slot.serverUrlInput)
+                }
+            }
+            val anyInUse = connections.any { it.state.isInUse() }
+            val groupIds = group.connectionIds
+            val groupAutoConnect = groupIds.any { id ->
+                if (id == PRIMARY_CONNECTION_ID) state.primaryAutoConnect else (slotsById[id]?.autoConnect ?: true)
+            }
+            ServerGroupCard(
+                server = group.server,
+                summary = serverGroupSummary(connections),
+                autoConnect = groupAutoConnect,
+                onToggleAutoConnect = { enabled ->
+                    onIntent(DashboardUiIntent.ToggleServerAutoConnect(groupIds, enabled))
+                },
+                onAddConnection = group.server?.let { server -> { addRequest = AddConnectionRequest(server) } },
+                onRenameServer = { newName ->
+                    if (group.server != null) {
+                        onIntent(DashboardUiIntent.RenameServer(group.server.id, newName))
+                    } else if (groupIds.isNotEmpty()) {
+                        onIntent(DashboardUiIntent.RenameConnection(groupIds.first(), newName))
+                    }
+                },
+                onDisconnectServer = if (anyInUse) {
+                    {
+                        groupIds.forEach { id ->
+                            if (id == PRIMARY_CONNECTION_ID) {
+                                if (state.connectionState.isInUse()) onIntent(DashboardUiIntent.ToggleTunnel)
+                            } else {
+                                if (slotsById[id]?.connectionState?.isInUse() == true) {
+                                    onIntent(DashboardUiIntent.DisconnectExtraSlot(id))
+                                }
+                            }
+                        }
+                    }
+                } else null,
+                onDeleteServer = {
+                    groupIds.forEach { id ->
+                        if (id == PRIMARY_CONNECTION_ID) {
+                            onIntent(DashboardUiIntent.RemovePrimarySlot)
+                        } else {
+                            onIntent(DashboardUiIntent.RemoveConnectionSlot(id))
                         }
                     }
                 },
-                onClose = { onIntent(DashboardUiIntent.RemoveConnectionSlot(slot.id)) },
-                onConnect = { lan, remote ->
-                    onIntent(DashboardUiIntent.ConnectExtraSlot(slot.id, lan.ifBlank { remote }))
-                },
-                onDisconnect = { onIntent(DashboardUiIntent.DisconnectExtraSlot(slot.id)) },
-                onScanQr = { onIntent(DashboardUiIntent.ScanQrForSlot(slot.id)) },
-                onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
-            )
+                metrics = {
+                    liveConnection(connections)?.let { live ->
+                        key(live.id) {
+                            ServerGroupMetrics(
+                                connection = live,
+                                latencyMs = state.serverLatencyMs[live.serverUrl],
+                                isPaired = isPaired,
+                                onOpenPairing = { onIntent(DashboardUiIntent.SetForceShowPairing(true)) }
+                            )
+                        }
+                    }
+                }
+            ) {
+                if (state.isUsbConnected && group.server?.id == state.usbLinkedServerId) {
+                    UsbStatusRow(detail = "Đang cắm vào máy này", modifier = Modifier.padding(horizontal = 4.dp))
+                }
+                ReorderableConnectionList(
+                    connectionIds = group.connectionIds,
+                    onReorder = { newOrder ->
+                        onIntent(DashboardUiIntent.ReorderConnections(newOrder))
+                    },
+                    canDrag = { id ->
+                        connections.find { it.id == id }?.state is TunnelConnectionState.Connected || id != expandedId
+                    }
+                ) { id ->
+                    val slot = slotsById[id]
+                    if (slot == null) {
+                        PrimaryConnectionCard(state, cards, isGroupedUnderServer = isGrouped)
+                    } else {
+                        ExtraConnectionCard(
+                            slot = slot,
+                            slotTitle = slotTitle(state, showPrimarySlot, slot, isGroupedUnderServer = isGrouped),
+                            state = state,
+                            host = cards
+                        )
+                    }
+                }
+            }
         }
 
         OutlinedButton(
-            onClick = { showAddSlotPicker = true },
+            onClick = { addRequest = AddConnectionRequest(server = null) },
             modifier = Modifier.fillMaxWidth().height(48.dp),
             shape = RoundedCornerShape(14.dp)
         ) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Thêm máy chủ kết nối", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text("Thêm server", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
         }
     }
 
-    if (showAddSlotPicker) {
+    addRequest?.let { request ->
+        val serverName = request.server?.name?.ifBlank { null }
         AddConnectionModeDialog(
-            onDismissRequest = { showAddSlotPicker = false },
+            title = if (request.server == null) "Thêm Server" else "Thêm Kết Nối",
+            prompt = if (request.server == null) {
+                "Thêm máy chủ mới và kết nối đầu tiên của nó:"
+            } else {
+                "Thêm đường tới ${serverName ?: "máy chủ này"}:"
+            },
+            onDismissRequest = { addRequest = null },
             onSelectMode = { mode ->
-                onIntent(DashboardUiIntent.AddConnectionSlot(mode))
-                showAddSlotPicker = false
+                onIntent(DashboardUiIntent.AddConnectionSlot(mode, request.server))
+                addRequest = null
             },
             onScanQrNow = {
-                showAddSlotPicker = false
-                onIntent(DashboardUiIntent.ScanQrCode)
+                onIntent(DashboardUiIntent.AddConnectionSlot(server = request.server, scanQr = true))
+                addRequest = null
             }
         )
     }
@@ -247,5 +247,3 @@ fun TunnelHomeTabPreview() {
         )
     }
 }
-
-private const val REMOTE_URL_PLACEHOLDER = "Dán URL Cloudflare của máy chủ"

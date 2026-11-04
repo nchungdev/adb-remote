@@ -4,6 +4,7 @@ plugins {
     id("com.android.application") version "8.10.1"
     kotlin("android") version "2.2.20"
     kotlin("plugin.compose") version "2.2.20"
+    id("com.google.devtools.ksp") version "2.2.20-2.0.4"
 }
 
 val versionPropsFile = file("version.properties")
@@ -85,7 +86,14 @@ kotlin {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
+    implementation("androidx.room:room-runtime:2.8.5")
+    implementation("androidx.room:room-ktx:2.8.5")
+    ksp("androidx.room:room-compiler:2.8.5")
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")

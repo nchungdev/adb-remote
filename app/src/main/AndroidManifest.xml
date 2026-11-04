@@ -35,14 +35,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".features.pairing.presentation.PairingPromptActivity"
-            android:exported="false"
-            android:theme="@style/Theme.AdbAgent.TransparentDialog"
-            android:launchMode="singleTop"
-            android:excludeFromRecents="true"
-            android:windowSoftInputMode="stateHidden|adjustNothing" />
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

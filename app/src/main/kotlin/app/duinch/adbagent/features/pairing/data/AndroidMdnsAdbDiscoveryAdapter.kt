@@ -28,11 +28,14 @@ class AndroidMdnsAdbDiscoveryAdapter(
     override fun startDiscovery() {
         val manager = nsdManager ?: return
         stopDiscovery()
+        // Ports from an earlier session are dead: the pairing dialog gets a new one each time.
+        portsFlow.update { it.copy(pairingPort = null) }
 
         pairingListener = createDiscoveryListener(
             manager = manager,
             serviceType = SERVICE_PAIRING,
-            onPortResolved = { port -> portsFlow.update { it.copy(pairingPort = port) } }
+            onPortResolved = { port -> portsFlow.update { it.copy(pairingPort = port) } },
+            onPortLost = { portsFlow.update { it.copy(pairingPort = null) } }
         ).also { listener ->
             runCatching { manager.discoverServices(SERVICE_PAIRING, NsdManager.PROTOCOL_DNS_SD, listener) }
         }
@@ -40,7 +43,8 @@ class AndroidMdnsAdbDiscoveryAdapter(
         connectListener = createDiscoveryListener(
             manager = manager,
             serviceType = SERVICE_CONNECT,
-            onPortResolved = { port -> portsFlow.update { it.copy(connectPort = port) } }
+            onPortResolved = { port -> portsFlow.update { it.copy(connectPort = port) } },
+            onPortLost = { portsFlow.update { it.copy(connectPort = null) } }
         ).also { listener ->
             runCatching { manager.discoverServices(SERVICE_CONNECT, NsdManager.PROTOCOL_DNS_SD, listener) }
         }
@@ -98,11 +102,12 @@ class AndroidMdnsAdbDiscoveryAdapter(
     private fun createDiscoveryListener(
         manager: NsdManager,
         serviceType: String,
-        onPortResolved: (Int) -> Unit
+        onPortResolved: (Int) -> Unit,
+        onPortLost: () -> Unit
     ): NsdManager.DiscoveryListener {
         return object : NsdManager.DiscoveryListener {
             override fun onDiscoveryStarted(regType: String) = Unit
-            override fun onServiceLost(service: NsdServiceInfo) = Unit
+            override fun onServiceLost(service: NsdServiceInfo) = onPortLost()
             override fun onDiscoveryStopped(serviceType: String) = Unit
             override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) = Unit
             override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) = Unit

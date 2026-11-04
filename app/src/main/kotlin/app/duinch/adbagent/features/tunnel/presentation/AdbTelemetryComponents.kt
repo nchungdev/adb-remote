@@ -1,5 +1,9 @@
 package app.duinch.adbagent.features.tunnel.presentation
 
+import app.duinch.remotetunnel.ui.LocalServerCardPalette
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,97 +29,54 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.duinch.adbagent.core.designsystem.AppIcons
 import app.duinch.remotetunnel.ui.RemoteTelemetryData
-import app.duinch.remotetunnel.ui.RemoteTransportChannel
-import app.duinch.remotetunnel.ui.RemoteConnectionState
 
 @Composable
 fun AdbTelemetryBentoGrid(
-    isUsbConnected: Boolean,
-    isPaired: Boolean,
-    activePort: Int,
     telemetry: RemoteTelemetryData,
-    modifier: Modifier = Modifier,
-    serverMappedPort: Int? = null
+    modifier: Modifier = Modifier
 ) {
     val pingText = if (telemetry.pingMs != null) "${telemetry.pingMs}ms" else "--"
-    val uptimeText = if (telemetry.uptimeSec > 0) {
-        val h = telemetry.uptimeSec / 3600
-        val m = (telemetry.uptimeSec % 3600) / 60
-        val s = telemetry.uptimeSec % 60
-        "%02d:%02d:%02d".format(h, m, s)
-    } else {
-        "00:00:00"
-    }
+    val uptimeText = formatUptime(telemetry.uptimeSec.coerceAtLeast(0L))
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Hàng 1: KÊNH (1.2f) | PING (1f) | UPTIME (1.1f)
+        // Hàng 1: PING | UPTIME
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val channelLabel = when {
-                isUsbConnected && isPaired -> "USB & Wi-Fi"
-                isUsbConnected -> "Cáp USB"
-                telemetry.state == RemoteConnectionState.Connected -> when (telemetry.channel) {
-                    RemoteTransportChannel.LanWifi -> "Wi-Fi"
-                    RemoteTransportChannel.QuickTunnel -> "Tunnel"
-                    RemoteTransportChannel.WebRtcDirect -> "P2P"
-                    else -> "Máy chủ"
-                }
-                isPaired -> "Wi-Fi"
-                else -> "Chưa bật"
-            }
-            MetricBox(
-                icon = if (isUsbConnected && !isPaired) AppIcons.Usb else AppIcons.LinkWireless,
-                label = "KÊNH",
-                value = channelLabel,
-                modifier = Modifier.weight(1.2f)
-            )
             MetricBox(
                 icon = AppIcons.Refresh,
-                label = "PING",
+                label = "Ping",
                 value = pingText,
                 modifier = Modifier.weight(1f)
             )
             MetricBox(
                 icon = AppIcons.Clock,
-                label = "UPTIME",
+                label = "Uptime",
                 value = uptimeText,
-                modifier = Modifier.weight(1.1f)
+                modifier = Modifier.weight(1f)
             )
         }
 
-        // Hàng 2: ĐÃ TRUYỀN (1.2f) | TỐC ĐỘ (1f) | CỔNG ADB (1.1f)
+        // Hàng 2: ĐÃ TRUYỀN | TỐC ĐỘ | CỔNG ADB (khi chưa có địa chỉ trên máy tính)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             MetricBox(
                 icon = AppIcons.ArrowUpDown,
-                label = "ĐÃ TRUYỀN",
+                label = "Đã truyền",
                 value = formatBytesVi(telemetry.bytesTransferred),
-                modifier = Modifier.weight(1.2f)
+                modifier = Modifier.weight(1f)
             )
             MetricBox(
                 icon = AppIcons.Activity,
-                label = "TỐC ĐỘ",
+                label = "Tốc độ",
                 value = formatSpeedVi(telemetry.transferSpeedBps),
                 modifier = Modifier.weight(1f)
-            )
-            val adbPortValue = when {
-                serverMappedPort != null -> serverMappedPort.toString()
-                isPaired -> activePort.toString()
-                isUsbConnected -> "5555"
-                else -> "--"
-            }
-            MetricBox(
-                icon = AppIcons.Terminal,
-                label = "CỔNG ADB",
-                value = adbPortValue,
-                modifier = Modifier.weight(1.1f)
             )
         }
     }
@@ -128,43 +89,40 @@ fun MetricBox(
     value: String,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalServerCardPalette.current
     Surface(
-        modifier = modifier,
+        modifier = modifier.semantics(mergeDescendants = true) { contentDescription = "$label: $value" },
         shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp)
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(12.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = palette?.accent ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+            Column {
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(modifier = Modifier.height(3.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
         }
     }
 }
