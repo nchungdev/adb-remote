@@ -171,6 +171,7 @@ function renderDevices(devices) {
 
         <div class="card-actions">
           <button class="btn btn-sm btn-primary" onclick="openScreenModal('${dev.serial}', '${escapeHtml(name)}')">Màn hình</button>
+          <button class="btn btn-sm" onclick="openFilesModal('${dev.serial}', '${escapeHtml(name)}')">File</button>
           <button class="btn btn-sm" onclick="openLogcatModal('${dev.serial}', '${escapeHtml(name)}')">Logcat</button>
           <button class="btn btn-sm" onclick="openShellModal('${dev.serial}', '${escapeHtml(name)}')">Shell</button>
           <button class="btn btn-sm" onclick="enableTcpip('${dev.serial}')">TCP 5555</button>
