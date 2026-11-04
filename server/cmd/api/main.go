@@ -69,7 +69,16 @@ func main() {
 	}
 
 	hub := tunnel.NewHub(cfg.BaseTunnelPort, historyStore, autoConnect, logger)
+	identity, err := tunnel.LoadServerIdentity(cfg.DataDir)
+	if err != nil {
+		logger.Warn("server ID not saved; clients will group this server separately after a restart", "err", err)
+	}
+	hub.SetIdentity(identity)
 	hub.SetAutoDisconnect(autoDisconnect)
+	if policy := tunnel.ParsePathPolicy(cfg.ForcePath); policy != tunnel.PolicyAuto {
+		hub.SetPolicy(policy)
+		logger.Info("connection path policy forced", "policy", policy.String())
+	}
 	cmdTracker := tracker.NewCommandTracker()
 	cmdTracker.SetBroadcast(hub.BroadcastCommand)
 

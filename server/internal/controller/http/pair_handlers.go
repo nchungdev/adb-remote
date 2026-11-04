@@ -100,3 +100,8 @@ func (s *Server) handlePairCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"status": status})
 }
+
+func (s *Server) handleUsbLink(w http.ResponseWriter, r *http.Request) {
+	linked, known := s.devices.UsbLink(r.Context(), r.URL.Query().Get("alias"))
+	writeJSON(w, http.StatusOK, map[string]any{"linked": linked, "known": known})
+}

@@ -250,6 +250,8 @@ func ParseDevicesOutput(stdout string) []usecase.RawAdbDevice {
 				dev.DeviceCode = v
 			case "transport_id":
 				dev.TransportID = v
+			case "usb":
+				dev.OverUSB = true
 			}
 		}
 		out = append(out, dev)

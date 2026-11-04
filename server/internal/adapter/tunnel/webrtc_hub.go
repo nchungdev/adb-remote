@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/pion/webrtc/v4"
 
@@ -39,8 +40,9 @@ type WebRtcHub struct {
 	stunServers []string
 	logger      *slog.Logger
 
-	mu    sync.Mutex
-	peers map[string]*webrtc.PeerConnection
+	mu         sync.Mutex
+	peers      map[string]*webrtc.PeerConnection
+	nextConnID atomic.Uint64
 }
 
 func NewWebRtcHub(
@@ -105,6 +107,11 @@ func (w *WebRtcHub) handleOffer(room string, msg signaling.SignalMessage) {
 	if peerID == "" {
 		peerID = "android-device"
 	}
+	// A card's rank follows how it reached the server. Over a Quick Tunnel, ICE still picks
+	// the direct LAN route when it can, so the selected route says nothing about the card.
+	path := PathForHost(msg.SenderHost)
+	// One peer can have a killed predecessor still timing out, so logs need to tell them apart.
+	connID := w.nextConnID.Add(1)
 
 	w.mu.Lock()
 	// A connected peer keeps serving until its client closes it, so a retry that
@@ -149,7 +156,7 @@ func (w *WebRtcHub) handleOffer(room string, msg signaling.SignalMessage) {
 	})
 
 	pc.OnConnectionStateChange(func(s webrtc.PeerConnectionState) {
-		w.logger.Info("webrtc connection state changed", "peer", peerID, "state", s.String())
+		w.logger.Info("webrtc connection state changed", "peer", peerID, "conn", connID, "state", s.String())
 		if s == webrtc.PeerConnectionStateFailed || s == webrtc.PeerConnectionStateClosed {
 			w.mu.Lock()
 			if w.peers[peerID] == pc {
@@ -167,10 +174,10 @@ func (w *WebRtcHub) handleOffer(room string, msg signaling.SignalMessage) {
 		}
 
 		d.OnOpen(func() {
-			w.logger.Info("webrtc adb datachannel opened", "peer", peerID)
+			w.logger.Info("webrtc adb datachannel opened", "peer", peerID, "conn", connID)
 			transport := NewDataChannelTransport(d)
-			alias, _, _ := strings.Cut(peerID, peerConnectionIDSeparator)
-			sess, err := w.hub.RegisterSession(transport, alias, 5555, selectedPath(pc))
+			alias, connectionID, _ := strings.Cut(peerID, peerConnectionIDSeparator)
+			sess, err := w.hub.RegisterSession(transport, alias, 5555, path, connectionID)
 			if err != nil {
 				w.logger.Error("failed to register webrtc tunnel session", "peer", peerID, "err", err)
 				_ = d.Close()
@@ -190,7 +197,7 @@ func (w *WebRtcHub) handleOffer(room string, msg signaling.SignalMessage) {
 			})
 
 			d.OnClose(func() {
-				w.logger.Info("webrtc adb datachannel closed", "peer", peerID)
+				w.logger.Info("webrtc adb datachannel closed", "peer", peerID, "conn", connID)
 				w.hub.UnregisterSession(sess)
 				go func() { _ = pc.Close() }()
 			})
@@ -272,15 +279,3 @@ func (w *WebRtcHub) CloseAll() {
 // peerConnectionIDSeparator splits "<alias>~<connection id>": each app slot signals
 // as its own peer while sharing the device's alias and mapped port.
 const peerConnectionIDSeparator = "~"
-
-func selectedPath(pc *webrtc.PeerConnection) PathKind {
-	sctp := pc.SCTP()
-	if sctp == nil {
-		return PathRemote
-	}
-	pair, err := sctp.Transport().ICETransport().GetSelectedCandidatePair()
-	if err != nil || pair == nil || pair.Remote == nil {
-		return PathRemote
-	}
-	return PathForHost(pair.Remote.Address)
-}

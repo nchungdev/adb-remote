@@ -19,6 +19,7 @@ type DeviceService struct {
 	remoteActive    bool
 	activeRemoteDev string
 	lastTunnelURL   string
+	serialByTunnel  sync.Map
 }
 
 func NewDeviceService(adb AdbRunner, tunnels TunnelInspector, auditor CommandAuditor) *DeviceService {

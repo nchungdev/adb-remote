@@ -19,7 +19,13 @@ import (
 )
 
 type WebSocketUpgrader interface {
-	ServeWebSocket(rawConn net.Conn, rw *bufio.ReadWriter, alias string, localPort int, path tunnel.PathKind)
+	ServeWebSocket(rawConn net.Conn, rw *bufio.ReadWriter, alias string, localPort int, path tunnel.PathKind, connectionID string)
+}
+
+// PolicyManager inspects and adjusts the tunnel path failover policy at runtime.
+type PolicyManager interface {
+	Policy() tunnel.PathPolicy
+	SetPolicy(tunnel.PathPolicy)
 }
 
 type Server struct {
@@ -27,6 +33,7 @@ type Server struct {
 	tunnels    *usecase.TunnelService
 	ota        *usecase.OtaService
 	wsHub      WebSocketUpgrader
+	policyMgr  PolicyManager
 	signaling  http.Handler
 	qt         *quicktunnel.QuickTunnel
 	pairHub    *pairing.Hub
@@ -48,6 +55,11 @@ func WithPairRequestNotifier(notify func(deviceName, code string)) RouterOption 
 	return func(s *Server) { s.notifyPair = notify }
 }
 
+// WithPolicyManager overrides the policy manager used for path policy endpoints.
+func WithPolicyManager(pm PolicyManager) RouterOption {
+	return func(s *Server) { s.policyMgr = pm }
+}
+
 func NewRouter(
 	devices *usecase.DeviceService,
 	tunnels *usecase.TunnelService,
@@ -58,11 +70,16 @@ func NewRouter(
 	logger *slog.Logger,
 	opts ...RouterOption,
 ) http.Handler {
+	var pm PolicyManager
+	if p, ok := wsHub.(PolicyManager); ok {
+		pm = p
+	}
 	s := &Server{
 		devices:   devices,
 		tunnels:   tunnels,
 		ota:       ota,
 		wsHub:     wsHub,
+		policyMgr: pm,
 		signaling: signaling,
 		qt:        qt,
 		pairHub:   pairing.NewHub(3 * time.Minute),
@@ -117,6 +134,9 @@ func NewRouter(
 	mux.HandleFunc("POST /api/shell", s.handleShell)
 	mux.HandleFunc("POST /api/restart-server", s.handleRestartServer)
 	mux.HandleFunc("POST /api/clear-history", s.blockUnapprovedTunnelClients(s.handleClearHistory))
+	mux.HandleFunc("GET /api/usb-link", s.requireApprovedDevice(s.handleUsbLink))
+	mux.HandleFunc("GET /api/tunnel/policy", s.blockUnapprovedTunnelClients(s.handleGetTunnelPolicy))
+	mux.HandleFunc("POST /api/tunnel/policy", s.blockUnapprovedTunnelClients(s.handleSetTunnelPolicy))
 
 	return s.securityHeadersMiddleware(mux)
 }

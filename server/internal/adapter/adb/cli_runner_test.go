@@ -55,3 +55,13 @@ __SDK__=36
 		t.Fatalf("expected wifi IP 192.168.1.42, got %v", specs.WifiIP)
 	}
 }
+
+func TestParseDevicesOutput_MarksOnlyUSBDevices(t *testing.T) {
+	devices := adb.ParseDevicesOutput("List of devices attached\n" +
+		"SERIAL123 device usb:34603008X product:phone model:Phone device:phone transport_id:1\n" +
+		"127.0.0.1:15555 device product:phone model:Phone device:phone transport_id:2\n" +
+		"emulator-5554 device product:sdk model:sdk device:emu64a transport_id:3\n")
+	if len(devices) != 3 || !devices[0].OverUSB || devices[1].OverUSB || devices[2].OverUSB {
+		t.Fatalf("unexpected USB marks: %+v", devices)
+	}
+}

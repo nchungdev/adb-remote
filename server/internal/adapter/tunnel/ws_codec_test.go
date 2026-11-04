@@ -50,7 +50,7 @@ func TestHub_EndToEndMultiplexedTCPStreamAndPing(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		hub.ServeWebSocket(serverSide, nil, "android-test-device", 35503, tunnel.PathLAN)
+		hub.ServeWebSocket(serverSide, nil, "android-test-device", 35503, tunnel.PathLAN, "")
 	}()
 
 	phoneWS := tunnel.NewWSConn(phoneSide, nil)

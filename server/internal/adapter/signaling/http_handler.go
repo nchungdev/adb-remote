@@ -2,6 +2,7 @@ package signaling
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -46,6 +47,7 @@ func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		msg.Sender = peer
+		msg.SenderHost, _, _ = net.SplitHostPort(r.RemoteAddr)
 		count := h.hub.Broadcast(room, msg)
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{

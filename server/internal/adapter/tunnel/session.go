@@ -27,6 +27,8 @@ type Session struct {
 
 	transport    Transport
 	path         PathKind
+	identity     ServerIdentity
+	connectionID string
 	standby      atomic.Bool
 	localAdbPort atomic.Int32
 	bytesBridged atomic.Int64
@@ -77,6 +79,8 @@ func (s *Session) SendWelcome(serverLanIP, serverSSID string) error {
 		"mapped_port":   s.MappedPort,
 		"server_lan_ip": serverLanIP,
 		"server_ssid":   serverSSID,
+		"server_id":     s.identity.ID,
+		"server_name":   s.identity.Name,
 	})
 	if err != nil {
 		return err

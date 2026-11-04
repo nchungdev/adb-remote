@@ -73,3 +73,30 @@ func PathForHost(host string) PathKind {
 	}
 	return PathRemote
 }
+
+// PathPolicy specifies how the server chooses an active connection for ADB traffic.
+type PathPolicy string
+
+const (
+	PolicyAuto   PathPolicy = "auto"
+	PolicyLAN    PathPolicy = "lan"
+	PolicyRemote PathPolicy = "remote"
+)
+
+func (p PathPolicy) String() string {
+	if p == "" {
+		return string(PolicyAuto)
+	}
+	return string(p)
+}
+
+func ParsePathPolicy(s string) PathPolicy {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "lan", "wifi", "local":
+		return PolicyLAN
+	case "remote", "webrtc", "tunnel", "cloud", "wan":
+		return PolicyRemote
+	default:
+		return PolicyAuto
+	}
+}
